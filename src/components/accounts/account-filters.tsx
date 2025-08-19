@@ -1,18 +1,28 @@
 import { Search, Filter } from 'lucide-react';
+import { memo, useCallback } from 'react';
+
+type StatusFilter = 'all' | 'pending' | 'active' | 'suspended' | 'excluded';
 
 interface AccountFiltersProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  statusFilter: 'all' | 'pending' | 'active' | 'suspended' | 'excluded';
-  setStatusFilter: (status: 'all' | 'pending' | 'active' | 'suspended' | 'excluded') => void;
+  statusFilter: StatusFilter;
+  setStatusFilter: (status: StatusFilter) => void;
 }
 
-export default function AccountFilters({
+const AccountFilters = memo(function AccountFilters({
   searchTerm,
   setSearchTerm,
   statusFilter,
   setStatusFilter
 }: AccountFiltersProps) {
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, [setSearchTerm]);
+
+  const handleStatusChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatusFilter(e.target.value as StatusFilter);
+  }, [setStatusFilter]);
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
@@ -23,7 +33,7 @@ export default function AccountFilters({
             type="text"
             placeholder="アカウントID、メールアドレス、IPアドレスで検索..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -33,7 +43,7 @@ export default function AccountFilters({
           <Filter className="h-4 w-4 text-gray-400" />
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={handleStatusChange}
             className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">全てのステータス</option>
@@ -46,4 +56,6 @@ export default function AccountFilters({
       </div>
     </div>
   );
-}
+});
+
+export default AccountFilters;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, memo, useCallback, useMemo } from 'react';
 import { Calendar, X } from 'lucide-react';
 
 interface DateFilterProps {
@@ -12,7 +12,12 @@ interface DateFilterProps {
   onClear: () => void;
 }
 
-export default function DateFilter({
+interface QuickSelectOption {
+  label: string;
+  onClick: () => void;
+}
+
+const DateFilter = memo(function DateFilter({
   startDate,
   endDate,
   onStartDateChange,
@@ -22,20 +27,24 @@ export default function DateFilter({
 }: DateFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const thisWeekStart = new Date(today);
-  thisWeekStart.setDate(today.getDate() - today.getDay());
-
-  const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-
-  const formatDate = (date: Date): string => {
+  const formatDate = useCallback((date: Date): string => {
     return date.toISOString().split('T')[0];
-  };
+  }, []);
 
-  const quickSelectOptions = [
+  const { today, yesterday, thisWeekStart, thisMonthStart } = useMemo(() => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const thisWeekStart = new Date(today);
+    thisWeekStart.setDate(today.getDate() - today.getDay());
+
+    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    return { today, yesterday, thisWeekStart, thisMonthStart };
+  }, []);
+
+  const quickSelectOptions: QuickSelectOption[] = useMemo(() => [
     {
       label: '今日',
       onClick: () => {
@@ -66,9 +75,21 @@ export default function DateFilter({
         onQuickSelect(monthStartStr, todayStr);
       }
     }
-  ];
+  ], [today, yesterday, thisWeekStart, thisMonthStart, formatDate, onQuickSelect]);
 
-  const hasDateFilter = startDate || endDate;
+  const hasDateFilter = useMemo(() => startDate || endDate, [startDate, endDate]);
+
+  const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onStartDateChange(e.target.value);
+  }, [onStartDateChange]);
+
+  const handleEndDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onEndDateChange(e.target.value);
+  }, [onEndDateChange]);
+
+  const toggleOpen = useCallback(() => {
+    setIsOpen(!isOpen);
+  }, [isOpen]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -87,7 +108,7 @@ export default function DateFilter({
           )}
         </div>
         <button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={toggleOpen}
           className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
         >
           {isOpen ? '閉じる' : '開く'}
@@ -105,7 +126,7 @@ export default function DateFilter({
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => onStartDateChange(e.target.value)}
+                onChange={handleStartDateChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -116,7 +137,7 @@ export default function DateFilter({
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => onEndDateChange(e.target.value)}
+                onChange={handleEndDateChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -173,4 +194,6 @@ export default function DateFilter({
       )}
     </div>
   );
-}
+});
+
+export default DateFilter;

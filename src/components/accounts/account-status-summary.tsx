@@ -1,22 +1,33 @@
 'use client';
 
-import { Clock, CheckCircle, XCircle, Minus } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Minus, LucideIcon } from 'lucide-react';
+import { memo, useMemo } from 'react';
+
+interface StatusCounts {
+  pending: number;
+  active: number;
+  suspended: number;
+  excluded: number;
+}
 
 interface AccountStatusSummaryProps {
   totalAccounts: number;
-  statusCounts: {
-    pending: number;
-    active: number;
-    suspended: number;
-    excluded: number;
-  };
+  statusCounts: StatusCounts;
 }
 
-export default function AccountStatusSummary({ 
+interface StatusItem {
+  label: string;
+  count: number;
+  icon: LucideIcon;
+  color: string;
+  bgColor: string;
+}
+
+const AccountStatusSummary = memo(function AccountStatusSummary({ 
   totalAccounts, 
   statusCounts 
 }: AccountStatusSummaryProps) {
-  const statusItems = [
+  const statusItems: StatusItem[] = useMemo(() => [
     {
       label: '保留中',
       count: statusCounts.pending,
@@ -45,7 +56,7 @@ export default function AccountStatusSummary({
       color: 'text-gray-600',
       bgColor: 'bg-gray-50'
     }
-  ];
+  ], [statusCounts]);
 
   return (
     <div className="space-y-4">
@@ -85,4 +96,6 @@ export default function AccountStatusSummary({
       </div>
     </div>
   );
-}
+});
+
+export default AccountStatusSummary;

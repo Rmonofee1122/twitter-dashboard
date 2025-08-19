@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import AreaChart from "@/components/charts/area-chart";
+import { apiCache } from "@/utils/cache";
 
 interface TrendChartData {
   daily: Array<{ date: string; count: number; cumulative: number }>;
@@ -36,6 +37,22 @@ export default function TrendChart({
   const fetchTrendData = async () => {
     try {
       setLoading(true);
+      
+      // キャッシュキーを生成
+      const cacheKey = `trend-data-${selectedPeriod}-${dateRange}`;
+      
+      // キャッシュから取得を試行
+      const cachedData = apiCache.get(cacheKey);
+      if (cachedData) {
+        console.log(`Using cached data for ${cacheKey}`);
+        setData((prev) => ({
+          ...prev,
+          [selectedPeriod]: cachedData,
+        }));
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(
         `/api/trend-data?period=${selectedPeriod}&range=${dateRange}`
       );
@@ -43,6 +60,9 @@ export default function TrendChart({
         throw new Error("トレンドデータの取得に失敗しました");
       }
       const chartData = await response.json();
+
+      // データをキャッシュに保存（5分間）
+      apiCache.set(cacheKey, chartData, 5);
 
       // 選択された期間のデータを更新
       setData((prev) => ({

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import LineChart from '@/components/charts/line-chart';
+import { apiCache } from '@/utils/cache';
 
 interface CumulativeData {
   date: string;
@@ -24,11 +25,28 @@ export default function CumulativeChart({ dateRange = '30days' }: CumulativeChar
   const fetchCumulativeData = async () => {
     try {
       setLoading(true);
+      
+      // キャッシュキーを生成
+      const cacheKey = `cumulative-data-${dateRange}`;
+      
+      // キャッシュから取得を試行
+      const cachedData = apiCache.get(cacheKey);
+      if (cachedData) {
+        console.log(`Using cached cumulative data for ${dateRange}`);
+        setData(cachedData);
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`/api/cumulative-data?range=${dateRange}`);
       if (!response.ok) {
         throw new Error('累計データの取得に失敗しました');
       }
       const cumulativeData = await response.json();
+      
+      // データをキャッシュに保存（5分間）
+      apiCache.set(cacheKey, cumulativeData, 5);
+      
       setData(cumulativeData);
     } catch (error) {
       console.error('累計データの取得に失敗しました:', error);

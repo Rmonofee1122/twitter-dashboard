@@ -29,52 +29,55 @@ export async function GET(request: Request) {
 async function getDailyData(range: string) {
   const days = getRangeDays(range);
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setHours(23, 59, 59, 999); // 今日の終わりまで含める
 
   // 今日から過去〇日間の開始日を計算（今日を含む）
   const startDate = new Date(today);
   startDate.setDate(startDate.getDate() - (days - 1));
+  startDate.setHours(0, 0, 0, 0);
 
-  console.log(`=== Daily Data Processing ===`);
-  console.log(`Range: ${range}, Days: ${days}`);
-  console.log(`Start Date: ${startDate.toISOString()}`);
-  console.log(`Today: ${today.toISOString()}`);
 
-  // 日付ごとにグループ化（効率的な方法）
-  const dailyData = [];
+  // 期間内のすべてのデータを一度に取得（日付のみ）
+  const { data, error } = await supabase
+    .from("twitter_create_logs")
+    .select("created_at")
+    .gte("created_at", startDate.toISOString())
+    .lte("created_at", today.toISOString());
+
+  if (error) {
+    console.error("データ取得エラー:", error);
+    return NextResponse.json(
+      { error: "データの取得に失敗しました" },
+      { status: 500 }
+    );
+  }
+
+
+  // 累計の初期値を取得
   let cumulative = await getCumulativeCount(startDate);
 
+  // 日付ごとにグルーピング（1回のループで効率的に処理）
+  const dateCountMap = new Map<string, number>();
+  
+  // データを日付別にカウント
+  data?.forEach(item => {
+    const dateStr = new Date(item.created_at).toISOString().split("T")[0];
+    dateCountMap.set(dateStr, (dateCountMap.get(dateStr) || 0) + 1);
+  });
+
+  // 日付範囲の配列を生成
+  const dailyData = [];
   for (let i = 0; i < days; i++) {
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);
     const dateStr = date.toISOString().split("T")[0];
     
-    // その日の開始と終了時刻を設定
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
-
-    // その日のアカウント作成数を直接カウント
-    const { count, error } = await supabase
-      .from("twitter_create_logs")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", dayStart.toISOString())
-      .lte("created_at", dayEnd.toISOString());
-
-    if (error) {
-      console.error(`Error counting for ${dateStr}:`, error);
-      continue;
-    }
-
-    const dayCount = count || 0;
-    cumulative += dayCount;
+    const count = dateCountMap.get(dateStr) || 0;
+    cumulative += count;
     
-    console.log(`Date: ${dateStr}, Count: ${dayCount}, Cumulative: ${cumulative}`);
-
     dailyData.push({
       date: dateStr,
-      count: dayCount,
+      count,
       cumulative,
     });
   }
@@ -84,19 +87,20 @@ async function getDailyData(range: string) {
 
 async function getWeeklyData(range: string) {
   const totalDays = getRangeDays(range);
-  const weeks = Math.ceil(totalDays / 7);
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setHours(23, 59, 59, 999);
 
   // 今日から過去〇日間の開始日を計算
   const startDate = new Date(today);
   startDate.setDate(startDate.getDate() - (totalDays - 1));
+  startDate.setHours(0, 0, 0, 0);
 
+  // 期間内のデータを一度に取得
   const { data, error } = await supabase
     .from("twitter_create_logs")
     .select("created_at")
     .gte("created_at", startDate.toISOString())
-    .order("created_at", { ascending: true });
+    .lte("created_at", today.toISOString());
 
   if (error) {
     console.error("週別データ取得エラー:", error);
@@ -106,6 +110,7 @@ async function getWeeklyData(range: string) {
     );
   }
 
+  const weeks = Math.ceil(totalDays / 7);
   const weeklyData = [];
 
   for (let i = 0; i < weeks; i++) {
@@ -115,11 +120,10 @@ async function getWeeklyData(range: string) {
     weekEnd.setDate(weekEnd.getDate() + 6);
     weekEnd.setHours(23, 59, 59, 999);
 
-    const count =
-      data?.filter((item) => {
-        const itemDate = new Date(item.created_at);
-        return itemDate >= weekStart && itemDate <= weekEnd;
-      }).length || 0;
+    const count = data?.filter((item) => {
+      const itemDate = new Date(item.created_at);
+      return itemDate >= weekStart && itemDate <= weekEnd;
+    }).length || 0;
 
     const weekNumber = getWeekNumber(weekStart);
 
@@ -136,13 +140,14 @@ async function getWeeklyData(range: string) {
 async function getMonthlyData(range: string) {
   const totalDays = getRangeDays(range);
   const months = Math.ceil(totalDays / 30);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
   const monthlyData = [];
 
-  // 今日から過去の月データを取得
+  // 月別データは効率化のため既存の個別クエリを維持
+  // （月数が少ないため、個別クエリでも影響は軽微）
   for (let i = months - 1; i >= 0; i--) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     const monthEnd = new Date(today);
     monthEnd.setMonth(monthEnd.getMonth() - i);
 

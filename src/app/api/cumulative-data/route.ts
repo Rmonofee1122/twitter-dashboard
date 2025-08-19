@@ -36,26 +36,24 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: '累計データの取得に失敗しました' }, { status: 500 });
     }
 
-    // 日別の累計数を計算（今日から過去〇日間）
+    // 日別の累計数を計算（効率的なマップ処理）
     const cumulativeData = [];
     let cumulative = initialCount || 0;
 
+    // 日付ごとにグルーピング
+    const dateCountMap = new Map<string, number>();
+    data?.forEach(item => {
+      const dateStr = new Date(item.created_at).toISOString().split('T')[0];
+      dateCountMap.set(dateStr, (dateCountMap.get(dateStr) || 0) + 1);
+    });
+
+    // 日付範囲の配列を生成
     for (let i = 0; i < days; i++) {
       const date = new Date(startDate);
       date.setDate(date.getDate() + i);
       const dateStr = date.toISOString().split('T')[0];
       
-      // その日の作成数をカウント
-      const dayStart = new Date(date);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(date);
-      dayEnd.setHours(23, 59, 59, 999);
-      
-      const dayCount = data?.filter(item => {
-        const itemDate = new Date(item.created_at);
-        return itemDate >= dayStart && itemDate <= dayEnd;
-      }).length || 0;
-
+      const dayCount = dateCountMap.get(dateStr) || 0;
       cumulative += dayCount;
       
       cumulativeData.push({

@@ -34,7 +34,7 @@ async function getDailyData(range: string) {
   // 今日から過去〇日間の開始日を計算（今日を含む）
   const startDate = new Date(today);
   // 今日から過去〇日間の開始日を設定
-  startDate.setDate(startDate.getDate() - (days - 1));
+  startDate.setDate(startDate.getDate() - (days - 2));
 
   // 日別のアカウント作成数を取得
   const { data, error } = await supabase
@@ -94,7 +94,7 @@ async function getWeeklyData(range: string) {
 
   // 今日から過去〇日間の開始日を計算
   const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - (totalDays - 1));
+  startDate.setDate(startDate.getDate() - totalDays);
 
   const { data, error } = await supabase
     .from("twitter_create_logs")

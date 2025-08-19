@@ -17,18 +17,57 @@ export default function Home() {
     accountsCreatedThisWeek: 0,
     accountsCreatedThisMonth: 0,
   });
+  const [recentActivity, setRecentActivity] = useState({
+    todayCreated: 0,
+    weekCreated: 0,
+    monthCreated: 0,
+    activeAccounts: 0,
+  });
+  const [activityLoading, setActivityLoading] = useState(false);
 
   useEffect(() => {
-    // TODO: Supabaseからデータを取得
-    // 仮のデータを設定
-    setStats({
-      totalAccounts: 2547,
-      activeAccounts: 2341,
-      accountsCreatedToday: 12,
-      accountsCreatedThisWeek: 89,
-      accountsCreatedThisMonth: 347,
-    });
+    fetchDashboardData();
+    fetchRecentActivity();
   }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      // TODO: Supabaseからダッシュボードデータを取得
+      // 仮のデータを設定
+      setStats({
+        totalAccounts: 2547,
+        activeAccounts: 2341,
+        accountsCreatedToday: 12,
+        accountsCreatedThisWeek: 89,
+        accountsCreatedThisMonth: 347,
+      });
+    } catch (error) {
+      console.error("ダッシュボードデータの取得に失敗しました:", error);
+    }
+  };
+
+  const fetchRecentActivity = async () => {
+    try {
+      setActivityLoading(true);
+      const response = await fetch("/api/recent-activity");
+      if (!response.ok) {
+        throw new Error("最近の活動データの取得に失敗しました");
+      }
+      const data = await response.json();
+      setRecentActivity(data);
+    } catch (error) {
+      console.error("最近の活動データの取得に失敗しました:", error);
+      // エラーの場合は仮のデータを設定
+      setRecentActivity({
+        todayCreated: 12,
+        weekCreated: 89,
+        monthCreated: 347,
+        activeAccounts: 2341,
+      });
+    } finally {
+      setActivityLoading(false);
+    }
+  };
 
   const statCards = [
     {
@@ -62,9 +101,26 @@ export default function Home() {
   ];
 
   const recentActivities = [
-    { action: "新規アカウント作成", count: 12, time: "今日" },
-    { action: "今週のアカウント作成", count: 89, time: "7日間" },
-    { action: "アクティブアカウント", count: 2341, time: "現在" },
+    {
+      action: "新規アカウント作成",
+      count: recentActivity.todayCreated,
+      time: "今日",
+    },
+    {
+      action: "今週のアカウント作成",
+      count: recentActivity.weekCreated,
+      time: "7日間",
+    },
+    {
+      action: "今月のアカウント作成",
+      count: recentActivity.monthCreated,
+      time: "今月",
+    },
+    {
+      action: "アクティブアカウント",
+      count: recentActivity.activeAccounts,
+      time: "現在",
+    },
   ];
 
   const quickLinks = [
@@ -106,7 +162,7 @@ export default function Home() {
       <AccountManagement />
 
       {/* 統計カード */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => (
           <StatCard
             key={index}
@@ -117,11 +173,16 @@ export default function Home() {
             bgColor={stat.bgColor}
           />
         ))}
-      </div>
+      </div> */}
 
       {/* クイックアクション */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ActivityCard title="最近の活動" activities={recentActivities} />
+        <ActivityCard
+          title="最近の活動"
+          activities={recentActivities}
+          onRefresh={fetchRecentActivity}
+          loading={activityLoading}
+        />
 
         {/* アカウント状況 */}
         <div className="bg-white rounded-lg shadow-sm p-6">
@@ -138,13 +199,13 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div className="text-center p-3 bg-blue-50 rounded-lg">
                 <p className="text-2xl font-bold text-blue-600">
-                  {stats.accountsCreatedThisWeek}
+                  {recentActivity.weekCreated}
                 </p>
                 <p className="text-sm text-gray-600">今週作成</p>
               </div>
               <div className="text-center p-3 bg-purple-50 rounded-lg">
                 <p className="text-2xl font-bold text-purple-600">
-                  {stats.accountsCreatedThisMonth}
+                  {recentActivity.monthCreated}
                 </p>
                 <p className="text-sm text-gray-600">今月作成</p>
               </div>

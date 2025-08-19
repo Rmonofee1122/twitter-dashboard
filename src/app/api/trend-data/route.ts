@@ -33,25 +33,14 @@ async function getDailyData(range: string) {
 
   // 今日から過去〇日間の開始日を計算（今日を含む）
   const startDate = new Date(today);
-  // 今日から過去〇日間の開始日を設定
-  startDate.setDate(startDate.getDate() - (days - 2));
+  startDate.setDate(startDate.getDate() - (days - 1));
 
-  // 日別のアカウント作成数を取得
-  const { data, error } = await supabase
-    .from("twitter_create_logs")
-    .select("created_at")
-    .gte("created_at", startDate.toISOString())
-    .order("created_at", { ascending: true });
+  console.log(`=== Daily Data Processing ===`);
+  console.log(`Range: ${range}, Days: ${days}`);
+  console.log(`Start Date: ${startDate.toISOString()}`);
+  console.log(`Today: ${today.toISOString()}`);
 
-  if (error) {
-    console.error("日別データ取得エラー:", error);
-    return NextResponse.json(
-      { error: "日別データの取得に失敗しました" },
-      { status: 500 }
-    );
-  }
-
-  // 日付ごとにグループ化（今日から過去〇日間）
+  // 日付ごとにグループ化（効率的な方法）
   const dailyData = [];
   let cumulative = await getCumulativeCount(startDate);
 
@@ -59,26 +48,33 @@ async function getDailyData(range: string) {
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);
     const dateStr = date.toISOString().split("T")[0];
-    console.log(`Processing date: ${dateStr}`);
-
-    // その日の作成数をカウント
+    
+    // その日の開始と終了時刻を設定
     const dayStart = new Date(date);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
 
-    const count =
-      data?.filter((item) => {
-        const itemDate = new Date(item.created_at);
-        return itemDate >= dayStart && itemDate <= dayEnd;
-      }).length || 0;
+    // その日のアカウント作成数を直接カウント
+    const { count, error } = await supabase
+      .from("twitter_create_logs")
+      .select("*", { count: "exact", head: true })
+      .gte("created_at", dayStart.toISOString())
+      .lte("created_at", dayEnd.toISOString());
 
-    cumulative += count;
-    console.log(`Date: ${dateStr}, Count: ${count}, Cumulative: ${cumulative}`);
+    if (error) {
+      console.error(`Error counting for ${dateStr}:`, error);
+      continue;
+    }
+
+    const dayCount = count || 0;
+    cumulative += dayCount;
+    
+    console.log(`Date: ${dateStr}, Count: ${dayCount}, Cumulative: ${cumulative}`);
 
     dailyData.push({
       date: dateStr,
-      count,
+      count: dayCount,
       cumulative,
     });
   }
@@ -94,7 +90,7 @@ async function getWeeklyData(range: string) {
 
   // 今日から過去〇日間の開始日を計算
   const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - totalDays);
+  startDate.setDate(startDate.getDate() - (totalDays - 1));
 
   const { data, error } = await supabase
     .from("twitter_create_logs")

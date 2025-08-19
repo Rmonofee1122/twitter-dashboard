@@ -1,0 +1,89 @@
+import { Clock, TrendingUp, Users } from 'lucide-react';
+
+interface TrendInsightsProps {
+  insights: {
+    peakHour: string;
+    growthTrend: string;
+    averageEfficiency: number;
+  };
+}
+
+export default function TrendInsights({ insights }: TrendInsightsProps) {
+  const insightCards = [
+    {
+      icon: Clock,
+      title: 'ピーク時間',
+      description: `最も活発な作成時間は${insights.peakHour}です`,
+      color: 'blue'
+    },
+    {
+      icon: TrendingUp,
+      title: '成長傾向',
+      description: insights.growthTrend,
+      color: 'green'
+    },
+    {
+      icon: Users,
+      title: '平均効率',
+      description: `1日平均${insights.averageEfficiency}件のアカウント作成`,
+      color: 'purple'
+    }
+  ];
+
+  const getColorClasses = (color: string) => {
+    switch (color) {
+      case 'blue':
+        return {
+          bg: 'bg-blue-50',
+          icon: 'text-blue-600',
+          title: 'text-blue-900',
+          text: 'text-blue-700'
+        };
+      case 'green':
+        return {
+          bg: 'bg-green-50',
+          icon: 'text-green-600',
+          title: 'text-green-900',
+          text: 'text-green-700'
+        };
+      case 'purple':
+        return {
+          bg: 'bg-purple-50',
+          icon: 'text-purple-600',
+          title: 'text-purple-900',
+          text: 'text-purple-700'
+        };
+      default:
+        return {
+          bg: 'bg-gray-50',
+          icon: 'text-gray-600',
+          title: 'text-gray-900',
+          text: 'text-gray-700'
+        };
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        トレンドインサイト
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {insightCards.map((card, index) => {
+          const colors = getColorClasses(card.color);
+          return (
+            <div key={index} className={`p-4 ${colors.bg} rounded-lg`}>
+              <div className="flex items-center mb-2">
+                <card.icon className={`h-5 w-5 ${colors.icon} mr-2`} />
+                <span className={`font-medium ${colors.title}`}>{card.title}</span>
+              </div>
+              <p className={`text-sm ${colors.text}`}>
+                {card.description}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

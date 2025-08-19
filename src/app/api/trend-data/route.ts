@@ -33,6 +33,7 @@ async function getDailyData(range: string) {
 
   // 今日から過去〇日間の開始日を計算（今日を含む）
   const startDate = new Date(today);
+  // 今日から過去〇日間の開始日を設定
   startDate.setDate(startDate.getDate() - (days - 1));
 
   // 日別のアカウント作成数を取得
@@ -58,6 +59,7 @@ async function getDailyData(range: string) {
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);
     const dateStr = date.toISOString().split("T")[0];
+    console.log(`Processing date: ${dateStr}`);
 
     // その日の作成数をカウント
     const dayStart = new Date(date);
@@ -72,6 +74,7 @@ async function getDailyData(range: string) {
       }).length || 0;
 
     cumulative += count;
+    console.log(`Date: ${dateStr}, Count: ${count}, Cumulative: ${cumulative}`);
 
     dailyData.push({
       date: dateStr,

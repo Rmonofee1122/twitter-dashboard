@@ -26,7 +26,9 @@ export default function TrendsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<
     "daily" | "weekly" | "monthly"
   >("daily");
-  const [dateRange, setDateRange] = useState<'7days' | '30days' | '90days' | '1year'>('30days');
+  const [dateRange, setDateRange] = useState<
+    "7days" | "30days" | "90days" | "1year"
+  >("30days");
 
   useEffect(() => {
     // TODO: Supabaseからデータを取得
@@ -161,7 +163,7 @@ export default function TrendsPage() {
       <TrendStatsCards />
 
       {/* メイン推移チャート */}
-      <TrendChart 
+      <TrendChart
         selectedPeriod={selectedPeriod}
         dateRange={dateRange}
         onPeriodChange={setSelectedPeriod}
@@ -180,7 +182,7 @@ export default function TrendsPage() {
       <GrowthChart data={trendData.monthly} selectedPeriod={selectedPeriod} />
 
       {/* インサイト */}
-      <TrendInsights insights={insights} />
+      {/* <TrendInsights insights={insights} /> */}
 
       {/* パフォーマンス指標 */}
       <PerformanceMetrics metrics={performanceMetrics} />

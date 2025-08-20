@@ -1,4 +1,5 @@
 import { Clock, TrendingUp, Users } from 'lucide-react';
+import { memo, useMemo } from 'react';
 
 interface TrendInsightsProps {
   insights: {
@@ -8,60 +9,69 @@ interface TrendInsightsProps {
   };
 }
 
-export default function TrendInsights({ insights }: TrendInsightsProps) {
-  const insightCards = [
+const TrendInsights = memo(function TrendInsights({ insights }: TrendInsightsProps) {
+  const insightCards = useMemo(() => [
     {
       icon: Clock,
       title: 'ピーク時間',
       description: `最も活発な作成時間は${insights.peakHour}です`,
-      color: 'blue'
+      color: 'blue',
+      value: insights.peakHour
     },
     {
       icon: TrendingUp,
       title: '成長傾向',
       description: insights.growthTrend,
-      color: 'green'
+      color: 'green',
+      value: '安定成長'
     },
     {
       icon: Users,
-      title: '平均効率',
-      description: `1日平均${insights.averageEfficiency}件のアカウント作成`,
-      color: 'purple'
+      title: '1日平均作成数',
+      description: `直近7日間の平均値`,
+      color: 'purple',
+      value: `${insights.averageEfficiency}件`
     }
-  ];
+  ], [insights]);
 
-  const getColorClasses = (color: string) => {
-    switch (color) {
-      case 'blue':
-        return {
-          bg: 'bg-blue-50',
-          icon: 'text-blue-600',
-          title: 'text-blue-900',
-          text: 'text-blue-700'
-        };
-      case 'green':
-        return {
-          bg: 'bg-green-50',
-          icon: 'text-green-600',
-          title: 'text-green-900',
-          text: 'text-green-700'
-        };
-      case 'purple':
-        return {
-          bg: 'bg-purple-50',
-          icon: 'text-purple-600',
-          title: 'text-purple-900',
-          text: 'text-purple-700'
-        };
-      default:
-        return {
-          bg: 'bg-gray-50',
-          icon: 'text-gray-600',
-          title: 'text-gray-900',
-          text: 'text-gray-700'
-        };
-    }
-  };
+  const getColorClasses = useMemo(() => {
+    return (color: string) => {
+      switch (color) {
+        case 'blue':
+          return {
+            bg: 'bg-blue-50',
+            icon: 'text-blue-600',
+            title: 'text-blue-900',
+            text: 'text-blue-700',
+            value: 'text-blue-800'
+          };
+        case 'green':
+          return {
+            bg: 'bg-green-50',
+            icon: 'text-green-600',
+            title: 'text-green-900',
+            text: 'text-green-700',
+            value: 'text-green-800'
+          };
+        case 'purple':
+          return {
+            bg: 'bg-purple-50',
+            icon: 'text-purple-600',
+            title: 'text-purple-900',
+            text: 'text-purple-700',
+            value: 'text-purple-800'
+          };
+        default:
+          return {
+            bg: 'bg-gray-50',
+            icon: 'text-gray-600',
+            title: 'text-gray-900',
+            text: 'text-gray-700',
+            value: 'text-gray-800'
+          };
+      }
+    };
+  }, []);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -72,12 +82,19 @@ export default function TrendInsights({ insights }: TrendInsightsProps) {
         {insightCards.map((card, index) => {
           const colors = getColorClasses(card.color);
           return (
-            <div key={index} className={`p-4 ${colors.bg} rounded-lg`}>
-              <div className="flex items-center mb-2">
-                <card.icon className={`h-5 w-5 ${colors.icon} mr-2`} />
-                <span className={`font-medium ${colors.title}`}>{card.title}</span>
+            <div key={index} className={`p-4 ${colors.bg} rounded-lg border border-gray-200`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center">
+                  <card.icon className={`h-5 w-5 ${colors.icon} mr-2`} />
+                  <span className={`font-medium ${colors.title} text-sm`}>{card.title}</span>
+                </div>
               </div>
-              <p className={`text-sm ${colors.text}`}>
+              <div className="mb-2">
+                <div className={`text-2xl font-bold ${colors.value}`}>
+                  {card.value}
+                </div>
+              </div>
+              <p className={`text-xs ${colors.text} leading-relaxed`}>
                 {card.description}
               </p>
             </div>
@@ -86,4 +103,6 @@ export default function TrendInsights({ insights }: TrendInsightsProps) {
       </div>
     </div>
   );
-}
+});
+
+export default TrendInsights;

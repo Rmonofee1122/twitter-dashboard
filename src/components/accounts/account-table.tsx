@@ -9,13 +9,15 @@ import {
   MoreHorizontal,
   LucideIcon,
 } from "lucide-react";
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { TwitterCreateLog } from "@/types/database";
 import {
   getAccountStatus,
   getStatusText,
   getStatusBadgeColor,
 } from "@/utils/status-helpers";
+import { fetchAccountDetails } from '@/lib/stats-api';
+import AccountDetailModal from './account-detail-modal';
 
 interface AccountTableProps {
   accounts: TwitterCreateLog[];
@@ -41,6 +43,32 @@ const ActionButton = memo(function ActionButton({ icon: Icon, color, onClick, 'a
 });
 
 const AccountTable = memo(function AccountTable({ accounts }: AccountTableProps) {
+  const [selectedAccount, setSelectedAccount] = useState<TwitterCreateLog | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleViewDetails = useCallback(async (twitterId: string | null) => {
+    if (!twitterId) return;
+    
+    setIsLoading(true);
+    try {
+      const accountDetails = await fetchAccountDetails(twitterId);
+      if (accountDetails) {
+        setSelectedAccount(accountDetails);
+        setIsModalOpen(true);
+      }
+    } catch (error) {
+      console.error('Failed to fetch account details:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    setSelectedAccount(null);
+  }, []);
+
   const getStatusIcon = useCallback((appLogin: string | null) => {
     const status = getAccountStatus(appLogin);
     switch (status) {
@@ -123,6 +151,7 @@ const AccountTable = memo(function AccountTable({ accounts }: AccountTableProps)
                   <ActionButton 
                     icon={Eye} 
                     color="text-blue-600 hover:text-blue-900" 
+                    onClick={() => handleViewDetails(account.twitter_id)}
                     aria-label="アカウント詳細を表示"
                   />
                   <ActionButton 
@@ -146,6 +175,12 @@ const AccountTable = memo(function AccountTable({ accounts }: AccountTableProps)
           ))}
         </tbody>
       </table>
+      
+      <AccountDetailModal
+        account={selectedAccount}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 });

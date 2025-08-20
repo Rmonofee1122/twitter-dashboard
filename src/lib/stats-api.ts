@@ -364,6 +364,26 @@ export async function fetchIpRanking(): Promise<IpData[]> {
   }
 }
 
+export async function fetchAccountDetails(twitterId: string): Promise<any> {
+  try {
+    const { data, error } = await supabase
+      .from("twitter_create_logs")
+      .select("*")
+      .eq("twitter_id", twitterId)
+      .single();
+
+    if (error) {
+      console.error("Account details fetch error:", error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Account details fetch error:", error);
+    return null;
+  }
+}
+
 function getNextMonth(currentMonth: string): string {
   const [year, month] = currentMonth.split("-").map(Number);
   if (month === 12) {

@@ -29,20 +29,20 @@ export async function GET(request: Request) {
 async function getDailyData(range: string) {
   const days = getRangeDays(range);
   const today = new Date();
-  today.setHours(23, 59, 59, 999); // 今日の終わりまで含める
+  const todayStr = today.toISOString().split("T")[0];
 
   // 今日から過去〇日間の開始日を計算（今日を含む）
   const startDate = new Date(today);
   startDate.setDate(startDate.getDate() - (days - 1));
-  startDate.setHours(0, 0, 0, 0);
+  const startDateStr = startDate.toISOString().split("T")[0];
 
-
-  // 期間内のすべてのデータを一度に取得（日付のみ）
+  // create_count_per_dayビューから期間内のデータを取得
   const { data, error } = await supabase
-    .from("twitter_create_logs")
-    .select("created_at")
-    .gte("created_at", startDate.toISOString())
-    .lte("created_at", today.toISOString());
+    .from("create_count_per_day")
+    .select("created_date, total_count")
+    .gte("created_date", startDateStr)
+    .lte("created_date", todayStr)
+    .order("created_date", { ascending: true });
 
   if (error) {
     console.error("データ取得エラー:", error);
@@ -52,17 +52,13 @@ async function getDailyData(range: string) {
     );
   }
 
-
   // 累計の初期値を取得
   let cumulative = await getCumulativeCount(startDate);
 
-  // 日付ごとにグルーピング（1回のループで効率的に処理）
+  // 日付別データをマップに変換
   const dateCountMap = new Map<string, number>();
-  
-  // データを日付別にカウント
-  data?.forEach(item => {
-    const dateStr = new Date(item.created_at).toISOString().split("T")[0];
-    dateCountMap.set(dateStr, (dateCountMap.get(dateStr) || 0) + 1);
+  data?.forEach((item) => {
+    dateCountMap.set(item.created_date, item.total_count);
   });
 
   // 日付範囲の配列を生成
@@ -71,10 +67,10 @@ async function getDailyData(range: string) {
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);
     const dateStr = date.toISOString().split("T")[0];
-    
+
     const count = dateCountMap.get(dateStr) || 0;
     cumulative += count;
-    
+
     dailyData.push({
       date: dateStr,
       count,
@@ -88,19 +84,20 @@ async function getDailyData(range: string) {
 async function getWeeklyData(range: string) {
   const totalDays = getRangeDays(range);
   const today = new Date();
-  today.setHours(23, 59, 59, 999);
+  const todayStr = today.toISOString().split("T")[0];
 
   // 今日から過去〇日間の開始日を計算
   const startDate = new Date(today);
   startDate.setDate(startDate.getDate() - (totalDays - 1));
-  startDate.setHours(0, 0, 0, 0);
+  const startDateStr = startDate.toISOString().split("T")[0];
 
-  // 期間内のデータを一度に取得
+  // create_count_per_dayビューから期間内のデータを取得
   const { data, error } = await supabase
-    .from("twitter_create_logs")
-    .select("created_at")
-    .gte("created_at", startDate.toISOString())
-    .lte("created_at", today.toISOString());
+    .from("create_count_per_day")
+    .select("created_date, total_count")
+    .gte("created_date", startDateStr)
+    .lte("created_date", todayStr)
+    .order("created_date", { ascending: true });
 
   if (error) {
     console.error("週別データ取得エラー:", error);
@@ -110,6 +107,12 @@ async function getWeeklyData(range: string) {
     );
   }
 
+  // 日付別データをマップに変換
+  const dateCountMap = new Map<string, number>();
+  data?.forEach((item) => {
+    dateCountMap.set(item.created_date, item.total_count);
+  });
+
   const weeks = Math.ceil(totalDays / 7);
   const weeklyData = [];
 
@@ -118,12 +121,14 @@ async function getWeeklyData(range: string) {
     weekStart.setDate(weekStart.getDate() + i * 7);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
 
-    const count = data?.filter((item) => {
-      const itemDate = new Date(item.created_at);
-      return itemDate >= weekStart && itemDate <= weekEnd;
-    }).length || 0;
+    let count = 0;
+    for (let j = 0; j < 7; j++) {
+      const currentDate = new Date(weekStart);
+      currentDate.setDate(currentDate.getDate() + j);
+      const dateStr = currentDate.toISOString().split("T")[0];
+      count += dateCountMap.get(dateStr) || 0;
+    }
 
     const weekNumber = getWeekNumber(weekStart);
 
@@ -142,35 +147,35 @@ async function getMonthlyData(range: string) {
   const months = Math.ceil(totalDays / 30);
   const monthlyData = [];
 
-  // 月別データは効率化のため既存の個別クエリを維持
-  // （月数が少ないため、個別クエリでも影響は軽微）
   for (let i = months - 1; i >= 0; i--) {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
     const monthEnd = new Date(today);
     monthEnd.setMonth(monthEnd.getMonth() - i);
 
     const monthStart = new Date(monthEnd);
     monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
 
     // 月末を設定
     const actualMonthEnd = new Date(monthStart);
     actualMonthEnd.setMonth(actualMonthEnd.getMonth() + 1);
     actualMonthEnd.setDate(0);
-    actualMonthEnd.setHours(23, 59, 59, 999);
 
-    const { count, error } = await supabase
-      .from("twitter_create_logs")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", monthStart.toISOString())
-      .lte("created_at", actualMonthEnd.toISOString());
+    const monthStartStr = monthStart.toISOString().split("T")[0];
+    const monthEndStr = actualMonthEnd.toISOString().split("T")[0];
+
+    // create_count_per_dayビューから月別データを取得
+    const { data, error } = await supabase
+      .from("create_count_per_day")
+      .select("created_date, total_count")
+      .gte("created_date", monthStartStr)
+      .lte("created_date", monthEndStr);
 
     if (error) {
       console.error("月別データ取得エラー:", error);
       continue;
     }
+
+    const count = data?.reduce((sum, item) => sum + item.total_count, 0) || 0;
 
     // 前月のデータを取得して成長率を計算
     const prevMonthStart = new Date(monthStart);
@@ -178,25 +183,27 @@ async function getMonthlyData(range: string) {
     const prevMonthEnd = new Date(prevMonthStart);
     prevMonthEnd.setMonth(prevMonthEnd.getMonth() + 1);
     prevMonthEnd.setDate(0);
-    prevMonthEnd.setHours(23, 59, 59, 999);
 
-    const { count: prevCount } = await supabase
-      .from("twitter_create_logs")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", prevMonthStart.toISOString())
-      .lte("created_at", prevMonthEnd.toISOString());
+    const prevMonthStartStr = prevMonthStart.toISOString().split("T")[0];
+    const prevMonthEndStr = prevMonthEnd.toISOString().split("T")[0];
+
+    const { data: prevData } = await supabase
+      .from("create_count_per_day")
+      .select("created_date, total_count")
+      .gte("created_date", prevMonthStartStr)
+      .lte("created_date", prevMonthEndStr);
+
+    const prevCount = prevData?.reduce((sum, item) => sum + item.total_count, 0) || 0;
 
     const growth =
-      prevCount && prevCount > 0
-        ? (((count || 0) - prevCount) / prevCount) * 100
-        : 0;
+      prevCount > 0 ? ((count - prevCount) / prevCount) * 100 : 0;
 
     monthlyData.push({
       month: monthStart.toLocaleDateString("ja-JP", {
         year: "numeric",
         month: "2-digit",
       }),
-      count: count || 0,
+      count: count,
       growth: Number(growth.toFixed(1)),
     });
   }

@@ -33,7 +33,6 @@ export async function GET() {
       throw recentError;
     }
 
-
     // 累計アカウント数（別クエリで効率的に取得）
     const { count: totalCount, error: totalError } = await supabase
       .from("twitter_create_logs")
@@ -52,24 +51,24 @@ export async function GET() {
     const weekAgo = new Date(todayStart);
     weekAgo.setDate(weekAgo.getDate() - 7);
 
-    recentData?.forEach(item => {
+    recentData?.forEach((item) => {
       const itemDate = new Date(item.created_at);
-      
+
       // 今日
       if (itemDate >= todayStart && itemDate < todayEnd) {
         todayCount++;
       }
-      
+
       // 昨日
       if (itemDate >= yesterdayStart && itemDate < todayStart) {
         yesterdayCount++;
       }
-      
+
       // 今週（過去7日間）
       if (itemDate >= weekAgo) {
         thisWeekCount++;
       }
-      
+
       // 前週（7-14日前）
       if (itemDate >= twoWeeksAgo && itemDate < weekAgo) {
         lastWeekCount++;

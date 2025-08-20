@@ -8,6 +8,7 @@ import HourlyChart from "@/components/trends/hourly-chart";
 import GrowthChart from "@/components/trends/growth-chart";
 import TrendInsights from "@/components/trends/trend-insights";
 import PerformanceMetrics from "@/components/trends/performance-metrics";
+import { fetchPerformanceMetrics, type PerformanceMetrics as PerformanceMetricsType } from "@/lib/stats-api";
 
 interface TrendData {
   daily: Array<{ date: string; count: number; cumulative: number }>;
@@ -23,6 +24,11 @@ export default function TrendsPage() {
     monthly: [],
     hourly: [],
   });
+  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetricsType>({
+    activeRate: 0,
+    dailyAverage: 0,
+    monthlyTotal: 0,
+  });
   const [selectedPeriod, setSelectedPeriod] = useState<
     "daily" | "weekly" | "monthly"
   >("daily");
@@ -31,6 +37,14 @@ export default function TrendsPage() {
   >("30days");
 
   useEffect(() => {
+    // パフォーマンス指標を取得
+    async function loadPerformanceMetrics() {
+      const metrics = await fetchPerformanceMetrics();
+      setPerformanceMetrics(metrics);
+    }
+
+    loadPerformanceMetrics();
+
     // TODO: Supabaseからデータを取得
     // 仮のデータを設定
     const generateDailyData = () => {
@@ -140,12 +154,7 @@ export default function TrendsPage() {
     averageEfficiency: dailyAverage,
   };
 
-  // パフォーマンス指標
-  const performanceMetrics = {
-    activeRate: 92.0, // TODO: 実際のデータから計算
-    dailyAverage: dailyAverage,
-    monthlyTotal: stats.thisWeek * 4, // 概算
-  };
+  // パフォーマンス指標は既にstateで管理
 
   return (
     <div className="space-y-6">

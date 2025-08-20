@@ -1,28 +1,28 @@
+import type { PerformanceMetrics } from "@/lib/stats-api";
+
 interface PerformanceMetricsProps {
-  metrics: {
-    activeRate: number;
-    dailyAverage: number;
-    monthlyTotal: number;
-  };
+  metrics: PerformanceMetrics;
 }
 
-export default function PerformanceMetrics({ metrics }: PerformanceMetricsProps) {
+export default function PerformanceMetrics({
+  metrics,
+}: PerformanceMetricsProps) {
   const performanceItems = [
     {
       value: `${metrics.activeRate.toFixed(1)}%`,
-      label: 'アクティブ率',
-      color: 'text-blue-600'
+      label: "アクティブ率",
+      color: "text-blue-600",
     },
     {
       value: metrics.dailyAverage.toFixed(1),
-      label: '日平均作成数',
-      color: 'text-green-600'
+      label: "今月の日平均作成数",
+      color: "text-green-600",
     },
     {
       value: metrics.monthlyTotal.toString(),
-      label: '月間作成数',
-      color: 'text-purple-600'
-    }
+      label: "月間作成数",
+      color: "text-purple-600",
+    },
   ];
 
   return (

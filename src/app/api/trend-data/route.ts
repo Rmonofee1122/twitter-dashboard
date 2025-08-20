@@ -130,10 +130,11 @@ async function getWeeklyData(range: string) {
       count += dateCountMap.get(dateStr) || 0;
     }
 
-    const weekNumber = getWeekNumber(weekStart);
+    const weekOfMonth = Math.ceil(weekStart.getDate() / 7);
+    const month = weekStart.getMonth() + 1;
 
     weeklyData.push({
-      week: `${weekStart.getFullYear()}-W${weekNumber}`,
+      week: `${month}月第${weekOfMonth}週`,
       count,
       average: Math.round((count / 7) * 10) / 10,
     });

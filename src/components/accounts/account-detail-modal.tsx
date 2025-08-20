@@ -236,7 +236,7 @@ export default function AccountDetailModal({
                 <div className="flex items-center">
                   <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
                     {account.device_base64
-                      ? `${account.device_base64.substring(0, 30)}...`
+                      ? `${account.device_base64.substring(0, 20)}...`
                       : "デバイス情報なし"}
                   </p>
                   <CopyButton

@@ -1,18 +1,22 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const today = new Date();
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+    const { searchParams } = new URL(request.url);
+    const dateParam = searchParams.get('date');
+    
+    // 日付パラメータがない場合は今日の日付を使用
+    const targetDate = dateParam ? new Date(dateParam) : new Date();
+    const dateStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    const dateEnd = new Date(dateStart.getTime() + 24 * 60 * 60 * 1000);
 
-    // 今日作成されたアカウントのデータを取得
+    // 指定された日に作成されたアカウントのデータを取得
     const { data, error } = await supabase
       .from('twitter_create_logs')
       .select('created_at')
-      .gte('created_at', todayStart.toISOString())
-      .lt('created_at', todayEnd.toISOString())
+      .gte('created_at', dateStart.toISOString())
+      .lt('created_at', dateEnd.toISOString())
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -23,7 +27,7 @@ export async function GET() {
       );
     }
 
-    // 今日の24時間別にグループ化
+    // 指定された日の24時間別にグループ化
     const hourlyData = [];
     
     for (let hour = 0; hour < 24; hour++) {

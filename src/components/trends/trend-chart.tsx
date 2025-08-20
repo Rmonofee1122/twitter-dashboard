@@ -37,10 +37,10 @@ export default function TrendChart({
   const fetchTrendData = async () => {
     try {
       setLoading(true);
-      
+
       // キャッシュキーを生成
       const cacheKey = `trend-data-${selectedPeriod}-${dateRange}`;
-      
+
       // キャッシュから取得を試行
       const cachedData = apiCache.get(cacheKey);
       if (cachedData) {

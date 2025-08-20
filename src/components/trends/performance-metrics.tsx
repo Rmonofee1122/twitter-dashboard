@@ -15,7 +15,7 @@ export default function PerformanceMetrics({
     },
     {
       value: metrics.dailyAverage.toFixed(1),
-      label: "今月の日平均作成数",
+      label: "日平均作成数（今月平均）",
       color: "text-green-600",
     },
     {

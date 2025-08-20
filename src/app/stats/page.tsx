@@ -5,14 +5,16 @@ import StatsHeader from "@/components/stats/stats-header";
 import SummaryCards from "@/components/stats/summary-cards";
 import CreationTrendsChart from "@/components/stats/creation-trends-chart";
 import StatusDistributionChart from "@/components/stats/status-distribution-chart";
+import DomainRankingList from "@/components/stats/domain-ranking-list";
 import IpRankingList from "@/components/stats/ip-ranking-list";
 import PerformanceMetrics from "@/components/stats/performance-metrics";
-import { fetchStatsData, fetchCreationTrendsData, type TotalStats, type ChartData } from "@/lib/stats-api";
+import { fetchStatsData, fetchCreationTrendsData, fetchDomainRanking, fetchIpRanking, type TotalStats, type ChartData, type DomainData, type IpData } from "@/lib/stats-api";
 
 interface StatsData {
   chartData: ChartData;
   statusDistribution: Array<{ name: string; value: number; color: string }>;
-  ipDistribution: Array<{ ip: string; count: number }>;
+  domainData: DomainData[];
+  ipDistribution: IpData[];
   totalStats: TotalStats;
 }
 
@@ -24,6 +26,7 @@ export default function StatsPage() {
       monthlyCreations: [],
     },
     statusDistribution: [],
+    domainData: [],
     ipDistribution: [],
     totalStats: {
       totalAccounts: 0,
@@ -40,9 +43,11 @@ export default function StatsPage() {
 
   useEffect(() => {
     async function loadStatsData() {
-      const [realStats, trendsData] = await Promise.all([
+      const [realStats, trendsData, domainData, ipData] = await Promise.all([
         fetchStatsData(),
-        fetchCreationTrendsData()
+        fetchCreationTrendsData(),
+        fetchDomainRanking(),
+        fetchIpRanking()
       ]);
       
       setStatsData({
@@ -52,13 +57,8 @@ export default function StatsPage() {
           { name: "非アクティブ", value: realStats.totalAccounts - realStats.activeAccounts, color: "#F59E0B" },
           { name: "停止中", value: 0, color: "#EF4444" },
         ],
-        ipDistribution: [
-          { ip: "192.168.1.100", count: 234 },
-          { ip: "192.168.1.101", count: 189 },
-          { ip: "192.168.1.102", count: 167 },
-          { ip: "192.168.1.103", count: 145 },
-          { ip: "192.168.1.104", count: 123 },
-        ],
+        domainData: domainData,
+        ipDistribution: ipData,
         totalStats: realStats,
       });
     }
@@ -89,6 +89,7 @@ export default function StatsPage() {
         />
       </div>
 
+      <DomainRankingList domainData={statsData.domainData} />
       <IpRankingList ipDistribution={statsData.ipDistribution} />
       <PerformanceMetrics totalStats={statsData.totalStats} />
     </div>

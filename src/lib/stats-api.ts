@@ -14,6 +14,16 @@ export interface PerformanceMetrics {
   monthlyTotal: number;
 }
 
+export interface DomainData {
+  domain: string;
+  count: number;
+}
+
+export interface IpData {
+  ip: string;
+  count: number;
+}
+
 export interface ChartData {
   dailyCreations: Array<{ date: string; count: number }>;
   weeklyCreations: Array<{ week: string; count: number }>;
@@ -310,6 +320,47 @@ export async function fetchPerformanceMetrics(): Promise<PerformanceMetrics> {
       dailyAverage: 0,
       monthlyTotal: 0,
     };
+  }
+}
+
+// ドメインランキングを取得する関数
+export async function fetchDomainRanking(): Promise<DomainData[]> {
+  try {
+    const { data, error } = await supabase
+      .from("domain_view")
+      .select("domain, count")
+      .order("count", { ascending: false });
+
+    if (error) {
+      console.error("Domain ranking fetch error:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Domain ranking fetch error:", error);
+    return [];
+  }
+}
+
+// IPランキングを取得する関数
+export async function fetchIpRanking(): Promise<IpData[]> {
+  try {
+    const { data, error } = await supabase
+      .from("ip_view")
+      .select("ip, count")
+      .order("count", { ascending: false })
+      .limit(5);
+
+    if (error) {
+      console.error("IP ranking fetch error:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("IP ranking fetch error:", error);
+    return [];
   }
 }
 

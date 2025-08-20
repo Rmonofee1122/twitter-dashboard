@@ -1,27 +1,26 @@
 import { Database, RefreshCw } from 'lucide-react';
+import ToggleSwitch from '@/components/ui/toggle-switch';
+
+interface DatabaseConfig {
+  supabaseUrl: string;
+  supabaseKey: string;
+  autoBackup: boolean;
+  backupFrequency: 'daily' | 'weekly' | 'monthly';
+}
 
 interface DatabaseSettingsProps {
-  settings: {
-    supabaseUrl: string;
-    supabaseKey: string;
-    autoBackup: boolean;
-    backupFrequency: 'daily' | 'weekly' | 'monthly';
-  };
-  onSettingsChange: (settings: any) => void;
+  config: DatabaseConfig;
+  onChange: (config: DatabaseConfig) => void;
   onTestConnection: () => void;
   onClearCache: () => void;
 }
 
-export default function DatabaseSettings({
-  settings,
-  onSettingsChange,
-  onTestConnection,
-  onClearCache
+export default function DatabaseSettings({ 
+  config, 
+  onChange, 
+  onTestConnection, 
+  onClearCache 
 }: DatabaseSettingsProps) {
-  const updateSetting = (key: string, value: any) => {
-    onSettingsChange({ ...settings, [key]: value });
-  };
-
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-4">データベース設定</h2>
@@ -32,8 +31,11 @@ export default function DatabaseSettings({
         </label>
         <input
           type="text"
-          value={settings.supabaseUrl}
-          onChange={(e) => updateSetting('supabaseUrl', e.target.value)}
+          value={config.supabaseUrl}
+          onChange={(e) => onChange({
+            ...config,
+            supabaseUrl: e.target.value
+          })}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="https://your-project.supabase.co"
         />
@@ -45,8 +47,11 @@ export default function DatabaseSettings({
         </label>
         <input
           type="password"
-          value={settings.supabaseKey}
-          onChange={(e) => updateSetting('supabaseKey', e.target.value)}
+          value={config.supabaseKey}
+          onChange={(e) => onChange({
+            ...config,
+            supabaseKey: e.target.value
+          })}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="your-anon-key"
         />
@@ -57,25 +62,26 @@ export default function DatabaseSettings({
           <p className="font-medium text-gray-900">自動バックアップ</p>
           <p className="text-sm text-gray-600">定期的にデータをバックアップします</p>
         </div>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            checked={settings.autoBackup}
-            onChange={(e) => updateSetting('autoBackup', e.target.checked)}
-            className="sr-only peer"
-          />
-          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-        </label>
+        <ToggleSwitch
+          checked={config.autoBackup}
+          onChange={(checked) => onChange({
+            ...config,
+            autoBackup: checked
+          })}
+        />
       </div>
 
-      {settings.autoBackup && (
+      {config.autoBackup && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             バックアップ頻度
           </label>
           <select
-            value={settings.backupFrequency}
-            onChange={(e) => updateSetting('backupFrequency', e.target.value)}
+            value={config.backupFrequency}
+            onChange={(e) => onChange({
+              ...config,
+              backupFrequency: e.target.value as 'daily' | 'weekly' | 'monthly'
+            })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="daily">毎日</option>

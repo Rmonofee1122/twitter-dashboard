@@ -1,4 +1,5 @@
-import { X } from "lucide-react";
+import { X, Copy, Check } from "lucide-react";
+import { useState } from "react";
 import { TwitterCreateLog } from "@/types/database";
 import {
   getAccountStatus,
@@ -17,7 +18,19 @@ export default function AccountDetailModal({
   isOpen,
   onClose,
 }: AccountDetailModalProps) {
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
   if (!isOpen || !account) return null;
+
+  const copyToClipboard = async (text: string, fieldName: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(fieldName);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (error) {
+      console.error("Failed to copy:", error);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("ja-JP", {
@@ -31,6 +44,33 @@ export default function AccountDetailModal({
   };
 
   const status = getAccountStatus(account.app_login);
+
+  const CopyButton = ({
+    value,
+    fieldName,
+  }: {
+    value: string;
+    fieldName: string;
+  }) => {
+    const isCopied = copiedField === fieldName;
+    const hasValue = value && value !== "未設定";
+
+    if (!hasValue) return null;
+
+    return (
+      <button
+        onClick={() => copyToClipboard(value, fieldName)}
+        className="ml-2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+        title="コピー"
+      >
+        {isCopied ? (
+          <Check className="h-4 w-4 text-green-500" />
+        ) : (
+          <Copy className="h-4 w-4" />
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center">
@@ -57,17 +97,26 @@ export default function AccountDetailModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Twitter ID
                 </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                  {account.twitter_id || "未設定"}
-                </p>
+                <div className="flex items-center">
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
+                    {account.twitter_id || "未設定"}
+                  </p>
+                  <CopyButton
+                    value={account.twitter_id || ""}
+                    fieldName="twitter_id"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   メールアドレス
                 </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                  {account.email || "未設定"}
-                </p>
+                <div className="flex items-center">
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
+                    {account.email || "未設定"}
+                  </p>
+                  <CopyButton value={account.email || ""} fieldName="email" />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -85,9 +134,15 @@ export default function AccountDetailModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   作成日時
                 </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                  {formatDate(account.created_at)}
-                </p>
+                <div className="flex items-center">
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
+                    {formatDate(account.created_at)}
+                  </p>
+                  <CopyButton
+                    value={formatDate(account.created_at)}
+                    fieldName="created_at"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -100,35 +155,56 @@ export default function AccountDetailModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   作成IP
                 </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded font-mono">
-                  {account.create_ip || "未設定"}
-                </p>
+                <div className="flex items-center">
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded font-mono flex-1">
+                    {account.create_ip || "未設定"}
+                  </p>
+                  <CopyButton
+                    value={account.create_ip || ""}
+                    fieldName="create_ip"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Email ID
                 </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                  {account.email_id || "未設定"}
-                </p>
+                <div className="flex items-center">
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
+                    {account.email_id || "未設定"}
+                  </p>
+                  <CopyButton
+                    value={account.email_id || ""}
+                    fieldName="email_id"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   CT0トークン
                 </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded font-mono">
-                  {account.ct0
-                    ? `${account.ct0.substring(0, 20)}...`
-                    : "未設定"}
-                </p>
+                <div className="flex items-center">
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded font-mono flex-1">
+                    {account.ct0
+                      ? `${account.ct0.substring(0, 20)}...`
+                      : "未設定"}
+                  </p>
+                  <CopyButton value={account.ct0 || ""} fieldName="ct0" />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   2FAコード
                 </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                  {account.twitter_2fa_code ? "設定済み" : "未設定"}
-                </p>
+                <div className="flex items-center">
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
+                    {account.twitter_2fa_code || "未設定"}
+                  </p>
+                  <CopyButton
+                    value={account.twitter_2fa_code || ""}
+                    fieldName="twitter_2fa_code"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -143,21 +219,31 @@ export default function AccountDetailModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   パスワード
                 </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                  {account.twitter_pass
-                    ? "設定済み (セキュリティ上非表示)"
-                    : "未設定"}
-                </p>
+                <div className="flex items-center">
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
+                    {account.twitter_pass || "未設定"}
+                  </p>
+                  <CopyButton
+                    value={account.twitter_pass || ""}
+                    fieldName="twitter_pass"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   デバイス情報
                 </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                  {account.device_base64
-                    ? "デバイス情報あり"
-                    : "デバイス情報なし"}
-                </p>
+                <div className="flex items-center">
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
+                    {account.device_base64
+                      ? `${account.device_base64.substring(0, 30)}...`
+                      : "デバイス情報なし"}
+                  </p>
+                  <CopyButton
+                    value={account.device_base64 || ""}
+                    fieldName="device_base64"
+                  />
+                </div>
               </div>
             </div>
           </div>

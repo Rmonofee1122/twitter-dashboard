@@ -349,6 +349,26 @@ export async function fetchIpRanking(): Promise<IpData[]> {
     const { data, error } = await supabase
       .from("ip_view")
       .select("ip, count")
+      .order("count", { ascending: false });
+
+    if (error) {
+      console.error("IP ranking fetch error:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("IP ranking fetch error:", error);
+    return [];
+  }
+}
+
+// IPランキング（上位5つ）を取得する関数
+export async function fetchIpRankingTop5(): Promise<IpData[]> {
+  try {
+    const { data, error } = await supabase
+      .from("ip_view")
+      .select("ip, count")
       .order("count", { ascending: false })
       .limit(5);
 
@@ -364,6 +384,7 @@ export async function fetchIpRanking(): Promise<IpData[]> {
   }
 }
 
+// アカウントの詳細モーダル用データを取得する関数
 export async function fetchAccountDetails(twitterId: string): Promise<any> {
   try {
     const { data, error } = await supabase

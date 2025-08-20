@@ -8,7 +8,16 @@ import StatusDistributionChart from "@/components/stats/status-distribution-char
 import DomainRankingList from "@/components/stats/domain-ranking-list";
 import IpRankingList from "@/components/stats/ip-ranking-list";
 import PerformanceMetrics from "@/components/stats/performance-metrics";
-import { fetchStatsData, fetchCreationTrendsData, fetchDomainRanking, fetchIpRanking, type TotalStats, type ChartData, type DomainData, type IpData } from "@/lib/stats-api";
+import {
+  fetchStatsData,
+  fetchCreationTrendsData,
+  fetchDomainRanking,
+  fetchIpRankingTop5,
+  type TotalStats,
+  type ChartData,
+  type DomainData,
+  type IpData,
+} from "@/lib/stats-api";
 
 interface StatsData {
   chartData: ChartData;
@@ -47,14 +56,22 @@ export default function StatsPage() {
         fetchStatsData(),
         fetchCreationTrendsData(),
         fetchDomainRanking(),
-        fetchIpRanking()
+        fetchIpRankingTop5(),
       ]);
-      
+
       setStatsData({
         chartData: trendsData,
         statusDistribution: [
-          { name: "アクティブ", value: realStats.activeAccounts, color: "#10B981" },
-          { name: "非アクティブ", value: realStats.totalAccounts - realStats.activeAccounts, color: "#F59E0B" },
+          {
+            name: "アクティブ",
+            value: realStats.activeAccounts,
+            color: "#10B981",
+          },
+          {
+            name: "非アクティブ",
+            value: realStats.totalAccounts - realStats.activeAccounts,
+            color: "#F59E0B",
+          },
           { name: "停止中", value: 0, color: "#EF4444" },
         ],
         domainData: domainData,

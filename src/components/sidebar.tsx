@@ -11,12 +11,25 @@ import {
   Settings,
   Menu,
   X,
-  Twitter
+  Twitter,
+  ChevronDown,
+  ChevronRight,
+  Globe,
+  MapPin
 } from 'lucide-react';
 
 const navigation = [
   { name: 'ホーム', href: '/', icon: Home },
-  { name: '統計情報', href: '/stats', icon: BarChart3 },
+  { 
+    name: '統計情報', 
+    href: '/stats', 
+    icon: BarChart3,
+    submenu: [
+      { name: '概要', href: '/stats', icon: BarChart3 },
+      { name: 'ドメイン別統計', href: '/stats/domain', icon: Globe },
+      { name: 'IP別統計', href: '/stats/ip', icon: MapPin },
+    ]
+  },
   { name: 'アカウント一覧', href: '/accounts', icon: Users },
   { name: '作成推移', href: '/trends', icon: TrendingUp },
   { name: '設定', href: '/settings', icon: Settings },
@@ -24,7 +37,16 @@ const navigation = [
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const pathname = usePathname();
+
+  const toggleSubmenu = (menuName: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(menuName) 
+        ? prev.filter(name => name !== menuName)
+        : [...prev, menuName]
+    );
+  };
 
   return (
     <>
@@ -69,27 +91,93 @@ export default function Sidebar() {
             <ul className="space-y-2">
               {navigation.map((item) => {
                 const isActive = pathname === item.href;
+                const isExpanded = expandedMenus.includes(item.name);
+                const hasSubmenu = item.submenu && item.submenu.length > 0;
+                
                 return (
                   <li key={item.name}>
-                    <Link
-                      href={item.href}
-                      onClick={() => setIsOpen(false)}
-                      className={`
-                        flex items-center px-4 py-3 rounded-lg text-sm font-medium
-                        transition-colors duration-200
-                        ${isActive
-                          ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                        }
-                      `}
-                    >
-                      <item.icon
-                        className={`mr-3 h-5 w-5 ${
-                          isActive ? 'text-blue-700' : 'text-gray-400'
-                        }`}
-                      />
-                      {item.name}
-                    </Link>
+                    {hasSubmenu ? (
+                      <div>
+                        <button
+                          onClick={() => toggleSubmenu(item.name)}
+                          className={`
+                            w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium
+                            transition-colors duration-200
+                            ${isActive || item.submenu?.some(sub => pathname === sub.href)
+                              ? 'bg-blue-50 text-blue-700'
+                              : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                            }
+                          `}
+                        >
+                          <div className="flex items-center">
+                            <item.icon
+                              className={`mr-3 h-5 w-5 ${
+                                isActive || item.submenu?.some(sub => pathname === sub.href) 
+                                  ? 'text-blue-700' 
+                                  : 'text-gray-400'
+                              }`}
+                            />
+                            {item.name}
+                          </div>
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </button>
+                        
+                        {isExpanded && (
+                          <ul className="mt-2 ml-6 space-y-1">
+                            {item.submenu.map((subItem) => {
+                              const isSubActive = pathname === subItem.href;
+                              return (
+                                <li key={subItem.name}>
+                                  <Link
+                                    href={subItem.href}
+                                    onClick={() => setIsOpen(false)}
+                                    className={`
+                                      flex items-center px-4 py-2 rounded-lg text-sm
+                                      transition-colors duration-200
+                                      ${isSubActive
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                      }
+                                    `}
+                                  >
+                                    <subItem.icon
+                                      className={`mr-3 h-4 w-4 ${
+                                        isSubActive ? 'text-blue-700' : 'text-gray-400'
+                                      }`}
+                                    />
+                                    {subItem.name}
+                                  </Link>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </div>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        onClick={() => setIsOpen(false)}
+                        className={`
+                          flex items-center px-4 py-3 rounded-lg text-sm font-medium
+                          transition-colors duration-200
+                          ${isActive
+                            ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                            : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                          }
+                        `}
+                      >
+                        <item.icon
+                          className={`mr-3 h-5 w-5 ${
+                            isActive ? 'text-blue-700' : 'text-gray-400'
+                          }`}
+                        />
+                        {item.name}
+                      </Link>
+                    )}
                   </li>
                 );
               })}

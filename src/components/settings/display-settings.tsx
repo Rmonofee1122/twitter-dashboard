@@ -1,20 +1,16 @@
-interface DisplaySettingsProps {
-  settings: {
-    language: 'ja' | 'en';
-    timezone: string;
-    dateFormat: 'japanese' | 'iso' | 'us';
-    itemsPerPage: number;
-  };
-  onSettingsChange: (settings: any) => void;
+interface DisplayConfig {
+  language: 'ja' | 'en';
+  timezone: string;
+  dateFormat: 'japanese' | 'iso' | 'us';
+  itemsPerPage: number;
 }
 
-export default function DisplaySettings({
-  settings,
-  onSettingsChange
-}: DisplaySettingsProps) {
-  const updateSetting = (key: string, value: any) => {
-    onSettingsChange({ ...settings, [key]: value });
-  };
+interface DisplaySettingsProps {
+  config: DisplayConfig;
+  onChange: (config: DisplayConfig) => void;
+}
+
+export default function DisplaySettings({ config, onChange }: DisplaySettingsProps) {
 
   return (
     <div className="space-y-6">
@@ -25,8 +21,11 @@ export default function DisplaySettings({
           言語
         </label>
         <select
-          value={settings.language}
-          onChange={(e) => updateSetting('language', e.target.value)}
+          value={config.language}
+          onChange={(e) => onChange({
+            ...config,
+            language: e.target.value as 'ja' | 'en'
+          })}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="ja">日本語</option>
@@ -39,8 +38,11 @@ export default function DisplaySettings({
           タイムゾーン
         </label>
         <select
-          value={settings.timezone}
-          onChange={(e) => updateSetting('timezone', e.target.value)}
+          value={config.timezone}
+          onChange={(e) => onChange({
+            ...config,
+            timezone: e.target.value
+          })}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
@@ -55,8 +57,11 @@ export default function DisplaySettings({
           日付形式
         </label>
         <select
-          value={settings.dateFormat}
-          onChange={(e) => updateSetting('dateFormat', e.target.value)}
+          value={config.dateFormat}
+          onChange={(e) => onChange({
+            ...config,
+            dateFormat: e.target.value as 'japanese' | 'iso' | 'us'
+          })}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="japanese">日本形式 (2025/01/19)</option>
@@ -70,8 +75,11 @@ export default function DisplaySettings({
           1ページあたりの表示件数
         </label>
         <select
-          value={settings.itemsPerPage}
-          onChange={(e) => updateSetting('itemsPerPage', Number(e.target.value))}
+          value={config.itemsPerPage}
+          onChange={(e) => onChange({
+            ...config,
+            itemsPerPage: Number(e.target.value)
+          })}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value={10}>10件</option>

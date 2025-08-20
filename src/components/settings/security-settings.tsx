@@ -1,36 +1,41 @@
 import { AlertTriangle, Trash2 } from 'lucide-react';
+import ToggleSwitch from '@/components/ui/toggle-switch';
 
-interface SecuritySettingsProps {
-  settings: {
-    enableTwoFactor: boolean;
-    sessionTimeout: number;
-    ipWhitelist: string[];
-    auditLog: boolean;
-  };
-  onSettingsChange: (settings: any) => void;
+interface SecurityConfig {
+  enableTwoFactor: boolean;
+  sessionTimeout: number;
+  ipWhitelist: string[];
+  auditLog: boolean;
 }
 
-export default function SecuritySettings({
-  settings,
-  onSettingsChange
-}: SecuritySettingsProps) {
-  const updateSetting = (key: string, value: any) => {
-    onSettingsChange({ ...settings, [key]: value });
+interface SecuritySettingsProps {
+  config: SecurityConfig;
+  onChange: (config: SecurityConfig) => void;
+}
+
+export default function SecuritySettings({ config, onChange }: SecuritySettingsProps) {
+  const addIpAddress = () => {
+    onChange({
+      ...config,
+      ipWhitelist: [...config.ipWhitelist, '']
+    });
   };
 
-  const updateIpWhitelist = (index: number, value: string) => {
-    const newList = [...settings.ipWhitelist];
+  const removeIpAddress = (index: number) => {
+    const newList = config.ipWhitelist.filter((_, i) => i !== index);
+    onChange({
+      ...config,
+      ipWhitelist: newList
+    });
+  };
+
+  const updateIpAddress = (index: number, value: string) => {
+    const newList = [...config.ipWhitelist];
     newList[index] = value;
-    updateSetting('ipWhitelist', newList);
-  };
-
-  const removeIpFromWhitelist = (index: number) => {
-    const newList = settings.ipWhitelist.filter((_, i) => i !== index);
-    updateSetting('ipWhitelist', newList);
-  };
-
-  const addIpToWhitelist = () => {
-    updateSetting('ipWhitelist', [...settings.ipWhitelist, '']);
+    onChange({
+      ...config,
+      ipWhitelist: newList
+    });
   };
 
   return (
@@ -42,15 +47,13 @@ export default function SecuritySettings({
           <p className="font-medium text-gray-900">二要素認証</p>
           <p className="text-sm text-gray-600">追加のセキュリティレイヤーを有効化</p>
         </div>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            checked={settings.enableTwoFactor}
-            onChange={(e) => updateSetting('enableTwoFactor', e.target.checked)}
-            className="sr-only peer"
-          />
-          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-        </label>
+        <ToggleSwitch
+          checked={config.enableTwoFactor}
+          onChange={(checked) => onChange({
+            ...config,
+            enableTwoFactor: checked
+          })}
+        />
       </div>
 
       <div>
@@ -59,8 +62,11 @@ export default function SecuritySettings({
         </label>
         <input
           type="number"
-          value={settings.sessionTimeout}
-          onChange={(e) => updateSetting('sessionTimeout', Number(e.target.value))}
+          value={config.sessionTimeout}
+          onChange={(e) => onChange({
+            ...config,
+            sessionTimeout: Number(e.target.value)
+          })}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           min="5"
           max="480"
@@ -72,17 +78,17 @@ export default function SecuritySettings({
           IPホワイトリスト
         </label>
         <div className="space-y-2">
-          {settings.ipWhitelist.map((ip, index) => (
+          {config.ipWhitelist.map((ip, index) => (
             <div key={index} className="flex items-center space-x-2">
               <input
                 type="text"
                 value={ip}
-                onChange={(e) => updateIpWhitelist(index, e.target.value)}
+                onChange={(e) => updateIpAddress(index, e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
                 placeholder="192.168.1.0/24"
               />
               <button
-                onClick={() => removeIpFromWhitelist(index)}
+                onClick={() => removeIpAddress(index)}
                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
               >
                 <Trash2 className="h-4 w-4" />
@@ -90,7 +96,7 @@ export default function SecuritySettings({
             </div>
           ))}
           <button
-            onClick={addIpToWhitelist}
+            onClick={addIpAddress}
             className="text-blue-600 hover:text-blue-700 text-sm"
           >
             + IPアドレスを追加
@@ -106,15 +112,13 @@ export default function SecuritySettings({
             <p className="text-sm text-yellow-700">すべての操作を記録</p>
           </div>
         </div>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            checked={settings.auditLog}
-            onChange={(e) => updateSetting('auditLog', e.target.checked)}
-            className="sr-only peer"
-          />
-          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-        </label>
+        <ToggleSwitch
+          checked={config.auditLog}
+          onChange={(checked) => onChange({
+            ...config,
+            auditLog: checked
+          })}
+        />
       </div>
     </div>
   );

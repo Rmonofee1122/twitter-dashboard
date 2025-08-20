@@ -384,6 +384,26 @@ export async function fetchAccountDetails(twitterId: string): Promise<any> {
   }
 }
 
+export async function fetchRecentAccounts(): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from("twitter_create_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    if (error) {
+      console.error("Recent accounts fetch error:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Recent accounts fetch error:", error);
+    return [];
+  }
+}
+
 function getNextMonth(currentMonth: string): string {
   const [year, month] = currentMonth.split("-").map(Number);
   if (month === 12) {

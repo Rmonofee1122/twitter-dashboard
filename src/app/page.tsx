@@ -8,6 +8,7 @@ import ActivityCard from "@/components/dashboard/activity-card";
 import QuickLinks from "@/components/dashboard/quick-links";
 import ProgressBar from "@/components/ui/progress-bar";
 import AccountManagement from "@/components/dashboard/account-management";
+import AccountCreationHistory from "@/components/dashboard/account-creation-history";
 
 export default function Home() {
   const [stats, setStats] = useState<DashboardStats>({
@@ -213,6 +214,9 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* アカウントの追加履歴 */}
+      <AccountCreationHistory />
 
       <QuickLinks links={quickLinks} />
     </div>

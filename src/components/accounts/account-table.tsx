@@ -17,10 +17,14 @@ import {
   getStatusBadgeColor,
 } from "@/utils/status-helpers";
 import { fetchAccountDetails } from "@/app/api/stats/route";
+import { updateAccountStatus } from "@/lib/account-actions";
 import AccountDetailModal from "./account-detail-modal";
+import AccountEditModal from "./account-edit-modal";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 
 interface AccountTableProps {
   accounts: TwitterCreateLog[];
+  onAccountUpdate?: () => void;
 }
 
 interface ActionButtonProps {
@@ -49,11 +53,17 @@ const ActionButton = memo(function ActionButton({
 
 const AccountTable = memo(function AccountTable({
   accounts,
+  onAccountUpdate,
 }: AccountTableProps) {
   const [selectedAccount, setSelectedAccount] =
     useState<TwitterCreateLog | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [editAccount, setEditAccount] = useState<TwitterCreateLog | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [deleteAccount, setDeleteAccount] = useState<TwitterCreateLog | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleViewDetails = useCallback(async (twitterId: string | null) => {
     if (!twitterId) return;
@@ -75,6 +85,59 @@ const AccountTable = memo(function AccountTable({
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedAccount(null);
+  }, []);
+
+  const handleEditAccount = useCallback((account: TwitterCreateLog) => {
+    setEditAccount(account);
+    setIsEditModalOpen(true);
+  }, []);
+
+  const handleCloseEditModal = useCallback(() => {
+    setIsEditModalOpen(false);
+    setEditAccount(null);
+  }, []);
+
+  const handleSaveStatus = useCallback(async (id: number, status: string) => {
+    const success = await updateAccountStatus(id, status);
+    if (success) {
+      onAccountUpdate?.();
+    } else {
+      throw new Error("ステータスの更新に失敗しました");
+    }
+  }, [onAccountUpdate]);
+
+  const handleDeleteAccount = useCallback((account: TwitterCreateLog) => {
+    setDeleteAccount(account);
+    setIsDeleteDialogOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteAccount) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/accounts?id=${deleteAccount.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("削除に失敗しました");
+      }
+
+      onAccountUpdate?.();
+      setIsDeleteDialogOpen(false);
+      setDeleteAccount(null);
+    } catch (error) {
+      console.error("アカウント削除エラー:", error);
+      alert("アカウントの削除に失敗しました");
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteAccount, onAccountUpdate]);
+
+  const handleCancelDelete = useCallback(() => {
+    setIsDeleteDialogOpen(false);
+    setDeleteAccount(null);
   }, []);
 
   const getStatusIcon = useCallback((appLogin: string | null) => {
@@ -165,11 +228,13 @@ const AccountTable = memo(function AccountTable({
                   <ActionButton
                     icon={Edit}
                     color="text-green-600 hover:text-green-900"
+                    onClick={() => handleEditAccount(account)}
                     aria-label="アカウントを編集"
                   />
                   <ActionButton
                     icon={Trash2}
                     color="text-red-600 hover:text-red-900"
+                    onClick={() => handleDeleteAccount(account)}
                     aria-label="アカウントを削除"
                   />
                   <ActionButton
@@ -188,6 +253,24 @@ const AccountTable = memo(function AccountTable({
         account={selectedAccount}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
+      />
+
+      <AccountEditModal
+        account={editAccount}
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onSave={handleSaveStatus}
+      />
+
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        title="アカウント削除の確認"
+        message="このアカウントを削除しますか？"
+        confirmText="削除"
+        cancelText="キャンセル"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isLoading={isDeleting}
       />
     </div>
   );

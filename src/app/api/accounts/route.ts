@@ -147,3 +147,38 @@ export async function GET(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "IDが指定されていません" },
+        { status: 400 }
+      );
+    }
+
+    const { error } = await supabase
+      .from("twitter_create_logs")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("アカウント削除エラー:", error);
+      return NextResponse.json(
+        { error: "アカウントの削除に失敗しました" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("削除API エラー:", error);
+    return NextResponse.json(
+      { error: "サーバーエラーが発生しました" },
+      { status: 500 }
+    );
+  }
+}

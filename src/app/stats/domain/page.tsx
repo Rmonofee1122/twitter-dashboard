@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchDomainRanking, type DomainData } from "@/app/api/stats/route";
+import DomainCreationTrendsChart from "@/components/stats/domain-creation-trends-chart";
 
 export default function DomainStatsPage() {
   const [domainData, setDomainData] = useState<DomainData[]>([]);
@@ -36,6 +37,9 @@ export default function DomainStatsPage() {
           メールドメインごとのアカウント作成数の詳細統計
         </p>
       </div>
+
+      {/* ドメイン別アカウント作成推移 */}
+      <DomainCreationTrendsChart />
 
       {/* ドメイン別統計 */}
       <div className="bg-white rounded-lg shadow-sm p-6">

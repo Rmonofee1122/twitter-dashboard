@@ -166,7 +166,7 @@ export default function AccountsPage() {
             <p className="mt-2 text-gray-600">データを読み込み中...</p>
           </div>
         ) : (
-          <AccountTable accounts={accounts} />
+          <AccountTable accounts={accounts} onAccountUpdate={fetchAccounts} />
         )}
 
         <Pagination

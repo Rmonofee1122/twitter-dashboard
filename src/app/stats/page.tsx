@@ -5,6 +5,7 @@ import StatsHeader from "@/components/stats/stats-header";
 import SummaryCards from "@/components/stats/summary-cards";
 import CreationTrendsChart from "@/components/stats/creation-trends-chart";
 import StatusDistributionChart from "@/components/stats/status-distribution-chart";
+
 import DomainRankingList from "@/components/stats/domain-ranking-list";
 import IpRankingList from "@/components/stats/ip-ranking-list";
 import PerformanceMetrics from "@/components/stats/performance-metrics";

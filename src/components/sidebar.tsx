@@ -19,7 +19,8 @@ import {
   UserCheck,
   UserX,
   UserMinus,
-  Clock
+  Clock,
+  Activity
 } from 'lucide-react';
 
 const navigation = [
@@ -32,6 +33,7 @@ const navigation = [
       { name: '概要', href: '/stats', icon: BarChart3 },
       { name: 'ドメイン別統計', href: '/stats/domain', icon: Globe },
       { name: 'IP別統計', href: '/stats/ip', icon: MapPin },
+      { name: 'ステータス別', href: '/stats/status', icon: Activity },
     ]
   },
   { 

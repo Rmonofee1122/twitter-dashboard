@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { fetchDomainRanking, type DomainData } from '@/lib/stats-api';
+import { useEffect, useState } from "react";
+import { fetchDomainRanking, type DomainData } from "@/app/api/stats/route";
 
 export default function DomainStatsPage() {
   const [domainData, setDomainData] = useState<DomainData[]>([]);
@@ -17,19 +17,21 @@ export default function DomainStatsPage() {
       const data = await fetchDomainRanking();
       setDomainData(data);
     } catch (error) {
-      console.error('Failed to fetch domain data:', error);
+      console.error("Failed to fetch domain data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const maxCount = Math.max(...domainData.map(d => d.count), 1);
+  const maxCount = Math.max(...domainData.map((d) => d.count), 1);
 
   return (
     <div className="space-y-6">
       {/* ページヘッダー */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">ドメイン別統計</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          ドメイン別統計
+        </h1>
         <p className="text-gray-600">
           メールドメインごとのアカウント作成数の詳細統計
         </p>
@@ -73,15 +75,26 @@ export default function DomainStatsPage() {
         ) : (
           <div className="space-y-4">
             {domainData.map((item, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <div
+                key={index}
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              >
                 <div className="flex items-center">
                   <span className="text-lg font-bold text-gray-900 mr-4 w-8">
                     #{index + 1}
                   </span>
                   <div>
-                    <span className="text-gray-700 font-mono text-base">{item.domain}</span>
+                    <span className="text-gray-700 font-mono text-base">
+                      {item.domain}
+                    </span>
                     <div className="text-xs text-gray-500 mt-1">
-                      全体の {((item.count / domainData.reduce((sum, d) => sum + d.count, 0)) * 100).toFixed(1)}%
+                      全体の{" "}
+                      {(
+                        (item.count /
+                          domainData.reduce((sum, d) => sum + d.count, 0)) *
+                        100
+                      ).toFixed(1)}
+                      %
                     </div>
                   </div>
                 </div>
@@ -114,13 +127,15 @@ export default function DomainStatsPage() {
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
-                {domainData.reduce((sum, item) => sum + item.count, 0).toLocaleString()}
+                {domainData
+                  .reduce((sum, item) => sum + item.count, 0)
+                  .toLocaleString()}
               </div>
               <div className="text-gray-600">総アカウント数</div>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="text-2xl font-bold text-purple-600">
-                {domainData[0]?.domain || '-'}
+                {domainData[0]?.domain || "-"}
               </div>
               <div className="text-gray-600">最多ドメイン</div>
             </div>

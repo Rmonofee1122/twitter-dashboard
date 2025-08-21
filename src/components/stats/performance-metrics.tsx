@@ -1,4 +1,4 @@
-import type { TotalStats } from "@/lib/stats-api";
+import type { TotalStats } from "@/app/api/stats/route";
 
 interface PerformanceMetricsProps {
   totalStats: TotalStats;

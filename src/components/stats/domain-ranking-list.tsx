@@ -1,4 +1,4 @@
-import type { DomainData } from "@/lib/stats-api";
+import type { DomainData } from "@/app/api/stats/route";
 
 interface DomainRankingListProps {
   domainData: DomainData[];

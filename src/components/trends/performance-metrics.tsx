@@ -1,4 +1,4 @@
-import type { PerformanceMetrics } from "@/lib/stats-api";
+import type { PerformanceMetrics } from "@/app/api/stats/route";
 
 interface PerformanceMetricsProps {
   metrics: PerformanceMetrics;

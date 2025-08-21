@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "../../../lib/supabase";
 
 export interface TotalStats {
   totalAccounts: number;
@@ -343,23 +343,33 @@ export async function fetchDomainRanking(): Promise<DomainData[]> {
   }
 }
 
-// IPランキングを取得する関数
-export async function fetchIpRanking(): Promise<IpData[]> {
+// IPランキングを取得する関数（ページネーション対応）
+export async function fetchIpRanking(
+  page: number = 1,
+  limit: number = 10
+): Promise<{ data: IpData[]; totalCount: number }> {
   try {
-    const { data, error } = await supabase
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const { data, error, count } = await supabase
       .from("ip_view")
-      .select("ip, count")
-      .order("count", { ascending: false });
+      .select("ip, count", { count: "exact" })
+      .order("count", { ascending: false })
+      .range(from, to);
 
     if (error) {
       console.error("IP ranking fetch error:", error);
-      return [];
+      return { data: [], totalCount: 0 };
     }
 
-    return data || [];
+    return {
+      data: data || [],
+      totalCount: count || 0,
+    };
   } catch (error) {
     console.error("IP ranking fetch error:", error);
-    return [];
+    return { data: [], totalCount: 0 };
   }
 }
 
@@ -422,6 +432,194 @@ export async function fetchRecentAccounts(): Promise<any[]> {
   } catch (error) {
     console.error("Recent accounts fetch error:", error);
     return [];
+  }
+}
+
+export async function fetchActiveAccounts(
+  page: number = 1,
+  limit: number = 10,
+  startDate?: string,
+  endDate?: string,
+  searchTerm?: string
+): Promise<{ data: any[]; totalCount: number }> {
+  try {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase
+      .from("twitter_create_logs")
+      .select("*", { count: "exact" })
+      .or('app_login.eq.true,app_login.eq."true"');
+
+    if (startDate) {
+      query = query.gte("created_at", startDate + "T00:00:00");
+    }
+    if (endDate) {
+      query = query.lte("created_at", endDate + "T23:59:59");
+    }
+    if (searchTerm) {
+      query = query.or(
+        `twitter_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,create_ip.ilike.%${searchTerm}%`
+      );
+    }
+
+    const { data, error, count } = await query
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error("Active accounts fetch error:", error);
+      return { data: [], totalCount: 0 };
+    }
+
+    return {
+      data: data || [],
+      totalCount: count || 0,
+    };
+  } catch (error) {
+    console.error("Active accounts fetch error:", error);
+    return { data: [], totalCount: 0 };
+  }
+}
+
+export async function fetchPendingAccounts(
+  page: number = 1,
+  limit: number = 10,
+  startDate?: string,
+  endDate?: string,
+  searchTerm?: string
+): Promise<{ data: any[]; totalCount: number }> {
+  try {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase
+      .from("twitter_create_logs")
+      .select("*", { count: "exact" })
+      .or("app_login.eq.FarmUP,app_login.eq.farmup");
+
+    if (startDate) {
+      query = query.gte("created_at", startDate + "T00:00:00");
+    }
+    if (endDate) {
+      query = query.lte("created_at", endDate + "T23:59:59");
+    }
+    if (searchTerm) {
+      query = query.or(
+        `twitter_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,create_ip.ilike.%${searchTerm}%`
+      );
+    }
+
+    const { data, error, count } = await query
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error("Pending accounts fetch error:", error);
+      return { data: [], totalCount: 0 };
+    }
+
+    return {
+      data: data || [],
+      totalCount: count || 0,
+    };
+  } catch (error) {
+    console.error("Pending accounts fetch error:", error);
+    return { data: [], totalCount: 0 };
+  }
+}
+
+export async function fetchBannedAccounts(
+  page: number = 1,
+  limit: number = 10,
+  startDate?: string,
+  endDate?: string,
+  searchTerm?: string
+): Promise<{ data: any[]; totalCount: number }> {
+  try {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase
+      .from("twitter_create_logs")
+      .select("*", { count: "exact" })
+      .or("app_login.eq.suspend,app_login.eq.email_ban,app_login.eq.Email_BAN");
+
+    if (startDate) {
+      query = query.gte("created_at", startDate + "T00:00:00");
+    }
+    if (endDate) {
+      query = query.lte("created_at", endDate + "T23:59:59");
+    }
+    if (searchTerm) {
+      query = query.or(
+        `twitter_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,create_ip.ilike.%${searchTerm}%`
+      );
+    }
+
+    const { data, error, count } = await query
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error("Banned accounts fetch error:", error);
+      return { data: [], totalCount: 0 };
+    }
+
+    return {
+      data: data || [],
+      totalCount: count || 0,
+    };
+  } catch (error) {
+    console.error("Banned accounts fetch error:", error);
+    return { data: [], totalCount: 0 };
+  }
+}
+
+export async function fetchExcludedAccounts(
+  page: number = 1,
+  limit: number = 10,
+  startDate?: string,
+  endDate?: string,
+  searchTerm?: string
+): Promise<{ data: any[]; totalCount: number }> {
+  try {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase
+      .from("twitter_create_logs")
+      .select("*", { count: "exact" })
+      .or('app_login.eq.false,app_login.eq."false"');
+
+    if (startDate) {
+      query = query.gte("created_at", startDate + "T00:00:00");
+    }
+    if (endDate) {
+      query = query.lte("created_at", endDate + "T23:59:59");
+    }
+    if (searchTerm) {
+      query = query.or(
+        `twitter_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,create_ip.ilike.%${searchTerm}%`
+      );
+    }
+
+    const { data, error, count } = await query
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error("Excluded accounts fetch error:", error);
+      return { data: [], totalCount: 0 };
+    }
+
+    return {
+      data: data || [],
+      totalCount: count || 0,
+    };
+  } catch (error) {
+    console.error("Excluded accounts fetch error:", error);
+    return { data: [], totalCount: 0 };
   }
 }
 

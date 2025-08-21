@@ -17,7 +17,7 @@ import {
   type ChartData,
   type DomainData,
   type IpData,
-} from "@/lib/stats-api";
+} from "@/app/api/stats/route";
 
 interface StatsData {
   chartData: ChartData;

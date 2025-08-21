@@ -8,7 +8,10 @@ import HourlyChart from "@/components/trends/hourly-chart";
 import GrowthChart from "@/components/trends/growth-chart";
 import TrendInsights from "@/components/trends/trend-insights";
 import PerformanceMetrics from "@/components/trends/performance-metrics";
-import { fetchPerformanceMetrics, type PerformanceMetrics as PerformanceMetricsType } from "@/lib/stats-api";
+import {
+  fetchPerformanceMetrics,
+  type PerformanceMetrics as PerformanceMetricsType,
+} from "@/app/api/stats/route";
 
 interface TrendData {
   daily: Array<{ date: string; count: number; cumulative: number }>;
@@ -24,11 +27,12 @@ export default function TrendsPage() {
     monthly: [],
     hourly: [],
   });
-  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetricsType>({
-    activeRate: 0,
-    dailyAverage: 0,
-    monthlyTotal: 0,
-  });
+  const [performanceMetrics, setPerformanceMetrics] =
+    useState<PerformanceMetricsType>({
+      activeRate: 0,
+      dailyAverage: 0,
+      monthlyTotal: 0,
+    });
   const [selectedPeriod, setSelectedPeriod] = useState<
     "daily" | "weekly" | "monthly"
   >("daily");

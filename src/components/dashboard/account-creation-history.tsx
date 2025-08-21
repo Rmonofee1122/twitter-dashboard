@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
-import { CheckCircle, XCircle, Clock, Minus } from 'lucide-react';
-import { TwitterCreateLog } from '@/types/database';
-import { fetchRecentAccounts } from '@/lib/stats-api';
+import { useEffect, useState } from "react";
+import { CheckCircle, XCircle, Clock, Minus } from "lucide-react";
+import { TwitterCreateLog } from "@/types/database";
+import { fetchRecentAccounts } from "@/app/api/stats/route";
 import {
   getAccountStatus,
   getStatusText,
   getStatusBadgeColor,
-} from '@/utils/status-helpers';
+} from "@/utils/status-helpers";
 
 export default function AccountCreationHistory() {
   const [accounts, setAccounts] = useState<TwitterCreateLog[]>([]);
@@ -22,7 +22,7 @@ export default function AccountCreationHistory() {
       const data = await fetchRecentAccounts();
       setAccounts(data);
     } catch (error) {
-      console.error('Failed to fetch recent accounts:', error);
+      console.error("Failed to fetch recent accounts:", error);
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,9 @@ export default function AccountCreationHistory() {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">アカウントの追加履歴</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          アカウントの追加履歴
+        </h3>
         <div className="animate-pulse space-y-4">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="h-16 bg-gray-200 rounded-lg"></div>
@@ -69,8 +71,10 @@ export default function AccountCreationHistory() {
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">アカウントの追加履歴</h3>
-      
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        アカウントの追加履歴
+      </h3>
+
       {accounts.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           最近の履歴がありません
@@ -102,10 +106,10 @@ export default function AccountCreationHistory() {
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {account.twitter_id || '未設定'}
+                          {account.twitter_id || "未設定"}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {account.email || '未設定'}
+                          {account.email || "未設定"}
                         </div>
                       </div>
                     </td>
@@ -113,7 +117,9 @@ export default function AccountCreationHistory() {
                       <div className="flex items-center">
                         {getStatusIcon(account.app_login)}
                         <span
-                          className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(status)}`}
+                          className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
+                            status
+                          )}`}
                         >
                           {getStatusText(status)}
                         </span>
@@ -123,7 +129,7 @@ export default function AccountCreationHistory() {
                       {formatDate(account.created_at)}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                      {account.create_ip || '未設定'}
+                      {account.create_ip || "未設定"}
                     </td>
                   </tr>
                 );

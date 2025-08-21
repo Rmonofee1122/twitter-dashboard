@@ -1,11 +1,11 @@
-import type { IpData } from '@/lib/stats-api';
+import type { IpData } from "@/app/api/stats/route";
 
 interface IpRankingListProps {
   ipDistribution: IpData[];
 }
 
 export default function IpRankingList({ ipDistribution }: IpRankingListProps) {
-  const maxCount = Math.max(...ipDistribution.map(d => d.count), 1);
+  const maxCount = Math.max(...ipDistribution.map((d) => d.count), 1);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -14,7 +14,10 @@ export default function IpRankingList({ ipDistribution }: IpRankingListProps) {
       </h3>
       <div className="space-y-4">
         {ipDistribution.map((item, index) => (
-          <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div
+            key={index}
+            className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+          >
             <div className="flex items-center">
               <span className="text-lg font-bold text-gray-900 mr-4">
                 #{index + 1}

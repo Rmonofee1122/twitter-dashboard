@@ -1,22 +1,30 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import type { ChartData } from '@/lib/stats-api';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import type { ChartData } from "@/app/api/stats/route";
 
 interface CreationTrendsChartProps {
   chartData: ChartData;
-  selectedPeriod: 'daily' | 'weekly' | 'monthly';
-  onPeriodChange: (period: 'daily' | 'weekly' | 'monthly') => void;
+  selectedPeriod: "daily" | "weekly" | "monthly";
+  onPeriodChange: (period: "daily" | "weekly" | "monthly") => void;
 }
 
-export default function CreationTrendsChart({ 
-  chartData, 
-  selectedPeriod, 
-  onPeriodChange 
+export default function CreationTrendsChart({
+  chartData,
+  selectedPeriod,
+  onPeriodChange,
 }: CreationTrendsChartProps) {
   const getChartData = () => {
     switch (selectedPeriod) {
-      case 'weekly':
+      case "weekly":
         return chartData.weeklyCreations;
-      case 'monthly':
+      case "monthly":
         return chartData.monthlyCreations;
       default:
         return chartData.dailyCreations;
@@ -25,12 +33,12 @@ export default function CreationTrendsChart({
 
   const getXAxisKey = () => {
     switch (selectedPeriod) {
-      case 'weekly':
-        return 'week';
-      case 'monthly':
-        return 'month';
+      case "weekly":
+        return "week";
+      case "monthly":
+        return "month";
       default:
-        return 'date';
+        return "date";
     }
   };
 
@@ -41,17 +49,21 @@ export default function CreationTrendsChart({
           アカウント作成推移
         </h3>
         <div className="flex space-x-2">
-          {['daily', 'weekly', 'monthly'].map((period) => (
+          {["daily", "weekly", "monthly"].map((period) => (
             <button
               key={period}
               onClick={() => onPeriodChange(period as any)}
               className={`px-3 py-1 text-sm rounded-md transition-colors ${
                 selectedPeriod === period
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              {period === 'daily' ? '日別' : period === 'weekly' ? '週別' : '月別'}
+              {period === "daily"
+                ? "日別"
+                : period === "weekly"
+                ? "週別"
+                : "月別"}
             </button>
           ))}
         </div>

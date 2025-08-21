@@ -15,7 +15,11 @@ import {
   ChevronDown,
   ChevronRight,
   Globe,
-  MapPin
+  MapPin,
+  UserCheck,
+  UserX,
+  UserMinus,
+  Clock
 } from 'lucide-react';
 
 const navigation = [
@@ -30,7 +34,18 @@ const navigation = [
       { name: 'IP別統計', href: '/stats/ip', icon: MapPin },
     ]
   },
-  { name: 'アカウント一覧', href: '/accounts', icon: Users },
+  { 
+    name: 'アカウント一覧', 
+    href: '/accounts', 
+    icon: Users,
+    submenu: [
+      { name: 'アカウント一覧', href: '/accounts', icon: Users },
+      { name: 'アクティブアカウント', href: '/accounts/active', icon: UserCheck },
+      { name: '保留中アカウント', href: '/accounts/pending', icon: Clock },
+      { name: 'BANアカウント', href: '/accounts/banned', icon: UserX },
+      { name: '除外アカウント', href: '/accounts/excluded', icon: UserMinus },
+    ]
+  },
   { name: '作成推移', href: '/trends', icon: TrendingUp },
   { name: '設定', href: '/settings', icon: Settings },
 ];

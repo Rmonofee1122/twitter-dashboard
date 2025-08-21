@@ -1,13 +1,26 @@
-import type { IpData } from '@/lib/stats-api';
+import type { IpData } from "@/app/api/stats/route";
+import Pagination from "@/components/ui/pagination";
 
 interface IpRankingChartProps {
   ipData: IpData[];
   loading: boolean;
   onRefresh: () => void;
+  currentPage: number;
+  totalCount: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
 }
 
-export default function IpRankingChart({ ipData, loading, onRefresh }: IpRankingChartProps) {
-  const maxCount = Math.max(...ipData.map(d => d.count), 1);
+export default function IpRankingChart({
+  ipData,
+  loading,
+  onRefresh,
+  currentPage,
+  totalCount,
+  itemsPerPage,
+  onPageChange,
+}: IpRankingChartProps) {
+  const maxCount = Math.max(...ipData.map((d) => d.count), 1);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -47,15 +60,26 @@ export default function IpRankingChart({ ipData, loading, onRefresh }: IpRanking
       ) : (
         <div className="space-y-4">
           {ipData.map((item, index) => (
-            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <div
+              key={index}
+              className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
               <div className="flex items-center">
                 <span className="text-lg font-bold text-gray-900 mr-4 w-8">
-                  #{index + 1}
+                  #{(currentPage - 1) * itemsPerPage + index + 1}
                 </span>
                 <div>
-                  <span className="text-gray-700 font-mono text-base">{item.ip}</span>
+                  <span className="text-gray-700 font-mono text-base">
+                    {item.ip}
+                  </span>
                   <div className="text-xs text-gray-500 mt-1">
-                    全体の {((item.count / ipData.reduce((sum, d) => sum + d.count, 0)) * 100).toFixed(1)}%
+                    全体の{" "}
+                    {(
+                      (item.count /
+                        ipData.reduce((sum, d) => sum + d.count, 0)) *
+                      100
+                    ).toFixed(1)}
+                    %
                   </div>
                 </div>
               </div>
@@ -74,6 +98,19 @@ export default function IpRankingChart({ ipData, loading, onRefresh }: IpRanking
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ページネーション */}
+      {!loading && totalCount > itemsPerPage && (
+        <div className="mt-6">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(totalCount / itemsPerPage)}
+            onPageChange={onPageChange}
+            totalItems={totalCount}
+            itemsPerPage={itemsPerPage}
+          />
         </div>
       )}
     </div>

@@ -5,17 +5,18 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "daily";
-    const range = searchParams.get("range") || "30days";
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
 
     switch (period) {
       case "daily":
-        return await getDailyData(range);
+        return await getDailyData(startDate, endDate);
       case "weekly":
-        return await getWeeklyData(range);
+        return await getWeeklyData(startDate, endDate);
       case "monthly":
-        return await getMonthlyData(range);
+        return await getMonthlyData(startDate, endDate);
       default:
-        return await getDailyData(range);
+        return await getDailyData(startDate, endDate);
     }
   } catch (error) {
     console.error("トレンドデータの取得に失敗しました:", error);
@@ -26,22 +27,33 @@ export async function GET(request: Request) {
   }
 }
 
-async function getDailyData(range: string) {
-  const days = getRangeDays(range);
-  const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
+async function getDailyData(
+  startDate?: string | null,
+  endDate?: string | null
+) {
+  let startDateStr: string;
+  let endDateStr: string;
 
-  // 今日から過去〇日間の開始日を計算（今日を含む）
-  const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - (days - 1));
-  const startDateStr = startDate.toISOString().split("T")[0];
+  if (startDate && endDate) {
+    startDateStr = startDate;
+    endDateStr = endDate;
+  } else {
+    // デフォルトは過去30日間
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+
+    startDateStr = thirtyDaysAgo.toISOString().split("T")[0];
+    endDateStr = todayStr;
+  }
 
   // create_count_per_dayビューから期間内のデータを取得
   const { data, error } = await supabase
     .from("create_count_per_day")
     .select("created_date, total_count")
     .gte("created_date", startDateStr)
-    .lte("created_date", todayStr)
+    .lte("created_date", endDateStr)
     .order("created_date", { ascending: true });
 
   if (error) {
@@ -53,7 +65,7 @@ async function getDailyData(range: string) {
   }
 
   // 累計の初期値を取得
-  let cumulative = await getCumulativeCount(startDate);
+  let cumulative = await getCumulativeCount(new Date(startDateStr));
 
   // 日付別データをマップに変換
   const dateCountMap = new Map<string, number>();
@@ -63,11 +75,11 @@ async function getDailyData(range: string) {
 
   // 日付範囲の配列を生成
   const dailyData = [];
-  for (let i = 0; i < days; i++) {
-    const date = new Date(startDate);
-    date.setDate(date.getDate() + i);
-    const dateStr = date.toISOString().split("T")[0];
+  const start = new Date(startDateStr);
+  const end = new Date(endDateStr);
 
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().split("T")[0];
     const count = dateCountMap.get(dateStr) || 0;
     cumulative += count;
 
@@ -81,21 +93,24 @@ async function getDailyData(range: string) {
   return NextResponse.json(dailyData);
 }
 
-async function getWeeklyData(range: string) {
-  const totalDays = getRangeDays(range);
+async function getWeeklyData(
+  startDate?: string | null,
+  endDate?: string | null
+) {
+  const totalDays = getRangeDays("days");
   const today = new Date();
   const todayStr = today.toISOString().split("T")[0];
 
   // 今日から過去〇日間の開始日を計算
-  const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - (totalDays - 1));
-  const startDateStr = startDate.toISOString().split("T")[0];
+  const weekStartDate = new Date(today);
+  weekStartDate.setDate(weekStartDate.getDate() - (totalDays - 1));
+  const weekStartDateStr = weekStartDate.toISOString().split("T")[0];
 
   // create_count_per_dayビューから期間内のデータを取得
   const { data, error } = await supabase
     .from("create_count_per_day")
     .select("created_date, total_count")
-    .gte("created_date", startDateStr)
+    .gte("created_date", weekStartDateStr)
     .lte("created_date", todayStr)
     .order("created_date", { ascending: true });
 
@@ -117,7 +132,7 @@ async function getWeeklyData(range: string) {
   const weeklyData = [];
 
   for (let i = 0; i < weeks; i++) {
-    const weekStart = new Date(startDate);
+    const weekStart = new Date(weekStartDate);
     weekStart.setDate(weekStart.getDate() + i * 7);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
@@ -143,8 +158,11 @@ async function getWeeklyData(range: string) {
   return NextResponse.json(weeklyData);
 }
 
-async function getMonthlyData(range: string) {
-  const totalDays = getRangeDays(range);
+async function getMonthlyData(
+  startDate?: string | null,
+  endDate?: string | null
+) {
+  const totalDays = getRangeDays("days");
   const months = Math.ceil(totalDays / 30);
   const monthlyData = [];
 
@@ -194,10 +212,10 @@ async function getMonthlyData(range: string) {
       .gte("created_date", prevMonthStartStr)
       .lte("created_date", prevMonthEndStr);
 
-    const prevCount = prevData?.reduce((sum, item) => sum + item.total_count, 0) || 0;
+    const prevCount =
+      prevData?.reduce((sum, item) => sum + item.total_count, 0) || 0;
 
-    const growth =
-      prevCount > 0 ? ((count - prevCount) / prevCount) * 100 : 0;
+    const growth = prevCount > 0 ? ((count - prevCount) / prevCount) * 100 : 0;
 
     monthlyData.push({
       month: monthStart.toLocaleDateString("ja-JP", {

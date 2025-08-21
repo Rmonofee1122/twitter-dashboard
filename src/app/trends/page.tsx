@@ -8,6 +8,7 @@ import HourlyChart from "@/components/trends/hourly-chart";
 import GrowthChart from "@/components/trends/growth-chart";
 import TrendInsights from "@/components/trends/trend-insights";
 import PerformanceMetrics from "@/components/trends/performance-metrics";
+import DateFilter from "@/components/accounts/date-filter";
 import {
   fetchPerformanceMetrics,
   type PerformanceMetrics as PerformanceMetricsType,
@@ -36,9 +37,8 @@ export default function TrendsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<
     "daily" | "weekly" | "monthly"
   >("daily");
-  const [dateRange, setDateRange] = useState<
-    "7days" | "30days" | "90days" | "1year"
-  >("30days");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
     // パフォーマンス指標を取得
@@ -160,6 +160,16 @@ export default function TrendsPage() {
 
   // パフォーマンス指標は既にstateで管理
 
+  const handleDateFilterClear = () => {
+    setStartDate("");
+    setEndDate("");
+  };
+
+  const handleQuickSelect = (start: string, end: string) => {
+    setStartDate(start);
+    setEndDate(end);
+  };
+
   return (
     <div className="space-y-6">
       {/* ページヘッダー */}
@@ -175,17 +185,27 @@ export default function TrendsPage() {
       {/* 統計カード */}
       <TrendStatsCards />
 
+      {/* 日付フィルター */}
+      <DateFilter
+        startDate={startDate}
+        endDate={endDate}
+        onStartDateChange={setStartDate}
+        onEndDateChange={setEndDate}
+        onQuickSelect={handleQuickSelect}
+        onClear={handleDateFilterClear}
+      />
+
       {/* メイン推移チャート */}
       <TrendChart
         selectedPeriod={selectedPeriod}
-        dateRange={dateRange}
         onPeriodChange={setSelectedPeriod}
-        onRangeChange={setDateRange}
+        startDate={startDate}
+        endDate={endDate}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 累計推移 */}
-        <CumulativeChart dateRange={dateRange} />
+        <CumulativeChart />
 
         {/* 時間別分布 */}
         <HourlyChart />

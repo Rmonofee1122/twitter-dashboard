@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Download } from 'lucide-react';
-import { TwitterCreateLog } from '@/types/database';
-import AccountTable from '@/components/accounts/account-table';
-import AccountFilters from '@/components/accounts/account-filters';
-import DateFilter from '@/components/accounts/date-filter';
-import AccountStatusSummary from '@/components/accounts/account-status-summary';
-import Pagination from '@/components/ui/pagination';
+import { useEffect, useState } from "react";
+import { Download } from "lucide-react";
+import { TwitterCreateLog } from "@/types/database";
+import AccountTable from "@/components/accounts/account-table";
+import AccountFilters from "@/components/accounts/account-filters";
+import DateFilter from "@/components/accounts/date-filter";
+import AccountStatusSummary from "@/components/accounts/account-status-summary";
+import Pagination from "@/components/ui/pagination";
 
 interface AccountsResponse {
   accounts: TwitterCreateLog[];
@@ -25,10 +25,12 @@ interface AccountsResponse {
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<TwitterCreateLog[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'active' | 'suspended' | 'excluded'>('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "active" | "suspended" | "excluded"
+  >("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalAccounts, setTotalAccounts] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -36,10 +38,10 @@ export default function AccountsPage() {
     pending: 0,
     active: 0,
     suspended: 0,
-    excluded: 0
+    excluded: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [itemsPerPage] = useState(20);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchAccounts();
@@ -59,7 +61,7 @@ export default function AccountsPage() {
 
       const response = await fetch(`/api/accounts?${params}`);
       if (!response.ok) {
-        throw new Error('データの取得に失敗しました');
+        throw new Error("データの取得に失敗しました");
       }
 
       const data: AccountsResponse = await response.json();
@@ -70,7 +72,7 @@ export default function AccountsPage() {
         setStatusCounts(data.statusCounts);
       }
     } catch (error) {
-      console.error('アカウントデータの取得に失敗しました:', error);
+      console.error("アカウントデータの取得に失敗しました:", error);
     } finally {
       setLoading(false);
     }
@@ -78,7 +80,7 @@ export default function AccountsPage() {
 
   const handleExport = () => {
     // TODO: CSVエクスポート機能の実装
-    console.log('Exporting accounts...');
+    console.log("Exporting accounts...");
   };
 
   const handleSearch = (term: string) => {
@@ -86,7 +88,9 @@ export default function AccountsPage() {
     setCurrentPage(1);
   };
 
-  const handleStatusFilter = (status: 'all' | 'pending' | 'active' | 'suspended' | 'excluded') => {
+  const handleStatusFilter = (
+    status: "all" | "pending" | "active" | "suspended" | "excluded"
+  ) => {
     setStatusFilter(status);
     setCurrentPage(1);
   };
@@ -108,8 +112,8 @@ export default function AccountsPage() {
   };
 
   const handleDateClear = () => {
-    setStartDate('');
-    setEndDate('');
+    setStartDate("");
+    setEndDate("");
     setCurrentPage(1);
   };
 
@@ -123,12 +127,12 @@ export default function AccountsPage() {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex flex-col md:flex-row md:items-start justify-between mb-6">
           <div className="flex-1">
-            <AccountStatusSummary 
+            <AccountStatusSummary
               totalAccounts={totalAccounts}
               statusCounts={statusCounts}
             />
           </div>
-          <button 
+          <button
             onClick={handleExport}
             className="mt-4 md:mt-0 flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >

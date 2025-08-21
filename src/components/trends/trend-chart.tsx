@@ -8,80 +8,100 @@ interface TrendChartData {
   daily: Array<{ date: string; count: number; cumulative: number }>;
   weekly: Array<{ week: string; count: number; average: number }>;
   monthly: Array<{ month: string; count: number; growth: number }>;
+  hourly: Array<{ hour: string; count: number }>;
 }
 
 interface TrendChartProps {
   selectedPeriod: "daily" | "weekly" | "monthly";
-  dateRange: "7days" | "30days" | "90days" | "1year";
   onPeriodChange: (period: "daily" | "weekly" | "monthly") => void;
-  onRangeChange: (range: "7days" | "30days" | "90days" | "1year") => void;
+  startDate?: string;
+  endDate?: string;
 }
 
 export default function TrendChart({
   selectedPeriod,
-  dateRange,
   onPeriodChange,
-  onRangeChange,
+  startDate,
+  endDate,
 }: TrendChartProps) {
   const [data, setData] = useState<TrendChartData>({
     daily: [],
     weekly: [],
     monthly: [],
+    hourly: [],
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchTrendData();
-  }, [selectedPeriod, dateRange]);
+  }, [selectedPeriod, startDate, endDate]);
 
   const fetchTrendData = async () => {
     try {
       setLoading(true);
 
-      // キャッシュキーを生成
-      const cacheKey = `trend-data-${selectedPeriod}-${dateRange}`;
-
-      // キャッシュから取得を試行
-      const cachedData = apiCache.get(cacheKey);
-      if (cachedData) {
-        console.log(`Using cached data for ${cacheKey}`);
+      // 単一日のフィルターかどうかを判定
+      const isSingleDay = startDate && endDate && startDate === endDate;
+      
+      if (isSingleDay) {
+        // 時間別データを取得
+        const response = await fetch(`/api/hourly-data?date=${startDate}`);
+        if (!response.ok) {
+          throw new Error("時間別データの取得に失敗しました");
+        }
+        const hourlyData = await response.json();
         setData((prev) => ({
           ...prev,
-          [selectedPeriod]: cachedData,
+          hourly: hourlyData,
         }));
-        setLoading(false);
-        return;
+      } else {
+        // 通常の期間別データを取得
+        let apiUrl = `/api/trend-data?period=${selectedPeriod}`;
+        if (startDate) {
+          apiUrl += `&startDate=${startDate}`;
+        }
+        if (endDate) {
+          apiUrl += `&endDate=${endDate}`;
+        }
+
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          throw new Error("トレンドデータの取得に失敗しました");
+        }
+        const chartData = await response.json();
+
+        // 選択された期間のデータを更新
+        setData((prev) => ({
+          ...prev,
+          [selectedPeriod]: chartData,
+        }));
       }
-
-      const response = await fetch(
-        `/api/trend-data?period=${selectedPeriod}&range=${dateRange}`
-      );
-      if (!response.ok) {
-        throw new Error("トレンドデータの取得に失敗しました");
-      }
-      const chartData = await response.json();
-
-      // データをキャッシュに保存（5分間）
-      apiCache.set(cacheKey, chartData, 5);
-
-      // 選択された期間のデータを更新
-      setData((prev) => ({
-        ...prev,
-        [selectedPeriod]: chartData,
-      }));
     } catch (error) {
       console.error("トレンドデータの取得に失敗しました:", error);
       // エラーの場合は空配列を設定
-      setData((prev) => ({
-        ...prev,
-        [selectedPeriod]: [],
-      }));
+      if (startDate && endDate && startDate === endDate) {
+        setData((prev) => ({
+          ...prev,
+          hourly: [],
+        }));
+      } else {
+        setData((prev) => ({
+          ...prev,
+          [selectedPeriod]: [],
+        }));
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const getChartData = () => {
+    // 単一日のフィルターの場合は時間別データを表示
+    const isSingleDay = startDate && endDate && startDate === endDate;
+    if (isSingleDay) {
+      return data.hourly;
+    }
+    
     switch (selectedPeriod) {
       case "weekly":
         return data.weekly;
@@ -93,6 +113,12 @@ export default function TrendChart({
   };
 
   const getXAxisKey = () => {
+    // 単一日のフィルターの場合は時間軸を表示
+    const isSingleDay = startDate && endDate && startDate === endDate;
+    if (isSingleDay) {
+      return "hour";
+    }
+    
     switch (selectedPeriod) {
       case "weekly":
         return "week";
@@ -112,14 +138,21 @@ export default function TrendChart({
   };
 
   const getLabelFormatter = () => {
-    return (label: any) =>
-      `${
-        getXAxisKey() === "date"
-          ? "日付"
-          : getXAxisKey() === "week"
-          ? "週"
-          : "月"
-      }: ${label}`;
+    return (label: any) => {
+      const xAxisKey = getXAxisKey();
+      switch (xAxisKey) {
+        case "hour":
+          return `時間: ${label}`;
+        case "date":
+          return `日付: ${label}`;
+        case "week":
+          return `週: ${label}`;
+        case "month":
+          return `月: ${label}`;
+        default:
+          return `${label}`;
+      }
+    };
   };
 
   return (
@@ -127,40 +160,12 @@ export default function TrendChart({
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900">
           アカウント作成推移
+          {startDate && endDate && startDate === endDate && (
+            <span className="text-sm text-gray-600 ml-2">
+              (時間別表示)
+            </span>
+          )}
         </h3>
-        <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 mt-4 md:mt-0">
-          {/* 期間選択 */}
-          <div className="flex space-x-2">
-            {["daily", "weekly", "monthly"].map((period) => (
-              <button
-                key={period}
-                onClick={() => onPeriodChange(period as any)}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  selectedPeriod === period
-                    ? "bg-blue-100 text-blue-700"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                {period === "daily"
-                  ? "日別"
-                  : period === "weekly"
-                  ? "週別"
-                  : "月別"}
-              </button>
-            ))}
-          </div>
-          {/* 範囲選択 */}
-          <select
-            value={dateRange}
-            onChange={(e) => onRangeChange(e.target.value as any)}
-            className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="7days">過去7日間</option>
-            <option value="30days">過去30日間</option>
-            <option value="90days">過去90日間</option>
-            <option value="1year">過去1年間</option>
-          </select>
-        </div>
       </div>
 
       {loading ? (

@@ -23,6 +23,10 @@ interface ChartDataPoint {
   [key: string]: number | string;
 }
 
+interface DomainCreationTrendsChartProps {
+  trendData?: ChartDataPoint[];
+}
+
 const DOMAIN_COLORS = [
   "#3B82F6", // Blue
   "#10B981", // Green
@@ -36,14 +40,23 @@ const DOMAIN_COLORS = [
   "#6B7280", // Gray
 ];
 
-export default function DomainCreationTrendsChart() {
+export default function DomainCreationTrendsChart({ trendData }: DomainCreationTrendsChartProps) {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [domains, setDomains] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDomainTrendsData();
-  }, []);
+    if (trendData && trendData.length > 0) {
+      setChartData(trendData);
+      
+      // ドメイン名を抽出（date以外のキー）
+      const domainKeys = Object.keys(trendData[0]).filter(key => key !== 'date');
+      setDomains(domainKeys);
+      setLoading(false);
+    } else {
+      fetchDomainTrendsData();
+    }
+  }, [trendData]);
 
   const fetchDomainTrendsData = async () => {
     try {

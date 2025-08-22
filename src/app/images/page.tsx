@@ -94,6 +94,7 @@ export default function ImagesPage() {
         images={imageData?.images || []}
         onImageClick={handleImageClick}
         onDownload={handleDownload}
+        onUploadSuccess={fetchImages}
       />
 
       {/* 画像詳細モーダル */}

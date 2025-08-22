@@ -1,23 +1,63 @@
+// app/api/images/route.ts
 import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
+
+export const runtime = "nodejs"; // Edge runtimeだとFormDataやFileが不安定なのでNode推奨
+
+const BUCKET = "profile_images";
+const IMAGE_EXTS = [
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+  "bmp",
+  "avif",
+  "svg",
+  "img",
+];
 
 export async function GET() {
   try {
-    // 認証エラーのためテスト実装
-    // 既知のtest01.jpg画像を直接返す
-    const testImage = {
-      name: "test01.jpg",
-      url: "https://sargcxkxiyxjgkkcggmb.supabase.co/storage/v1/object/public/profile_images/test01.jpg",
-      size: 50000, // 推定サイズ
-      lastModified: new Date().toISOString(),
-    };
+    // バケット直下のファイルを列挙（最大1000件）
+    const { data: files, error } = await supabase.storage
+      .from(BUCKET)
+      .list("", {
+        limit: 1000,
+        offset: 0,
+        sortBy: { column: "updated_at", order: "desc" },
+      });
 
-    // テスト用の画像データ
-    const images = [testImage];
+    if (error) {
+      console.error("画像一覧の取得エラー:", error.message);
+      return NextResponse.json(
+        { error: "画像一覧の取得に失敗しました" },
+        { status: 500 }
+      );
+    }
 
-    console.log("Test images data:", images);
+    // 画像ファイルだけフィルタリング
+    const images = (files || [])
+      .filter((file) => {
+        const ext = file.name.toLowerCase().split(".").pop() || "";
+        return IMAGE_EXTS.includes(ext);
+      })
+      .map((file) => {
+        // 公開バケット用URLを取得
+        const { data: urlData } = supabase.storage
+          .from(BUCKET)
+          .getPublicUrl(file.name);
+        return {
+          name: file.name,
+          url: urlData.publicUrl,
+          size: file.metadata?.size ?? 0,
+          lastModified:
+            file.updated_at ?? file.created_at ?? new Date().toISOString(),
+        };
+      });
 
     return NextResponse.json({
-      images: images,
+      images,
       total: images.length,
     });
   } catch (error) {

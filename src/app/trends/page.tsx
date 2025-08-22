@@ -205,7 +205,7 @@ export default function TrendsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 累計推移 */}
-        <CumulativeChart />
+        {/* <CumulativeChart /> */}
 
         {/* 時間別分布 */}
         <HourlyChart />

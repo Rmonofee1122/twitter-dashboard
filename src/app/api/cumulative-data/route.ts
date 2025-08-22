@@ -1,73 +1,72 @@
-import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const range = searchParams.get('range') || '30days';
+    const range = searchParams.get("range") || "30days";
     const days = getRangeDays(range);
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // 今日から過去〇日間の開始日を計算（今日を含む）
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - (days - 1));
 
-    // 開始日より前の累計数を取得
-    const { count: initialCount, error: initialError } = await supabase
-      .from('twitter_create_logs')
-      .select('*', { count: 'exact', head: true })
-      .lt('created_at', startDate.toISOString());
+    // 日付文字列を準備
+    const startDateString = startDate.toISOString().split("T")[0];
+    const endDateString = today.toISOString().split("T")[0];
 
-    if (initialError) {
-      console.error('初期累計数取得エラー:', initialError);
-    }
-
-    // 指定期間のデータを取得
+    // cumulative_create_count_per_dayビューから指定期間のデータを取得
     const { data, error } = await supabase
-      .from('twitter_create_logs')
-      .select('created_at')
-      .gte('created_at', startDate.toISOString())
-      .order('created_at', { ascending: true });
+      .from("cumulative_create_count_per_day")
+      .select("created_date, cumulative_count")
+      .gte("created_date", startDateString)
+      .lte("created_date", endDateString)
+      .order("created_date", { ascending: true });
 
     if (error) {
-      console.error('累計データ取得エラー:', error);
-      return NextResponse.json({ error: '累計データの取得に失敗しました' }, { status: 500 });
+      console.error("累計データ取得エラー:", error);
+      return NextResponse.json(
+        { error: "累計データの取得に失敗しました" },
+        { status: 500 }
+      );
     }
 
-    // 日別の累計数を計算（効率的なマップ処理）
-    const cumulativeData = [];
-    let cumulative = initialCount || 0;
-
-    // 日付ごとにグルーピング
-    const dateCountMap = new Map<string, number>();
-    data?.forEach(item => {
-      const dateStr = new Date(item.created_at).toISOString().split('T')[0];
-      dateCountMap.set(dateStr, (dateCountMap.get(dateStr) || 0) + 1);
+    // cumulative_create_count_per_dayビューからのデータを変換
+    const dataCumulativeMap = new Map<string, number>();
+    data?.forEach((item) => {
+      dataCumulativeMap.set(item.created_date, item.cumulative_count);
     });
 
-    // 日付範囲の配列を生成
+    // 日別データを生成（累計はビューから直接取得、日別カウントは差分計算）
+    const cumulativeData = [];
+    let previousCumulative = 0;
+
     for (let i = 0; i < days; i++) {
       const date = new Date(startDate);
       date.setDate(date.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      const dayCount = dateCountMap.get(dateStr) || 0;
-      cumulative += dayCount;
-      
+      const dateStr = date.toISOString().split("T")[0];
+
+      const currentCumulative =
+        dataCumulativeMap.get(dateStr) || previousCumulative;
+      const dayCount = currentCumulative - previousCumulative;
+
       cumulativeData.push({
         date: dateStr,
         count: dayCount,
-        cumulative
+        cumulative: currentCumulative,
       });
+
+      previousCumulative = currentCumulative;
     }
 
     return NextResponse.json(cumulativeData);
   } catch (error) {
-    console.error('累計データの取得に失敗しました:', error);
+    console.error("累計データの取得に失敗しました:", error);
     return NextResponse.json(
-      { error: '累計データの取得に失敗しました' },
+      { error: "累計データの取得に失敗しました" },
       { status: 500 }
     );
   }
@@ -75,13 +74,13 @@ export async function GET(request: Request) {
 
 function getRangeDays(range: string): number {
   switch (range) {
-    case '7days':
+    case "7days":
       return 7;
-    case '30days':
+    case "30days":
       return 30;
-    case '90days':
+    case "90days":
       return 90;
-    case '1year':
+    case "1year":
       return 365;
     default:
       return 30;

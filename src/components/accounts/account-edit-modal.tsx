@@ -85,6 +85,8 @@ const AccountEditModal: React.FC<AccountEditModalProps> = ({
             >
               <option value="true">アクティブ</option>
               <option value="farmup">保留中</option>
+              <option value="suspend">BAN</option>
+              <option value="false">除外</option>
             </select>
           </div>
         </div>

@@ -20,7 +20,9 @@ import {
   UserX,
   UserMinus,
   Clock,
-  Activity
+  Activity,
+  BarChart,
+  Clock8
 } from 'lucide-react';
 
 const navigation = [
@@ -48,7 +50,16 @@ const navigation = [
       { name: '除外アカウント', href: '/accounts/excluded', icon: UserMinus },
     ]
   },
-  { name: '作成推移', href: '/trends', icon: TrendingUp },
+  { 
+    name: '作成推移', 
+    href: '/trends', 
+    icon: TrendingUp,
+    submenu: [
+      { name: '作成推移', href: '/trends', icon: TrendingUp },
+      { name: '累計アカウント数推移', href: '/trends/cumulative', icon: BarChart },
+      { name: '時間別作成数分布', href: '/trends/hourly', icon: Clock8 },
+    ]
+  },
   { name: '設定', href: '/settings', icon: Settings },
 ];
 

@@ -28,7 +28,12 @@ export default function StatusStatsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(['active', 'suspended', 'pending', 'excluded']);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
+    "active",
+    "suspended",
+    "pending",
+    "excluded",
+  ]);
 
   const fetchStatusData = useCallback(
     async (start?: string, end?: string, statuses?: string[]) => {
@@ -49,7 +54,8 @@ export default function StatusStatsPage() {
           apiStartDate = thirtyDaysAgo.toISOString().split("T")[0];
         }
 
-        const statusParams = apiStatuses.length > 0 ? `&statuses=${apiStatuses.join(',')}` : '';
+        const statusParams =
+          apiStatuses.length > 0 ? `&statuses=${apiStatuses.join(",")}` : "";
         const response = await fetch(
           `/api/status-stats?startDate=${apiStartDate}&endDate=${apiEndDate}${statusParams}`
         );
@@ -99,13 +105,16 @@ export default function StatusStatsPage() {
     fetchStatusData("", "");
   }, [fetchStatusData]);
 
-  const handleStatusChange = useCallback((statuses: string[]) => {
-    setSelectedStatuses(statuses);
-    fetchStatusData(startDate, endDate, statuses);
-  }, [startDate, endDate, fetchStatusData]);
+  const handleStatusChange = useCallback(
+    (statuses: string[]) => {
+      setSelectedStatuses(statuses);
+      fetchStatusData(startDate, endDate, statuses);
+    },
+    [startDate, endDate, fetchStatusData]
+  );
 
   const handleClearStatusFilter = useCallback(() => {
-    const allStatuses = ['active', 'suspended', 'pending', 'excluded'];
+    const allStatuses = ["active", "suspended", "pending", "excluded"];
     setSelectedStatuses(allStatuses);
     fetchStatusData(startDate, endDate, allStatuses);
   }, [startDate, endDate, fetchStatusData]);
@@ -134,8 +143,6 @@ export default function StatusStatsPage() {
         <h1 className="text-2xl font-bold text-gray-900">ステータス別統計</h1>
       </div>
 
-      <StatusStats totalStats={statusData.totalStats} />
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <DateFilter
           startDate={startDate}
@@ -145,7 +152,7 @@ export default function StatusStatsPage() {
           onQuickSelect={handleQuickSelect}
           onClear={handleClearFilter}
         />
-        
+
         <StatusFilter
           selectedStatuses={selectedStatuses}
           onStatusChange={handleStatusChange}
@@ -156,6 +163,8 @@ export default function StatusStatsPage() {
       <div className="grid grid-cols-1 gap-6">
         <StatusTrendChart chartData={statusData.chartData} />
       </div>
+
+      <StatusStats totalStats={statusData.totalStats} />
     </div>
   );
 }

@@ -61,7 +61,9 @@ const AccountTable = memo(function AccountTable({
   const [isLoading, setIsLoading] = useState(false);
   const [editAccount, setEditAccount] = useState<TwitterCreateLog | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [deleteAccount, setDeleteAccount] = useState<TwitterCreateLog | null>(null);
+  const [deleteAccount, setDeleteAccount] = useState<TwitterCreateLog | null>(
+    null
+  );
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -97,14 +99,17 @@ const AccountTable = memo(function AccountTable({
     setEditAccount(null);
   }, []);
 
-  const handleSaveStatus = useCallback(async (id: number, status: string) => {
-    const success = await updateAccountStatus(id, status);
-    if (success) {
-      onAccountUpdate?.();
-    } else {
-      throw new Error("ステータスの更新に失敗しました");
-    }
-  }, [onAccountUpdate]);
+  const handleSaveStatus = useCallback(
+    async (id: number, status: string) => {
+      const success = await updateAccountStatus(id, status);
+      if (success) {
+        onAccountUpdate?.();
+      } else {
+        throw new Error("ステータスの更新に失敗しました");
+      }
+    },
+    [onAccountUpdate]
+  );
 
   const handleDeleteAccount = useCallback((account: TwitterCreateLog) => {
     setDeleteAccount(account);

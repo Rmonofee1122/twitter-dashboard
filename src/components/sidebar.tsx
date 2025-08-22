@@ -22,7 +22,8 @@ import {
   Clock,
   Activity,
   BarChart,
-  Clock8
+  Clock8,
+  Image
 } from 'lucide-react';
 
 const navigation = [
@@ -60,6 +61,7 @@ const navigation = [
       { name: '時間別作成数分布', href: '/trends/hourly', icon: Clock8 },
     ]
   },
+  { name: '画像一覧', href: '/images', icon: Image },
   { name: '設定', href: '/settings', icon: Settings },
 ];
 

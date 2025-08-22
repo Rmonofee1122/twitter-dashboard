@@ -5,6 +5,8 @@ import { Image as ImageIcon, RefreshCw } from "lucide-react";
 import ImageStatsSummary from "@/components/images/image-stats-summary";
 import ImageGrid from "@/components/images/image-grid";
 import ImageDetailModal from "@/components/images/image-detail-modal";
+import GeminiImageGenerator from "@/components/images/gemini-image-generator";
+import GeneratedImageModal from "@/components/images/generated-image-modal";
 
 interface ImageFile {
   name: string;
@@ -23,6 +25,9 @@ export default function ImagesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<ImageFile | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [generatedPrompt, setGeneratedPrompt] = useState("");
+  const [isGeneratedModalOpen, setIsGeneratedModalOpen] = useState(false);
 
   const fetchImages = useCallback(async () => {
     try {
@@ -60,6 +65,49 @@ export default function ImagesPage() {
     document.body.removeChild(link);
   }, []);
 
+  const handleImageGenerated = useCallback((imageUrl: string, prompt: string) => {
+    setGeneratedImageUrl(imageUrl);
+    setGeneratedPrompt(prompt);
+    setIsGeneratedModalOpen(true);
+  }, []);
+
+  const handleCloseGeneratedModal = useCallback(() => {
+    setIsGeneratedModalOpen(false);
+    setGeneratedImageUrl(null);
+    setGeneratedPrompt("");
+  }, []);
+
+  const handleSaveGeneratedImage = useCallback(async (imageUrl: string, prompt: string) => {
+    try {
+      // Base64画像をBlobに変換
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      // FormDataを作成
+      const formData = new FormData();
+      const fileName = `gemini_${Date.now()}.png`;
+      const file = new File([blob], fileName, { type: 'image/png' });
+      formData.append('file', file);
+
+      // アップロードAPI呼び出し
+      const uploadResponse = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (uploadResponse.ok) {
+        alert('画像をギャラリーに保存しました');
+        handleCloseGeneratedModal();
+        fetchImages(); // 画像一覧を更新
+      } else {
+        throw new Error('保存に失敗しました');
+      }
+    } catch (error) {
+      console.error('保存エラー:', error);
+      alert('画像の保存に失敗しました');
+    }
+  }, [handleCloseGeneratedModal, fetchImages]);
+
   if (loading) {
     return (
       <div className="p-6">
@@ -84,6 +132,9 @@ export default function ImagesPage() {
         </button>
       </div>
 
+      {/* Gemini画像生成 */}
+      <GeminiImageGenerator onImageGenerated={handleImageGenerated} />
+
       {/* 統計サマリー */}
       {imageData && imageData.total !== undefined && (
         <ImageStatsSummary total={imageData.total} />
@@ -103,6 +154,15 @@ export default function ImagesPage() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         onDownload={handleDownload}
+      />
+
+      {/* 生成画像プレビューモーダル */}
+      <GeneratedImageModal
+        isOpen={isGeneratedModalOpen}
+        imageUrl={generatedImageUrl}
+        prompt={generatedPrompt}
+        onClose={handleCloseGeneratedModal}
+        onSave={handleSaveGeneratedImage}
       />
     </div>
   );

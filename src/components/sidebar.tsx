@@ -62,6 +62,7 @@ const navigation = [
     ]
   },
   { name: '画像一覧', href: '/images', icon: Image },
+  { name: '画像一覧（R2）', href: '/images-r2', icon: Image },
   { name: '設定', href: '/settings', icon: Settings },
 ];
 

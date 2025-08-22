@@ -9,6 +9,7 @@ interface IpRankingChartProps {
   totalCount: number;
   itemsPerPage: number;
   onPageChange: (page: number) => void;
+  totalAccounts: number;
 }
 
 export default function IpRankingChart({
@@ -19,8 +20,9 @@ export default function IpRankingChart({
   totalCount,
   itemsPerPage,
   onPageChange,
+  totalAccounts,
 }: IpRankingChartProps) {
-  const maxCount = Math.max(...ipData.map((d) => d.count), 1);
+  const maxCount = totalAccounts || 1;
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -75,9 +77,7 @@ export default function IpRankingChart({
                   <div className="text-xs text-gray-500 mt-1">
                     全体の{" "}
                     {(
-                      (item.count /
-                        ipData.reduce((sum, d) => sum + d.count, 0)) *
-                      100
+                      (item.count / totalAccounts) * 100
                     ).toFixed(1)}
                     %
                   </div>

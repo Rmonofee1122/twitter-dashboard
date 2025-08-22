@@ -1,24 +1,60 @@
-import { X, Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { X, Copy, Check, Save } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
 import { TwitterCreateLog } from "@/types/database";
 import {
   getAccountStatus,
   getStatusText,
   getStatusBadgeColor,
 } from "@/utils/status-helpers";
+import { updateAccountStatus } from "@/lib/account-actions";
 
 interface AccountDetailModalProps {
   account: TwitterCreateLog | null;
   isOpen: boolean;
   onClose: () => void;
+  onAccountUpdate?: () => void;
 }
 
 export default function AccountDetailModal({
   account,
   isOpen,
   onClose,
+  onAccountUpdate,
 }: AccountDetailModalProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // アカウントが変更されたときにステータスを初期化
+  useEffect(() => {
+    if (account?.app_login) {
+      setSelectedStatus(account.app_login);
+    }
+  }, [account]);
+
+  const handleStatusChange = useCallback((newStatus: string) => {
+    setSelectedStatus(newStatus);
+  }, []);
+
+  const handleSaveStatus = useCallback(async () => {
+    if (!account || !selectedStatus) return;
+
+    setIsSaving(true);
+    try {
+      const success = await updateAccountStatus(account.id, selectedStatus);
+      if (success) {
+        onAccountUpdate?.();
+        onClose();
+      } else {
+        alert("ステータスの更新に失敗しました");
+      }
+    } catch (error) {
+      console.error("ステータス更新エラー:", error);
+      alert("ステータスの更新中にエラーが発生しました");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [account, selectedStatus, onAccountUpdate, onClose]);
 
   if (!isOpen || !account) return null;
 
@@ -122,13 +158,27 @@ export default function AccountDetailModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   ステータス
                 </label>
-                <span
-                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
-                    status
-                  )}`}
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {getStatusText(status)}
-                </span>
+                  <option value="true">アクティブ</option>
+                  <option value="false">除外</option>
+                  <option value="suspend">BAN・凍結</option>
+                  <option value="email_ban">Email BAN</option>
+                  <option value="FarmUp">保留中（FarmUp）</option>
+                  <option value="farmup">保留中（farmup）</option>
+                </select>
+                <div className="mt-2">
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
+                      getAccountStatus(selectedStatus)
+                    )}`}
+                  >
+                    {getStatusText(getAccountStatus(selectedStatus))}
+                  </span>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -249,13 +299,32 @@ export default function AccountDetailModal({
           </div>
         </div>
 
-        <div className="flex justify-end p-6 border-t bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-          >
-            閉じる
-          </button>
+        <div className="flex justify-between items-center p-6 border-t bg-gray-50">
+          <div className="text-sm text-gray-500">
+            {selectedStatus !== (account.app_login || "") && (
+              <span className="text-yellow-600">
+                ※ ステータスが変更されています
+              </span>
+            )}
+          </div>
+          <div className="flex space-x-3">
+            {selectedStatus !== (account.app_login || "") && (
+              <button
+                onClick={handleSaveStatus}
+                disabled={isSaving}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? "保存中..." : "保存"}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+            >
+              閉じる
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
-import { memo, useCallback } from "react";
-import { Download, Save, X } from "lucide-react";
+import { memo, useCallback, useState } from "react";
+import { Download, Save, X, Trash2 } from "lucide-react";
 
 interface GeneratedImageModalProps {
   isOpen: boolean;
@@ -9,6 +9,8 @@ interface GeneratedImageModalProps {
   prompt: string;
   onClose: () => void;
   onSave?: (imageUrl: string, prompt: string) => void;
+  onDelete?: (imageUrl: string) => void;
+  imageKey?: string;
 }
 
 const GeneratedImageModal = memo(function GeneratedImageModal({
@@ -17,11 +19,14 @@ const GeneratedImageModal = memo(function GeneratedImageModal({
   prompt,
   onClose,
   onSave,
+  onDelete,
+  imageKey,
 }: GeneratedImageModalProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const handleDownload = useCallback(() => {
     if (!imageUrl) return;
 
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = imageUrl;
     link.download = `generated_${Date.now()}.png`;
     document.body.appendChild(link);
@@ -34,6 +39,21 @@ const GeneratedImageModal = memo(function GeneratedImageModal({
     onSave?.(imageUrl, prompt);
   }, [imageUrl, prompt, onSave]);
 
+  const handleDeleteClick = useCallback(() => {
+    setShowDeleteConfirm(true);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(() => {
+    if (!imageUrl) return;
+    onDelete?.(imageUrl);
+    setShowDeleteConfirm(false);
+    onClose();
+  }, [imageUrl, onDelete, onClose]);
+
+  const handleDeleteCancel = useCallback(() => {
+    setShowDeleteConfirm(false);
+  }, []);
+
   if (!isOpen || !imageUrl) return null;
 
   return (
@@ -41,10 +61,10 @@ const GeneratedImageModal = memo(function GeneratedImageModal({
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">生成された画像</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              プロンプト: "{prompt}"
-            </p>
+            <h2 className="text-xl font-semibold text-gray-900">
+              生成された画像
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">プロンプト: "{prompt}"</p>
           </div>
           <button
             onClick={onClose}
@@ -74,7 +94,9 @@ const GeneratedImageModal = memo(function GeneratedImageModal({
                 <h4 className="font-medium text-purple-900 mb-2">生成情報</h4>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="text-purple-700 font-medium">プロンプト:</span>
+                    <span className="text-purple-700 font-medium">
+                      プロンプト:
+                    </span>
                     <p className="text-purple-800 mt-1">{prompt}</p>
                   </div>
                   <div>
@@ -82,7 +104,9 @@ const GeneratedImageModal = memo(function GeneratedImageModal({
                     <span className="text-purple-800 ml-2">PNG (Base64)</span>
                   </div>
                   <div>
-                    <span className="text-purple-700 font-medium">生成時刻:</span>
+                    <span className="text-purple-700 font-medium">
+                      生成時刻:
+                    </span>
                     <span className="text-purple-800 ml-2">
                       {new Date().toLocaleDateString("ja-JP", {
                         year: "numeric",
@@ -126,6 +150,34 @@ const GeneratedImageModal = memo(function GeneratedImageModal({
             </div>
           </div>
         </div>
+
+        {/* 削除確認ダイアログ */}
+        {showDeleteConfirm && (
+          <div className="absolute inset-0 bg-gray-900/75 flex items-center justify-center">
+            <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                画像削除の確認
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                この画像をR2バケットから削除しますか？この操作は元に戻せません。
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={handleDeleteCancel}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                >
+                  削除
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 "use client";
 
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useRef, useState, useMemo } from "react";
 import { Download, Eye, Upload, Plus } from "lucide-react";
+import Pagination from "@/components/ui/pagination";
 
 interface ImageFile {
   name: string;
@@ -25,6 +26,26 @@ const ImageGrid = memo(function ImageGrid({
 }: ImageGridProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  const ITEMS_PER_PAGE = 18;
+
+  // ページネーション用の計算
+  const paginationData = useMemo(() => {
+    const totalItems = images.length;
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const currentImages = images.slice(startIndex, endIndex);
+
+    return {
+      totalItems,
+      totalPages,
+      currentImages,
+      startIndex,
+      endIndex,
+    };
+  }, [images, currentPage]);
   const formatFileSize = useCallback((bytes: number) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -107,9 +128,14 @@ const ImageGrid = memo(function ImageGrid({
   return (
     <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
-          プロフィール画像一覧
-        </h3>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            プロフィール画像一覧
+          </h3>
+          <p className="text-sm text-gray-500">
+            {paginationData.totalItems}件中 {paginationData.startIndex + 1}-{Math.min(paginationData.endIndex, paginationData.totalItems)}件を表示
+          </p>
+        </div>
         <div className="flex items-center space-x-3">
           <input
             ref={fileInputRef}
@@ -139,7 +165,7 @@ const ImageGrid = memo(function ImageGrid({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-        {images.map((image, index) => (
+        {paginationData.currentImages.map((image, index) => (
           <div
             key={index}
             className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors"
@@ -185,6 +211,19 @@ const ImageGrid = memo(function ImageGrid({
           </div>
         ))}
       </div>
+
+      {/* ページネーション */}
+      {paginationData.totalPages > 1 && (
+        <div className="mt-6">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={paginationData.totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={paginationData.totalItems}
+            itemsPerPage={ITEMS_PER_PAGE}
+          />
+        </div>
+      )}
     </div>
   );
 });

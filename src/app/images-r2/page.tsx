@@ -137,6 +137,30 @@ export default function ImagesR2Page() {
     [handleCloseGeneratedModal, fetchImages]
   );
 
+  const handleDeleteImage = useCallback(
+    async (image: ImageFile) => {
+      try {
+        const response = await fetch(
+          `/api/delete-image-r2?key=${encodeURIComponent(image.name)}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        if (response.ok) {
+          alert("R2バケットから画像を削除しました");
+          fetchImages(); // 画像一覧を更新
+        } else {
+          throw new Error("削除に失敗しました");
+        }
+      } catch (error) {
+        console.error("R2削除エラー:", error);
+        alert("R2からの画像削除に失敗しました");
+      }
+    },
+    [fetchImages]
+  );
+
   if (loading) {
     return (
       <div className="p-6">
@@ -190,6 +214,7 @@ export default function ImagesR2Page() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         onDownload={handleDownload}
+        onDelete={handleDeleteImage}
       />
 
       {/* 生成画像プレビューモーダル */}
@@ -199,6 +224,7 @@ export default function ImagesR2Page() {
         prompt={generatedPrompt}
         onClose={handleCloseGeneratedModal}
         onSave={handleSaveGeneratedImage}
+        imageKey={selectedImage?.name}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
-import { memo, useCallback } from "react";
-import { Download } from "lucide-react";
+import { memo, useCallback, useState } from "react";
+import { Download, Trash2 } from "lucide-react";
 
 interface ImageFile {
   name: string;
@@ -15,6 +15,7 @@ interface ImageDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDownload: (image: ImageFile) => void;
+  onDelete?: (image: ImageFile) => void;
 }
 
 const ImageDetailModal = memo(function ImageDetailModal({
@@ -22,7 +23,9 @@ const ImageDetailModal = memo(function ImageDetailModal({
   isOpen,
   onClose,
   onDownload,
+  onDelete,
 }: ImageDetailModalProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const formatFileSize = useCallback((bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -39,6 +42,21 @@ const ImageDetailModal = memo(function ImageDetailModal({
       hour: "2-digit",
       minute: "2-digit",
     });
+  }, []);
+
+  const handleDeleteClick = useCallback(() => {
+    setShowDeleteConfirm(true);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(() => {
+    if (!image) return;
+    onDelete?.(image);
+    setShowDeleteConfirm(false);
+    onClose();
+  }, [image, onDelete, onClose]);
+
+  const handleDeleteCancel = useCallback(() => {
+    setShowDeleteConfirm(false);
   }, []);
 
   if (!isOpen || !image) return null;
@@ -90,9 +108,47 @@ const ImageDetailModal = memo(function ImageDetailModal({
                 <Download className="h-4 w-4 mr-2" />
                 ダウンロード
               </button>
+
+              {onDelete && (
+                <button
+                  onClick={handleDeleteClick}
+                  className="w-full flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  削除
+                </button>
+              )}
             </div>
           </div>
         </div>
+
+        {/* 削除確認ダイアログ */}
+        {showDeleteConfirm && (
+          <div className="absolute inset-0 bg-gray-900/75 flex items-center justify-center">
+            <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                画像削除の確認
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                この画像「{image.name}」をR2バケットから削除しますか？この操作は元に戻せません。
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={handleDeleteCancel}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                >
+                  削除
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

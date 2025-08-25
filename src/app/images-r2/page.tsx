@@ -7,6 +7,7 @@ import ImageGridR2 from "@/components/images/image-grid-r2";
 import ImageDetailModal from "@/components/images/image-detail-modal";
 import GeminiImageGenerator from "@/components/images/gemini-image-generator";
 import GeneratedImageModal from "@/components/images/generated-image-modal";
+import ImageSearchFilter from "@/components/images/image-search-filter";
 
 interface ImageFile {
   name: string;
@@ -30,6 +31,7 @@ type Item = {
 
 export default function ImagesR2Page() {
   const [imageData, setImageData] = useState<ImageListData | null>(null);
+  const [filteredImages, setFilteredImages] = useState<ImageFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<ImageFile | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,6 +40,12 @@ export default function ImagesR2Page() {
   );
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [isGeneratedModalOpen, setIsGeneratedModalOpen] = useState(false);
+
+  // フィルター状態
+  const [fileNameFilter, setFileNameFilter] = useState("");
+  const [fileTypeFilter, setFileTypeFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const fetchImages = useCallback(async () => {
     try {
@@ -82,8 +90,10 @@ export default function ImagesR2Page() {
   const handleDownload = useCallback(async (image: ImageFile) => {
     try {
       // サーバー経由でR2画像をダウンロード（CORS回避）
-      const downloadUrl = `/api/download-image-r2?key=${encodeURIComponent(image.name)}`;
-      
+      const downloadUrl = `/api/download-image-r2?key=${encodeURIComponent(
+        image.name
+      )}`;
+
       const link = document.createElement("a");
       link.href = downloadUrl;
       link.download = image.name;
@@ -169,55 +179,77 @@ export default function ImagesR2Page() {
     [fetchImages]
   );
 
-  const handleRenameImage = useCallback(async (oldName: string, newName: string) => {
-    try {
-      const response = await fetch("/api/rename-image-r2", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          oldKey: oldName,
-          newKey: newName,
-        }),
-      });
+  const handleRenameImage = useCallback(
+    async (oldName: string, newName: string) => {
+      try {
+        const response = await fetch("/api/rename-image-r2", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            oldKey: oldName,
+            newKey: newName,
+          }),
+        });
 
-      if (response.ok) {
-        alert("ファイル名を変更しました");
+        if (response.ok) {
+          alert("ファイル名を変更しました");
+          fetchImages(); // 画像一覧を更新
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "名前変更に失敗しました");
+        }
+      } catch (error: any) {
+        console.error("R2名前変更エラー:", error);
+        alert(error.message || "ファイル名の変更に失敗しました");
+      }
+    },
+    [fetchImages]
+  );
+
+  const handleClearFilters = useCallback(() => {
+    setFileNameFilter("");
+    setFileTypeFilter("all");
+    setStartDate("");
+    setEndDate("");
+  }, []);
+
+  const handleQuickDateSelect = useCallback((start: string, end: string) => {
+    setStartDate(start);
+    setEndDate(end);
+  }, []);
+
+  const handleBulkDelete = useCallback(
+    async (imagesToDelete: ImageFile[]) => {
+      try {
+        const deletePromises = imagesToDelete.map((image) =>
+          fetch(`/api/delete-image-r2?key=${encodeURIComponent(image.name)}`, {
+            method: "DELETE",
+          })
+        );
+
+        const responses = await Promise.all(deletePromises);
+        const failedCount = responses.filter((response) => !response.ok).length;
+
+        if (failedCount === 0) {
+          alert(`${imagesToDelete.length}件の画像を削除しました`);
+        } else {
+          alert(
+            `${
+              imagesToDelete.length - failedCount
+            }件の画像を削除しました（${failedCount}件は失敗）`
+          );
+        }
+
         fetchImages(); // 画像一覧を更新
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "名前変更に失敗しました");
+      } catch (error) {
+        console.error("一括削除エラー:", error);
+        alert("一括削除に失敗しました");
       }
-    } catch (error: any) {
-      console.error("R2名前変更エラー:", error);
-      alert(error.message || "ファイル名の変更に失敗しました");
-    }
-  }, [fetchImages]);
-
-  const handleBulkDelete = useCallback(async (imagesToDelete: ImageFile[]) => {
-    try {
-      const deletePromises = imagesToDelete.map(image =>
-        fetch(`/api/delete-image-r2?key=${encodeURIComponent(image.name)}`, {
-          method: "DELETE",
-        })
-      );
-
-      const responses = await Promise.all(deletePromises);
-      const failedCount = responses.filter(response => !response.ok).length;
-
-      if (failedCount === 0) {
-        alert(`${imagesToDelete.length}件の画像を削除しました`);
-      } else {
-        alert(`${imagesToDelete.length - failedCount}件の画像を削除しました（${failedCount}件は失敗）`);
-      }
-
-      fetchImages(); // 画像一覧を更新
-    } catch (error) {
-      console.error("一括削除エラー:", error);
-      alert("一括削除に失敗しました");
-    }
-  }, [fetchImages]);
+    },
+    [fetchImages]
+  );
 
   if (loading) {
     return (
@@ -254,13 +286,29 @@ export default function ImagesR2Page() {
       <GeminiImageGenerator onImageGenerated={handleImageGenerated} />
 
       {/* 統計サマリー */}
-      {imageData && imageData.total !== undefined && (
-        <ImageStatsSummary total={imageData.total} />
-      )}
+      {/* {imageData && imageData.total !== undefined && (
+        <ImageStatsSummary total={filteredImages.length || imageData.total} />
+      )} */}
+
+      {/* 画像検索フィルター */}
+      <ImageSearchFilter
+        images={imageData?.images || []}
+        onFilteredImages={setFilteredImages}
+        fileNameFilter={fileNameFilter}
+        fileTypeFilter={fileTypeFilter}
+        startDate={startDate}
+        endDate={endDate}
+        onFileNameFilterChange={setFileNameFilter}
+        onFileTypeFilterChange={setFileTypeFilter}
+        onStartDateChange={setStartDate}
+        onEndDateChange={setEndDate}
+        onClearFilters={handleClearFilters}
+        onQuickDateSelect={handleQuickDateSelect}
+      />
 
       {/* 画像一覧 */}
       <ImageGridR2
-        images={imageData?.images || []}
+        images={filteredImages}
         onImageClick={handleImageClick}
         onDownload={handleDownload}
         onUploadSuccess={fetchImages}

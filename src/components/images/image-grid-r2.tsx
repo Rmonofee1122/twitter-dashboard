@@ -68,6 +68,11 @@ const ImageGrid = memo(function ImageGrid({
     });
   }, []);
 
+  // ファイル名からフォルダパスを除いて表示名を取得
+  const getDisplayFileName = useCallback((fullPath: string) => {
+    return fullPath.split('/').pop() || fullPath;
+  }, []);
+
   const handleToggleSelectionMode = useCallback(() => {
     setIsSelectionMode(!isSelectionMode);
     setSelectedImages(new Set());
@@ -294,7 +299,7 @@ const ImageGrid = memo(function ImageGrid({
               )}
               <img
                 src={image.url}
-                alt={image.name}
+                alt={getDisplayFileName(image.name)}
                 className={`w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform ${
                   selectedImages.has(image.name) ? "ring-4 ring-blue-500" : ""
                 }`}
@@ -308,9 +313,9 @@ const ImageGrid = memo(function ImageGrid({
             <div className="space-y-1">
               <p
                 className="text-xs font-mono text-gray-700 truncate"
-                title={image.name}
+                title={getDisplayFileName(image.name)}
               >
-                {image.name}
+                {getDisplayFileName(image.name)}
               </p>
               <p className="text-xs text-gray-500">
                 {formatFileSize(image.size)}

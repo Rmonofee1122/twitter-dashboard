@@ -32,11 +32,11 @@ const ImageDetailModal = memo(function ImageDetailModal({
   const [editedName, setEditedName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const formatFileSize = useCallback((bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   }, []);
 
   const formatDate = useCallback((dateString: string) => {
@@ -64,14 +64,33 @@ const ImageDetailModal = memo(function ImageDetailModal({
     setShowDeleteConfirm(false);
   }, []);
 
+  // ファイル名からフォルダパスを除いて表示名を取得
+  const getDisplayFileName = useCallback((fullPath: string) => {
+    return fullPath.split('/').pop() || fullPath;
+  }, []);
+
+  // フォルダパスとファイル名を分離
+  const getPathAndFileName = useCallback((fullPath: string) => {
+    const parts = fullPath.split('/');
+    if (parts.length <= 1) {
+      return { path: '', fileName: fullPath };
+    }
+    const fileName = parts.pop() || '';
+    const path = parts.join('/');
+    return { path, fileName };
+  }, []);
+
   const getFileNameAndExtension = useCallback((fullName: string) => {
-    const lastDotIndex = fullName.lastIndexOf('.');
+    // まずフォルダパスを除去
+    const displayName = fullName.split('/').pop() || fullName;
+    
+    const lastDotIndex = displayName.lastIndexOf(".");
     if (lastDotIndex === -1) {
-      return { name: fullName, extension: '' };
+      return { name: displayName, extension: "" };
     }
     return {
-      name: fullName.substring(0, lastDotIndex),
-      extension: fullName.substring(lastDotIndex)
+      name: displayName.substring(0, lastDotIndex),
+      extension: displayName.substring(lastDotIndex),
     };
   }, []);
 
@@ -93,17 +112,22 @@ const ImageDetailModal = memo(function ImageDetailModal({
       return;
     }
 
-    const { name: currentName, extension } = getFileNameAndExtension(image.name);
+    const { name: currentName, extension } = getFileNameAndExtension(
+      image.name
+    );
     if (editedName.trim() === currentName) {
       setIsEditing(false);
       return;
     }
 
-    const newFullName = editedName.trim() + extension;
+    // 元のフォルダパスを取得して新しいファイル名と結合
+    const { path } = getPathAndFileName(image.name);
+    const newFileName = editedName.trim() + extension;
+    const newFullPath = path ? `${path}/${newFileName}` : newFileName;
 
     setIsSaving(true);
     try {
-      onRename?.(image.name, newFullName);
+      onRename?.(image.name, newFullPath);
       setIsEditing(false);
       onClose(); // 保存完了後にモーダルを閉じる
     } catch (error) {
@@ -112,11 +136,12 @@ const ImageDetailModal = memo(function ImageDetailModal({
     } finally {
       setIsSaving(false);
     }
-  }, [image, editedName, onRename, getFileNameAndExtension]);
+  }, [image, editedName, onRename, getFileNameAndExtension, getPathAndFileName]);
 
   if (!isOpen || !image) return null;
 
-  const { name: baseFileName, extension: fileExtension } = getFileNameAndExtension(image.name);
+  const { name: baseFileName, extension: fileExtension } =
+    getFileNameAndExtension(image.name);
 
   return (
     <div className="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center">
@@ -162,7 +187,9 @@ const ImageDetailModal = memo(function ImageDetailModal({
                         className="flex-1 text-sm px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="新しいファイル名を入力（拡張子なし）"
                       />
-                      <span className="text-sm text-gray-500 py-2">{fileExtension}</span>
+                      <span className="text-sm text-gray-500 py-2">
+                        {fileExtension}
+                      </span>
                     </div>
                     <div className="flex space-x-2">
                       <button
@@ -173,7 +200,11 @@ const ImageDetailModal = memo(function ImageDetailModal({
                       </button>
                       <button
                         onClick={handleEditSave}
-                        disabled={isSaving || !editedName.trim() || editedName === baseFileName}
+                        disabled={
+                          isSaving ||
+                          !editedName.trim() ||
+                          editedName === baseFileName
+                        }
                         className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isSaving ? "保存中..." : "保存"}
@@ -182,24 +213,33 @@ const ImageDetailModal = memo(function ImageDetailModal({
                   </div>
                 ) : (
                   <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded font-mono">
-                    {baseFileName}<span className="text-gray-500">{fileExtension}</span>
+                    {baseFileName}
+                    <span className="text-gray-500">{fileExtension}</span>
                   </p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">ファイル形式</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  ファイル形式
+                </label>
                 <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                  {fileExtension ? fileExtension.substring(1).toUpperCase() : '不明'}
+                  {fileExtension
+                    ? fileExtension.substring(1).toUpperCase()
+                    : "不明"}
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">ファイルサイズ</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  ファイルサイズ
+                </label>
                 <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
                   {formatFileSize(image.size)}
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">更新日時</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  更新日時
+                </label>
                 <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
                   {formatDate(image.lastModified)}
                 </p>
@@ -233,7 +273,8 @@ const ImageDetailModal = memo(function ImageDetailModal({
                 画像削除の確認
               </h3>
               <p className="text-sm text-gray-600 mb-6">
-                この画像「{image.name}」をR2バケットから削除しますか？この操作は元に戻せません。
+                この画像「{image.name}
+                」をR2バケットから削除しますか？この操作は元に戻せません。
               </p>
               <div className="flex justify-end space-x-3">
                 <button

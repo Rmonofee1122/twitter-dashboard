@@ -47,9 +47,10 @@ export async function GET() {
             { expiresIn: 600 }
           );
           return {
+            name: key, // ImageFile interfaceに合わせてnameフィールドを追加
             key,
-            size: o.Size ?? null,
-            lastModified: o.LastModified?.toISOString() ?? null,
+            size: o.Size ?? 0,
+            lastModified: o.LastModified?.toISOString() ?? new Date().toISOString(),
             url,
           };
         })

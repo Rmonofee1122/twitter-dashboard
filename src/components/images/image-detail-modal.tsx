@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useState, useEffect } from "react";
 import { Download, Trash2, Edit, Save, X } from "lucide-react";
 import Image from "next/image";
 
@@ -32,6 +32,8 @@ const ImageDetailModal = memo(function ImageDetailModal({
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [metadata, setMetadata] = useState<{[key: string]: string} | null>(null);
+  const [loadingMetadata, setLoadingMetadata] = useState(false);
   const formatFileSize = useCallback((bytes: number) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -145,6 +147,35 @@ const ImageDetailModal = memo(function ImageDetailModal({
     getPathAndFileName,
   ]);
 
+  // メタデータを取得
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      if (!image || !isOpen) {
+        setMetadata(null);
+        return;
+      }
+
+      setLoadingMetadata(true);
+      try {
+        const response = await fetch(`/api/r2-metadata?key=${encodeURIComponent(image.name)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setMetadata(data.metadata);
+        } else {
+          console.error('メタデータの取得に失敗しました');
+          setMetadata(null);
+        }
+      } catch (error) {
+        console.error('メタデータ取得エラー:', error);
+        setMetadata(null);
+      } finally {
+        setLoadingMetadata(false);
+      }
+    };
+
+    fetchMetadata();
+  }, [image, isOpen]);
+
   if (!isOpen || !image) return null;
 
   const { name: baseFileName, extension: fileExtension } =
@@ -256,6 +287,39 @@ const ImageDetailModal = memo(function ImageDetailModal({
                   {formatDate(image.lastModified)}
                 </p>
               </div>
+              
+              {/* プロンプトメタデータ表示 */}
+              {loadingMetadata ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    プロンプト
+                  </label>
+                  <p className="text-sm text-gray-500 bg-gray-50 p-2 rounded">
+                    読み込み中...
+                  </p>
+                </div>
+              ) : metadata?.prompt ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    プロンプト
+                  </label>
+                  <div className="text-sm text-gray-900 bg-blue-50 p-3 rounded border-l-4 border-blue-400">
+                    <p className="whitespace-pre-wrap break-words">
+                      {metadata.prompt}
+                    </p>
+                    {metadata['generation-type'] && (
+                      <p className="text-xs text-gray-600 mt-2">
+                        生成タイプ: {metadata['generation-type']}
+                      </p>
+                    )}
+                    {metadata['generated-at'] && (
+                      <p className="text-xs text-gray-600">
+                        生成日時: {formatDate(metadata['generated-at'])}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
               <button
                 onClick={() => onDownload(image)}
                 className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"

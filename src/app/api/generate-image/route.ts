@@ -50,9 +50,40 @@ export async function POST(request: NextRequest) {
       }
       const text = parts.find((p: any) => p.text)?.text ?? "";
 
+      // 生成された画像をR2に保存
+      const uploadedImages: string[] = [];
+      if (images.length > 0) {
+        try {
+          for (const imageBase64 of images) {
+            const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/upload-generated-image`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                imageBase64,
+                prompt
+              }),
+            });
+
+            if (uploadResponse.ok) {
+              const uploadResult = await uploadResponse.json();
+              uploadedImages.push(uploadResult.url);
+              console.log(`Generated image saved to R2: ${uploadResult.key}`);
+            } else {
+              console.error('Failed to upload generated image to R2');
+              uploadedImages.push(imageBase64); // フォールバック
+            }
+          }
+        } catch (uploadError) {
+          console.error('Error uploading generated images to R2:', uploadError);
+          uploadedImages.push(...images); // フォールバック
+        }
+      }
+
       return NextResponse.json({
         success: true,
-        imageUrl: images,
+        imageUrl: uploadedImages.length > 0 ? uploadedImages : images,
         prompt: prompt,
         message: "画像生成が完了しました",
       });
@@ -102,7 +133,33 @@ export async function POST(request: NextRequest) {
       };
 
       const dummyImageBase64 = createColoredDummyImage(prompt);
-      imageUrl = `data:image/svg+xml;base64,${dummyImageBase64}`;
+      const dummyImageUrl = `data:image/svg+xml;base64,${dummyImageBase64}`;
+
+      // フォールバック画像もR2に保存
+      try {
+        const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/upload-generated-image`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageBase64: dummyImageUrl,
+            prompt
+          }),
+        });
+
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          imageUrl = uploadResult.url;
+          console.log(`Fallback image saved to R2: ${uploadResult.key}`);
+        } else {
+          console.error('Failed to upload fallback image to R2');
+          imageUrl = dummyImageUrl;
+        }
+      } catch (uploadError) {
+        console.error('Error uploading fallback image to R2:', uploadError);
+        imageUrl = dummyImageUrl;
+      }
     }
 
     return NextResponse.json({

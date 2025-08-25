@@ -1,7 +1,7 @@
 "use client";
 
-import { memo, useCallback, useMemo, useEffect } from "react";
-import { Search, Filter, X, Calendar } from "lucide-react";
+import { memo, useCallback, useMemo, useEffect, useState } from "react";
+import { Search, Filter, X, Calendar, Folder } from "lucide-react";
 
 interface ImageFile {
   name: string;
@@ -15,10 +15,12 @@ interface ImageSearchFilterProps {
   onFilteredImages: (filteredImages: ImageFile[]) => void;
   fileNameFilter: string;
   fileTypeFilter: string;
+  folderFilter: string;
   startDate: string;
   endDate: string;
   onFileNameFilterChange: (value: string) => void;
   onFileTypeFilterChange: (value: string) => void;
+  onFolderFilterChange: (value: string) => void;
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
   onClearFilters: () => void;
@@ -30,21 +32,48 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
   onFilteredImages,
   fileNameFilter,
   fileTypeFilter,
+  folderFilter,
   startDate,
   endDate,
   onFileNameFilterChange,
   onFileTypeFilterChange,
+  onFolderFilterChange,
   onStartDateChange,
   onEndDateChange,
   onClearFilters,
   onQuickDateSelect,
 }: ImageSearchFilterProps) {
-  
+  // R2フォルダ一覧の状態管理
+  const [folders, setFolders] = useState<string[]>([]);
+  const [loadingFolders, setLoadingFolders] = useState(true);
+
+  // R2フォルダ一覧を取得
+  useEffect(() => {
+    const fetchFolders = async () => {
+      try {
+        setLoadingFolders(true);
+        const response = await fetch("/api/r2-folders");
+        if (response.ok) {
+          const data = await response.json();
+          setFolders(data.folders || []);
+        } else {
+          console.error("フォルダ取得エラー:", response.statusText);
+        }
+      } catch (error) {
+        console.error("フォルダ取得エラー:", error);
+      } finally {
+        setLoadingFolders(false);
+      }
+    };
+
+    fetchFolders();
+  }, []);
+
   // 利用可能なファイル形式を取得
   const availableFileTypes = useMemo(() => {
     const types = new Set<string>();
-    images.forEach(image => {
-      const extension = image.name.toLowerCase().split('.').pop();
+    images.forEach((image) => {
+      const extension = image.name.toLowerCase().split(".").pop();
       if (extension) {
         types.add(extension.toUpperCase());
       }
@@ -54,22 +83,36 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
 
   // フィルタリング処理
   const filteredImages = useMemo(() => {
-    return images.filter(image => {
+    return images.filter((image) => {
       // ファイル名フィルター
-      if (fileNameFilter && !image.name.toLowerCase().includes(fileNameFilter.toLowerCase())) {
+      if (
+        fileNameFilter &&
+        !image.name.toLowerCase().includes(fileNameFilter.toLowerCase())
+      ) {
         return false;
       }
 
       // ファイル形式フィルター
       if (fileTypeFilter && fileTypeFilter !== "all") {
-        const extension = image.name.toLowerCase().split('.').pop();
+        const extension = image.name.toLowerCase().split(".").pop();
         if (!extension || extension.toUpperCase() !== fileTypeFilter) {
           return false;
         }
       }
 
+      // フォルダフィルター
+      if (folderFilter && folderFilter !== "all") {
+        // twitterdashboard/フォルダ名/ の形式でフィルタリング
+        const expectedPrefix = `twitterdashboard/${folderFilter}/`;
+        if (!image.name.startsWith(expectedPrefix)) {
+          return false;
+        }
+      }
+
       // 日付フィルター
-      const imageDate = new Date(image.lastModified).toISOString().split('T')[0];
+      const imageDate = new Date(image.lastModified)
+        .toISOString()
+        .split("T")[0];
       if (startDate && imageDate < startDate) {
         return false;
       }
@@ -79,7 +122,14 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
 
       return true;
     });
-  }, [images, fileNameFilter, fileTypeFilter, startDate, endDate]);
+  }, [
+    images,
+    fileNameFilter,
+    fileTypeFilter,
+    folderFilter,
+    startDate,
+    endDate,
+  ]);
 
   // フィルター結果を親に通知（useEffectで副作用として実行）
   useEffect(() => {
@@ -87,13 +137,19 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
   }, [filteredImages, onFilteredImages]);
 
   const hasActiveFilters = useMemo(() => {
-    return fileNameFilter || (fileTypeFilter && fileTypeFilter !== "all") || startDate || endDate;
-  }, [fileNameFilter, fileTypeFilter, startDate, endDate]);
+    return (
+      fileNameFilter ||
+      (fileTypeFilter && fileTypeFilter !== "all") ||
+      (folderFilter && folderFilter !== "all") ||
+      startDate ||
+      endDate
+    );
+  }, [fileNameFilter, fileTypeFilter, folderFilter, startDate, endDate]);
 
   // クイック日付選択のオプション
   const quickDateOptions = useMemo(() => {
     const today = new Date();
-    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+    const formatDate = (date: Date) => date.toISOString().split("T")[0];
 
     return [
       {
@@ -101,7 +157,7 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
         onClick: () => {
           const todayStr = formatDate(today);
           onQuickDateSelect?.(todayStr, todayStr);
-        }
+        },
       },
       {
         label: "昨日",
@@ -110,7 +166,7 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
           yesterday.setDate(today.getDate() - 1);
           const yesterdayStr = formatDate(yesterday);
           onQuickDateSelect?.(yesterdayStr, yesterdayStr);
-        }
+        },
       },
       {
         label: "過去3日間",
@@ -118,7 +174,7 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
           const threeDaysAgo = new Date(today);
           threeDaysAgo.setDate(today.getDate() - 2);
           onQuickDateSelect?.(formatDate(threeDaysAgo), formatDate(today));
-        }
+        },
       },
       {
         label: "過去7日間",
@@ -126,7 +182,7 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
           const sevenDaysAgo = new Date(today);
           sevenDaysAgo.setDate(today.getDate() - 6);
           onQuickDateSelect?.(formatDate(sevenDaysAgo), formatDate(today));
-        }
+        },
       },
       {
         label: "過去30日間",
@@ -134,15 +190,19 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
           const thirtyDaysAgo = new Date(today);
           thirtyDaysAgo.setDate(today.getDate() - 29);
           onQuickDateSelect?.(formatDate(thirtyDaysAgo), formatDate(today));
-        }
+        },
       },
       {
         label: "今月",
         onClick: () => {
-          const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+          const thisMonthStart = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            1
+          );
           onQuickDateSelect?.(formatDate(thisMonthStart), formatDate(today));
-        }
-      }
+        },
+      },
     ];
   }, [onQuickDateSelect]);
 
@@ -151,7 +211,9 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
           <Filter className="h-5 w-5 text-gray-500" />
-          <h3 className="text-lg font-semibold text-gray-900">画像検索フィルター</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            画像検索フィルター
+          </h3>
           {hasActiveFilters && (
             <button
               onClick={onClearFilters}
@@ -185,7 +247,7 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {/* ファイル名検索 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -214,10 +276,39 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">すべての形式</option>
-            {availableFileTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
+            {availableFileTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
             ))}
           </select>
+        </div>
+
+        {/* フォルダフィルター */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            フォルダ
+          </label>
+          <div className="relative">
+            <Folder className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <select
+              value={folderFilter}
+              onChange={(e) => onFolderFilterChange(e.target.value)}
+              disabled={loadingFolders}
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="all">すべてのフォルダ</option>
+              {loadingFolders ? (
+                <option disabled>読み込み中...</option>
+              ) : (
+                folders.map((folder) => (
+                  <option key={folder} value={folder}>
+                    {folder}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
         </div>
 
         {/* 開始日フィルター */}
@@ -274,6 +365,17 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
                 <button
                   onClick={() => onFileTypeFilterChange("all")}
                   className="ml-1 hover:bg-green-200 rounded-full p-0.5"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {folderFilter && folderFilter !== "all" && (
+              <span className="inline-flex items-center px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-md">
+                フォルダ: {folderFilter}
+                <button
+                  onClick={() => onFolderFilterChange("all")}
+                  className="ml-1 hover:bg-yellow-200 rounded-full p-0.5"
                 >
                   <X className="h-3 w-3" />
                 </button>

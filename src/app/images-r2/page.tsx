@@ -44,6 +44,7 @@ export default function ImagesR2Page() {
   // フィルター状態
   const [fileNameFilter, setFileNameFilter] = useState("");
   const [fileTypeFilter, setFileTypeFilter] = useState("all");
+  const [folderFilter, setFolderFilter] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -124,29 +125,10 @@ export default function ImagesR2Page() {
   const handleSaveGeneratedImage = useCallback(
     async (imageUrl: string, prompt: string) => {
       try {
-        // Base64画像をBlobに変換
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-
-        // FormDataを作成
-        const formData = new FormData();
-        const fileName = `gemini_${Date.now()}.png`;
-        const file = new File([blob], fileName, { type: "image/png" });
-        formData.append("file", file);
-
-        // R2用アップロードAPI呼び出し
-        const uploadResponse = await fetch("/api/upload-image-r2", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (uploadResponse.ok) {
-          alert("画像をR2ギャラリーに保存しました");
-          handleCloseGeneratedModal();
-          fetchImages(); // 画像一覧を更新
-        } else {
-          throw new Error("R2への保存に失敗しました");
-        }
+        // 生成時に既にR2に保存されているので、単に画像一覧を更新
+        alert("画像をR2ギャラリーに保存しました");
+        handleCloseGeneratedModal();
+        fetchImages(); // 画像一覧を更新
       } catch (error) {
         console.error("R2保存エラー:", error);
         alert("R2への画像保存に失敗しました");
@@ -211,6 +193,7 @@ export default function ImagesR2Page() {
   const handleClearFilters = useCallback(() => {
     setFileNameFilter("");
     setFileTypeFilter("all");
+    setFolderFilter("all");
     setStartDate("");
     setEndDate("");
   }, []);
@@ -296,10 +279,12 @@ export default function ImagesR2Page() {
         onFilteredImages={setFilteredImages}
         fileNameFilter={fileNameFilter}
         fileTypeFilter={fileTypeFilter}
+        folderFilter={folderFilter}
         startDate={startDate}
         endDate={endDate}
         onFileNameFilterChange={setFileNameFilter}
         onFileTypeFilterChange={setFileTypeFilter}
+        onFolderFilterChange={setFolderFilter}
         onStartDateChange={setStartDate}
         onEndDateChange={setEndDate}
         onClearFilters={handleClearFilters}

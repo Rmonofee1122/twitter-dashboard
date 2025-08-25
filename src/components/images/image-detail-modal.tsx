@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useState } from "react";
-import { Download, Trash2 } from "lucide-react";
+import { Download, Trash2, Edit, Save, X } from "lucide-react";
 
 interface ImageFile {
   name: string;
@@ -16,6 +16,7 @@ interface ImageDetailModalProps {
   onClose: () => void;
   onDownload: (image: ImageFile) => void;
   onDelete?: (image: ImageFile) => void;
+  onRename?: (oldName: string, newName: string) => void;
 }
 
 const ImageDetailModal = memo(function ImageDetailModal({
@@ -24,8 +25,12 @@ const ImageDetailModal = memo(function ImageDetailModal({
   onClose,
   onDownload,
   onDelete,
+  onRename,
 }: ImageDetailModalProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const formatFileSize = useCallback((bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -59,7 +64,59 @@ const ImageDetailModal = memo(function ImageDetailModal({
     setShowDeleteConfirm(false);
   }, []);
 
+  const getFileNameAndExtension = useCallback((fullName: string) => {
+    const lastDotIndex = fullName.lastIndexOf('.');
+    if (lastDotIndex === -1) {
+      return { name: fullName, extension: '' };
+    }
+    return {
+      name: fullName.substring(0, lastDotIndex),
+      extension: fullName.substring(lastDotIndex)
+    };
+  }, []);
+
+  const handleEditClick = useCallback(() => {
+    if (!image) return;
+    const { name } = getFileNameAndExtension(image.name);
+    setEditedName(name);
+    setIsEditing(true);
+  }, [image, getFileNameAndExtension]);
+
+  const handleEditCancel = useCallback(() => {
+    setIsEditing(false);
+    setEditedName("");
+  }, []);
+
+  const handleEditSave = useCallback(async () => {
+    if (!image || !editedName.trim()) {
+      setIsEditing(false);
+      return;
+    }
+
+    const { name: currentName, extension } = getFileNameAndExtension(image.name);
+    if (editedName.trim() === currentName) {
+      setIsEditing(false);
+      return;
+    }
+
+    const newFullName = editedName.trim() + extension;
+
+    setIsSaving(true);
+    try {
+      onRename?.(image.name, newFullName);
+      setIsEditing(false);
+      onClose(); // 保存完了後にモーダルを閉じる
+    } catch (error) {
+      console.error("名前変更エラー:", error);
+      alert("名前の変更に失敗しました");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [image, editedName, onRename, getFileNameAndExtension]);
+
   if (!isOpen || !image) return null;
+
+  const { name: baseFileName, extension: fileExtension } = getFileNameAndExtension(image.name);
 
   return (
     <div className="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center">
@@ -84,9 +141,55 @@ const ImageDetailModal = memo(function ImageDetailModal({
             </div>
             <div className="md:w-80 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">ファイル名</label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded font-mono">
-                  {image.name}
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ファイル名
+                  {onRename && (
+                    <button
+                      onClick={isEditing ? handleEditCancel : handleEditClick}
+                      className="ml-2 text-blue-600 hover:text-blue-800 text-xs"
+                    >
+                      {isEditing ? "キャンセル" : "編集"}
+                    </button>
+                  )}
+                </label>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        value={editedName}
+                        onChange={(e) => setEditedName(e.target.value)}
+                        className="flex-1 text-sm px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="新しいファイル名を入力（拡張子なし）"
+                      />
+                      <span className="text-sm text-gray-500 py-2">{fileExtension}</span>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleEditCancel}
+                        className="px-3 py-2 text-sm bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                      >
+                        キャンセル
+                      </button>
+                      <button
+                        onClick={handleEditSave}
+                        disabled={isSaving || !editedName.trim() || editedName === baseFileName}
+                        className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isSaving ? "保存中..." : "保存"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded font-mono">
+                    {baseFileName}<span className="text-gray-500">{fileExtension}</span>
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ファイル形式</label>
+                <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                  {fileExtension ? fileExtension.substring(1).toUpperCase() : '不明'}
                 </p>
               </div>
               <div>

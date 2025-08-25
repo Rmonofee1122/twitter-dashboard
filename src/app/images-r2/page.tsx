@@ -161,6 +161,32 @@ export default function ImagesR2Page() {
     [fetchImages]
   );
 
+  const handleRenameImage = useCallback(async (oldName: string, newName: string) => {
+    try {
+      const response = await fetch("/api/rename-image-r2", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          oldKey: oldName,
+          newKey: newName,
+        }),
+      });
+
+      if (response.ok) {
+        alert("ファイル名を変更しました");
+        fetchImages(); // 画像一覧を更新
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "名前変更に失敗しました");
+      }
+    } catch (error: any) {
+      console.error("R2名前変更エラー:", error);
+      alert(error.message || "ファイル名の変更に失敗しました");
+    }
+  }, [fetchImages]);
+
   if (loading) {
     return (
       <div className="p-6">
@@ -215,6 +241,7 @@ export default function ImagesR2Page() {
         onClose={handleCloseModal}
         onDownload={handleDownload}
         onDelete={handleDeleteImage}
+        onRename={handleRenameImage}
       />
 
       {/* 生成画像プレビューモーダル */}

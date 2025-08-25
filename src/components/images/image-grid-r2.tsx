@@ -16,6 +16,7 @@ interface ImageGridProps {
   onImageClick: (image: ImageFile) => void;
   onDownload: (image: ImageFile) => void;
   onUploadSuccess?: () => void;
+  onBulkDelete?: (images: ImageFile[]) => void;
 }
 
 const ImageGrid = memo(function ImageGrid({
@@ -23,11 +24,14 @@ const ImageGrid = memo(function ImageGrid({
   onImageClick,
   onDownload,
   onUploadSuccess,
+  onBulkDelete,
 }: ImageGridProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  
+  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+
   const ITEMS_PER_PAGE = 18;
 
   // ページネーション用の計算
@@ -63,6 +67,68 @@ const ImageGrid = memo(function ImageGrid({
       minute: "2-digit",
     });
   }, []);
+
+  const handleToggleSelectionMode = useCallback(() => {
+    setIsSelectionMode(!isSelectionMode);
+    setSelectedImages(new Set());
+  }, [isSelectionMode]);
+
+  const handleImageSelect = useCallback((imageName: string) => {
+    setSelectedImages((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(imageName)) {
+        newSet.delete(imageName);
+      } else {
+        newSet.add(imageName);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    const currentPageImages = paginationData.currentImages.map(
+      (img) => img.name
+    );
+    setSelectedImages(new Set(currentPageImages));
+  }, [paginationData.currentImages]);
+
+  const handleDeselectAll = useCallback(() => {
+    setSelectedImages(new Set());
+  }, []);
+
+  const handleBulkDownload = useCallback(async () => {
+    const selectedImageObjects = images.filter((img) =>
+      selectedImages.has(img.name)
+    );
+    
+    alert(`${selectedImages.size}件の画像をダウンロードしています...`);
+    
+    // 順次ダウンロード（間隔を置いて実行）
+    for (let i = 0; i < selectedImageObjects.length; i++) {
+      const image = selectedImageObjects[i];
+      try {
+        await new Promise(resolve => setTimeout(resolve, 500 * i)); // 0.5秒間隔
+        onDownload(image);
+      } catch (error) {
+        console.error(`${image.name}のダウンロードに失敗:`, error);
+      }
+    }
+  }, [selectedImages, images, onDownload]);
+
+  const handleBulkDelete = useCallback(() => {
+    const selectedImageObjects = images.filter((img) =>
+      selectedImages.has(img.name)
+    );
+    if (
+      window.confirm(
+        `選択した${selectedImages.size}件の画像を削除しますか？この操作は元に戻せません。`
+      )
+    ) {
+      onBulkDelete?.(selectedImageObjects);
+      setSelectedImages(new Set());
+      setIsSelectionMode(false);
+    }
+  }, [selectedImages, images, onBulkDelete]);
 
   const handleUploadClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -133,7 +199,9 @@ const ImageGrid = memo(function ImageGrid({
             プロフィール画像一覧
           </h3>
           <p className="text-sm text-gray-500">
-            {paginationData.totalItems}件中 {paginationData.startIndex + 1}-{Math.min(paginationData.endIndex, paginationData.totalItems)}件を表示
+            {paginationData.totalItems}件中 {paginationData.startIndex + 1}-
+            {Math.min(paginationData.endIndex, paginationData.totalItems)}
+            件を表示
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -144,6 +212,49 @@ const ImageGrid = memo(function ImageGrid({
             onChange={handleFileSelect}
             className="hidden"
           />
+
+          {/* 選択モード切り替え */}
+          <button
+            onClick={handleToggleSelectionMode}
+            className={`px-3 py-1 text-sm rounded-md transition-colors ${
+              isSelectionMode
+                ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            {isSelectionMode ? "選択モード終了" : "選択モード"}
+          </button>
+
+          {/* 一括操作ボタン */}
+          {isSelectionMode && selectedImages.size > 0 && (
+            <>
+              <button
+                onClick={handleSelectAll}
+                className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
+              >
+                すべて選択
+              </button>
+              <button
+                onClick={handleDeselectAll}
+                className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                選択解除
+              </button>
+              <button
+                onClick={handleBulkDownload}
+                className="px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                一括DL ({selectedImages.size})
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                一括削除 ({selectedImages.size})
+              </button>
+            </>
+          )}
+
           <button
             onClick={handleUploadClick}
             disabled={isUploading}
@@ -170,12 +281,28 @@ const ImageGrid = memo(function ImageGrid({
             key={index}
             className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors"
           >
-            <div className="aspect-square bg-gray-200 rounded-lg mb-3 overflow-hidden">
+            <div className="aspect-square bg-gray-200 rounded-lg mb-3 overflow-hidden relative">
+              {isSelectionMode && (
+                <div className="absolute top-2 left-2 z-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedImages.has(image.name)}
+                    onChange={() => handleImageSelect(image.name)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded bg-white"
+                  />
+                </div>
+              )}
               <img
                 src={image.url}
                 alt={image.name}
-                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
-                onClick={() => onImageClick(image)}
+                className={`w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform ${
+                  selectedImages.has(image.name) ? "ring-4 ring-blue-500" : ""
+                }`}
+                onClick={() =>
+                  isSelectionMode
+                    ? handleImageSelect(image.name)
+                    : onImageClick(image)
+                }
               />
             </div>
             <div className="space-y-1">

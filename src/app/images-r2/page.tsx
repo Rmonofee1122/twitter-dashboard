@@ -79,13 +79,21 @@ export default function ImagesR2Page() {
     setSelectedImage(null);
   }, []);
 
-  const handleDownload = useCallback((image: ImageFile) => {
-    const link = document.createElement("a");
-    link.href = image.url;
-    link.download = image.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = useCallback(async (image: ImageFile) => {
+    try {
+      // サーバー経由でR2画像をダウンロード（CORS回避）
+      const downloadUrl = `/api/download-image-r2?key=${encodeURIComponent(image.name)}`;
+      
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = image.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("ダウンロードエラー:", error);
+      alert("画像のダウンロードに失敗しました");
+    }
   }, []);
 
   const handleImageGenerated = useCallback(
@@ -187,6 +195,30 @@ export default function ImagesR2Page() {
     }
   }, [fetchImages]);
 
+  const handleBulkDelete = useCallback(async (imagesToDelete: ImageFile[]) => {
+    try {
+      const deletePromises = imagesToDelete.map(image =>
+        fetch(`/api/delete-image-r2?key=${encodeURIComponent(image.name)}`, {
+          method: "DELETE",
+        })
+      );
+
+      const responses = await Promise.all(deletePromises);
+      const failedCount = responses.filter(response => !response.ok).length;
+
+      if (failedCount === 0) {
+        alert(`${imagesToDelete.length}件の画像を削除しました`);
+      } else {
+        alert(`${imagesToDelete.length - failedCount}件の画像を削除しました（${failedCount}件は失敗）`);
+      }
+
+      fetchImages(); // 画像一覧を更新
+    } catch (error) {
+      console.error("一括削除エラー:", error);
+      alert("一括削除に失敗しました");
+    }
+  }, [fetchImages]);
+
   if (loading) {
     return (
       <div className="p-6">
@@ -232,6 +264,7 @@ export default function ImagesR2Page() {
         onImageClick={handleImageClick}
         onDownload={handleDownload}
         onUploadSuccess={fetchImages}
+        onBulkDelete={handleBulkDelete}
       />
 
       {/* 画像詳細モーダル */}

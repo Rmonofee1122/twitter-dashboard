@@ -3,6 +3,7 @@
 import { memo, useCallback, useRef, useState, useMemo } from "react";
 import { Download, Eye, Upload, Plus } from "lucide-react";
 import Pagination from "@/components/ui/pagination";
+import Image from "next/image";
 
 interface ImageFile {
   name: string;
@@ -297,10 +298,12 @@ const ImageGrid = memo(function ImageGrid({
                   />
                 </div>
               )}
-              <img
+              <Image
                 src={image.url}
                 alt={getDisplayFileName(image.name)}
-                className={`w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform ${
+                fill
+                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 16vw"
+                className={`object-cover cursor-pointer hover:scale-105 transition-transform ${
                   selectedImages.has(image.name) ? "ring-4 ring-blue-500" : ""
                 }`}
                 onClick={() =>
@@ -308,6 +311,7 @@ const ImageGrid = memo(function ImageGrid({
                     ? handleImageSelect(image.name)
                     : onImageClick(image)
                 }
+                priority={index < 6} // 最初の6枚を優先読み込み
               />
             </div>
             <div className="space-y-1">

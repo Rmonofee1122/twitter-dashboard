@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useState } from "react";
 import { Download, Trash2, Edit, Save, X } from "lucide-react";
+import Image from "next/image";
 
 interface ImageFile {
   name: string;
@@ -66,24 +67,24 @@ const ImageDetailModal = memo(function ImageDetailModal({
 
   // ファイル名からフォルダパスを除いて表示名を取得
   const getDisplayFileName = useCallback((fullPath: string) => {
-    return fullPath.split('/').pop() || fullPath;
+    return fullPath.split("/").pop() || fullPath;
   }, []);
 
   // フォルダパスとファイル名を分離
   const getPathAndFileName = useCallback((fullPath: string) => {
-    const parts = fullPath.split('/');
+    const parts = fullPath.split("/");
     if (parts.length <= 1) {
-      return { path: '', fileName: fullPath };
+      return { path: "", fileName: fullPath };
     }
-    const fileName = parts.pop() || '';
-    const path = parts.join('/');
+    const fileName = parts.pop() || "";
+    const path = parts.join("/");
     return { path, fileName };
   }, []);
 
   const getFileNameAndExtension = useCallback((fullName: string) => {
     // まずフォルダパスを除去
-    const displayName = fullName.split('/').pop() || fullName;
-    
+    const displayName = fullName.split("/").pop() || fullName;
+
     const lastDotIndex = displayName.lastIndexOf(".");
     if (lastDotIndex === -1) {
       return { name: displayName, extension: "" };
@@ -136,7 +137,13 @@ const ImageDetailModal = memo(function ImageDetailModal({
     } finally {
       setIsSaving(false);
     }
-  }, [image, editedName, onRename, getFileNameAndExtension, getPathAndFileName]);
+  }, [
+    image,
+    editedName,
+    onRename,
+    getFileNameAndExtension,
+    getPathAndFileName,
+  ]);
 
   if (!isOpen || !image) return null;
 
@@ -157,11 +164,14 @@ const ImageDetailModal = memo(function ImageDetailModal({
         </div>
         <div className="p-6">
           <div className="flex flex-col md:flex-row gap-6">
-            <div className="flex-1">
-              <img
+            <div className="flex-1 relative min-h-[400px]">
+              <Image
                 src={image.url}
-                alt={image.name}
-                className="w-full h-auto rounded-lg"
+                alt={getDisplayFileName(image.name)}
+                fill
+                sizes="(max-width: 768px) 100vw, 60vw"
+                className="object-contain rounded-lg"
+                priority
               />
             </div>
             <div className="md:w-80 space-y-4">
@@ -213,7 +223,9 @@ const ImageDetailModal = memo(function ImageDetailModal({
                   </div>
                 ) : (
                   <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded font-mono">
-                    {baseFileName}
+                    {baseFileName
+                      ? `${baseFileName.substring(0, 25)}...`
+                      : "未設定"}
                     <span className="text-gray-500">{fileExtension}</span>
                   </p>
                 )}

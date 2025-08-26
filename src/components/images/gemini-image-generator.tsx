@@ -16,6 +16,7 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
   const [isBulkGenerating, setIsBulkGenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [currentBulkPrompt, setCurrentBulkPrompt] = useState("");
+  const [activeTab, setActiveTab] = useState<'single' | 'bulk'>('single');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleGenerate = useCallback(async () => {
@@ -142,56 +143,82 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
         </h3>
       </div>
 
+      {/* タブナビゲーション */}
+      <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-6">
+        <button
+          onClick={() => setActiveTab('single')}
+          className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 'single'
+              ? 'bg-white text-purple-600 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <Send className="h-4 w-4 mr-2" />
+          単体生成
+        </button>
+        <button
+          onClick={() => setActiveTab('bulk')}
+          className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 'bulk'
+              ? 'bg-white text-blue-600 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          複数を生成保存
+        </button>
+      </div>
+
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            プロンプト
-          </label>
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder="画像生成のプロンプトを入力してください..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-            rows={3}
-            disabled={isGenerating}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Enter: 送信 | Shift+Enter: 改行
-          </p>
-        </div>
+        {/* 単体生成タブ */}
+        {activeTab === 'single' && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                プロンプト
+              </label>
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="画像生成のプロンプトを入力してください..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                rows={3}
+                disabled={isGenerating || isBulkGenerating}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Enter: 送信 | Shift+Enter: 改行
+              </p>
+            </div>
 
-        <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-600">
-            文字数: {prompt.length}
-          </div>
-          <button
-            onClick={handleGenerate}
-            disabled={isGenerating || isBulkGenerating || !prompt.trim()}
-            className="flex items-center px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isGenerating ? (
-              <>
-                <Loader className="h-4 w-4 mr-2 animate-spin" />
-                生成中...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4 mr-2" />
-                画像を生成
-              </>
-            )}
-          </button>
-        </div>
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                文字数: {prompt.length}
+              </div>
+              <button
+                onClick={handleGenerate}
+                disabled={isGenerating || isBulkGenerating || !prompt.trim()}
+                className="flex items-center px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader className="h-4 w-4 mr-2 animate-spin" />
+                    生成中...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    画像を生成
+                  </>
+                )}
+              </button>
+            </div>
+          </>
+        )}
 
-        {/* 一括生成セクション */}
-        <div className="border-t pt-4">
-          <div className="flex items-center space-x-2 mb-3">
-            <FileText className="h-5 w-5 text-blue-600" />
-            <h4 className="text-md font-medium text-gray-900">複数を生成保存</h4>
-          </div>
-          
-          <div className="space-y-3">
+        {/* 一括生成タブ */}
+        {activeTab === 'bulk' && (
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 プロンプトテキストファイル
@@ -229,8 +256,18 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
                 </p>
               )}
             </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h5 className="text-sm font-medium text-blue-900 mb-2">使用方法</h5>
+              <ul className="text-xs text-blue-700 space-y-1">
+                <li>• テキストファイル（.txt）を準備してください</li>
+                <li>• 1行に1つのプロンプトを記載してください</li>
+                <li>• 空行は自動的にスキップされます</li>
+                <li>• 各画像は自動でR2ギャラリーに保存されます</li>
+              </ul>
+            </div>
           </div>
-        </div>
+        )}
 
         {isGenerating && !isBulkGenerating && (
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">

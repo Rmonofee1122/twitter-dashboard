@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+export const runtime = "nodejs";
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -43,56 +45,91 @@ async function saveShadowbanDataToSupabase(
     };
 
     // screen_nameで既存レコードを検索
-    const { data: existing, error: searchError } = await supabase
+    const { error } = await supabase
       .from("twitter_account_v1")
-      .select("id")
-      .eq("screen_name", accountData.screen_name)
-      .single();
+      .upsert(accountData, { onConflict: "twitter_id" }); // ← 一発
 
-    if (searchError && searchError.code !== "PGRST116") {
-      console.error("Error searching for existing record:", searchError);
-      return;
-    }
-
-    if (existing) {
-      // 既存レコードを更新
-      const { error: updateError } = await supabase
-        .from("twitter_account_v1")
-        .update({
-          ...accountData,
-          updated_at:
-            new Date()
-              .toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" })
-              .replace(" ", "T") + "+09:00",
-        })
-        .eq("id", existing.id);
-
-      if (updateError) {
-        console.error("Error updating twitter_account_v1:", updateError);
-      } else {
-        console.log(
-          "Updated existing twitter_account_v1 record for:",
-          accountData.screen_name
-        );
-      }
-    } else {
-      // 新規レコードを挿入
-      const { error: insertError } = await supabase
-        .from("twitter_account_v1")
-        .insert([accountData]);
-
-      if (insertError) {
-        console.error("Error inserting to twitter_account_v1:", insertError);
-      } else {
-        console.log(
-          "Inserted new twitter_account_v1 record for:",
-          accountData.screen_name
-        );
-      }
-    }
+    if (error) console.error("upsert error:", error);
   } catch (error) {
     console.error("Error saving shadowban data to Supabase:", error);
   }
+}
+
+// 使い回せる fetchWithBackoff
+async function fetchWithBackoff(
+  url: string,
+  init: RequestInit = {},
+  {
+    retries = 5,
+    baseMs = 300,
+    maxMs = 10_000,
+    perTryTimeoutMs = 20_000, // 1回あたりの上限
+    totalDeadlineMs = 30_000, // 全体の上限（超重要）
+  } = {}
+) {
+  const started = Date.now();
+
+  for (let i = 0; i <= retries; i++) {
+    // 残り時間で per-try のタイムアウトを決定
+    const elapsed = Date.now() - started;
+    const remaining = Math.max(totalDeadlineMs - elapsed, 0);
+    if (remaining <= 0)
+      throw new Error(`Deadline exceeded (${totalDeadlineMs}ms)`);
+
+    const thisTryTimeout = Math.min(perTryTimeoutMs, remaining);
+
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), thisTryTimeout);
+
+    try {
+      const res = await fetch(url, { ...init, signal: ac.signal });
+
+      if (res.ok) return res;
+
+      // 429/503 は待って再試行
+      if (res.status === 429 || res.status === 503) {
+        const ra = res.headers.get("Retry-After");
+        const wait = ra
+          ? Math.min(+ra * 1000, maxMs)
+          : Math.min(baseMs * 2 ** i, maxMs) * (0.5 + Math.random());
+        if (i === retries)
+          throw new Error(`HTTP ${res.status} after ${retries} retries`);
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+
+      // 4xx（429以外）は再試行せず失敗
+      if (res.status >= 400 && res.status < 500) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      // 5xx（503以外）は指数バックオフでリトライ
+      if (res.status >= 500) {
+        if (i === retries)
+          throw new Error(`HTTP ${res.status} after ${retries} retries`);
+        const wait = Math.min(baseMs * 2 ** i, maxMs) * (0.5 + Math.random());
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+
+      // 想定外は即エラー
+      throw new Error(`HTTP ${res.status}`);
+    } catch (err: any) {
+      // タイムアウト/Abort はネットワーク相当としてリトライ対象
+      const isAbort = err?.name === "AbortError";
+      if (i === retries) {
+        throw new Error(
+          isAbort ? `Abort after ${retries} retries` : String(err)
+        );
+      }
+      const wait = Math.min(baseMs * 2 ** i, maxMs) * (0.5 + Math.random());
+      await new Promise((r) => setTimeout(r, wait));
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  throw new Error("Unreachable");
 }
 
 export async function GET(request: NextRequest) {
@@ -106,18 +143,54 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const urls = [
+    `https://shadowban.lami.zip/api/test?screen_name=${encodeURIComponent(screenName)}`,
+    `http://localhost:3001/api/test?screen_name=${encodeURIComponent(screenName)}`
+  ];
+
   try {
-    const response = await fetch(
-      `https://shadowban.lami.zip/api/test?screen_name=${encodeURIComponent(
-        screenName
-      )}`,
-      {
-        method: "GET",
-        headers: {
-          "User-Agent": "TwitterDashboard/1.0",
-        },
+    let response;
+    let lastError;
+
+    // 最初のURLを試行
+    try {
+      response = await fetchWithBackoff(
+        urls[0],
+        { headers: { accept: "application/json" } },
+        {
+          retries: 5,
+          baseMs: 300,
+          maxMs: 10_000,
+          perTryTimeoutMs: 10_000,
+          totalDeadlineMs: 20_000,
+        }
+      );
+    } catch (error: any) {
+      lastError = error;
+      console.log(`Primary URL failed: ${error.message}, trying fallback...`);
+      
+      // エラーメッセージから503や429をチェック
+      if (error.message.includes('503') || error.message.includes('429')) {
+        try {
+          response = await fetchWithBackoff(
+            urls[1],
+            { headers: { accept: "application/json" } },
+            {
+              retries: 3,
+              baseMs: 300,
+              maxMs: 5_000,
+              perTryTimeoutMs: 8_000,
+              totalDeadlineMs: 15_000,
+            }
+          );
+        } catch (fallbackError) {
+          console.error('Fallback URL also failed:', fallbackError);
+          throw lastError; // 元のエラーを投げる
+        }
+      } else {
+        throw error;
       }
-    );
+    }
 
     if (!response.ok) {
       throw new Error(`API returned ${response.status}`);

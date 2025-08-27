@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
-  process.env.SUPABASE_URL!, // ← server-onlyの環境変数を使う
+  process.env.NEXT_PUBLIC_SUPABASE_URL!, // ← server-onlyの環境変数を使う
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 

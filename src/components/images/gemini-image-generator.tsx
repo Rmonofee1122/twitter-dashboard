@@ -109,9 +109,11 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
             const result = await response.json();
             if (result.success && result.imageUrl) {
               onImageGenerated?.(result.imageUrl, currentPrompt);
+            } else {
+              console.error(`プロンプト "${currentPrompt}" の生成に失敗しました: レスポンス内容が不正`);
             }
           } else {
-            console.error(`プロンプト "${currentPrompt}" の生成に失敗しました`);
+            console.error(`プロンプト "${currentPrompt}" の生成に失敗しました: HTTP ${response.status}`);
           }
         } catch (error) {
           console.error(`プロンプト "${currentPrompt}" の生成エラー:`, error);

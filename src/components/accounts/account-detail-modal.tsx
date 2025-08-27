@@ -1,4 +1,4 @@
-import { X, Copy, Check, Save } from "lucide-react";
+import { X, Copy, Check, Save, Shield } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { TwitterCreateLog } from "@/types/database";
 import {
@@ -24,6 +24,9 @@ export default function AccountDetailModal({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
+  const [shadowbanData, setShadowbanData] = useState<any>(null);
+  const [isCheckingShadowban, setIsCheckingShadowban] = useState(false);
+  const [showShadowbanResult, setShowShadowbanResult] = useState(false);
 
   // アカウントが変更されたときにステータスを初期化
   useEffect(() => {
@@ -55,6 +58,34 @@ export default function AccountDetailModal({
       setIsSaving(false);
     }
   }, [account, selectedStatus, onAccountUpdate, onClose]);
+
+  const handleShadowbanCheck = useCallback(async () => {
+    if (!account?.twitter_id) {
+      alert("Twitter IDが設定されていません");
+      return;
+    }
+
+    // @マークを除去したTwitter ID
+    const screenName = account.twitter_id.replace(/^@/, "");
+
+    setIsCheckingShadowban(true);
+    try {
+      const response = await fetch(
+        `/api/shadowban?screen_name=${encodeURIComponent(screenName)}`
+      );
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      setShadowbanData(data);
+      setShowShadowbanResult(true);
+    } catch (error) {
+      console.error("シャドバン判定エラー:", error);
+      alert("シャドバン判定の取得に失敗しました");
+    } finally {
+      setIsCheckingShadowban(false);
+    }
+  }, [account]);
 
   if (!isOpen || !account) return null;
 
@@ -295,6 +326,42 @@ export default function AccountDetailModal({
                   />
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* シャドバン判定 */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              シャドバン判定
+            </h3>
+            <div className="space-y-4">
+              <button
+                onClick={handleShadowbanCheck}
+                disabled={isCheckingShadowban || !account.twitter_id}
+                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                {isCheckingShadowban ? "判定中..." : "シャドバン判定"}
+              </button>
+
+              {showShadowbanResult && shadowbanData && (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">
+                    判定結果
+                  </h4>
+                  <div className="bg-white rounded border p-3">
+                    <pre className="text-xs text-gray-800 whitespace-pre-wrap overflow-x-auto">
+                      {JSON.stringify(shadowbanData, null, 2)}
+                    </pre>
+                  </div>
+                  <button
+                    onClick={() => setShowShadowbanResult(false)}
+                    className="mt-2 text-sm text-gray-600 hover:text-gray-800"
+                  >
+                    結果を閉じる
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -29,6 +29,7 @@ async function saveShadowbanDataToSupabase(
       follower_count: shadowbanData.user.legacy?.followers_count || 0,
       following_count: shadowbanData.user.legacy?.friends_count || 0,
       media_count: shadowbanData.user.legacy?.media_count || 0,
+      favourites_count: shadowbanData.user.legacy?.favourites_count || 0,
       not_found: shadowbanData.no_profile === true || false,
       suspend: shadowbanData.suspend === true || false,
       protect: shadowbanData.protected === true || false,

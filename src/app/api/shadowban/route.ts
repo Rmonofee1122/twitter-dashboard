@@ -23,7 +23,7 @@ async function saveShadowbanDataToSupabase(
       twitter_id: "@" + screenName || "",
       name: shadowbanData.user.legacy?.name || "",
       screen_name: shadowbanData.user.legacy?.screen_name || "",
-      status: shadowbanData.user.reason || "active",
+      status: shadowbanData.user.reason.toLowerCase() || "active",
       description_text: shadowbanData.user.legacy?.description || null,
       profile_image_url_https:
         shadowbanData.user.legacy?.profile_image_url_https || null,
@@ -144,8 +144,12 @@ export async function GET(request: NextRequest) {
   }
 
   const urls = [
-    `https://shadowban.lami.zip/api/test?screen_name=${encodeURIComponent(screenName)}`,
-    `http://localhost:3001/api/test?screen_name=${encodeURIComponent(screenName)}`
+    `https://shadowban.lami.zip/api/test?screen_name=${encodeURIComponent(
+      screenName
+    )}`,
+    `http://localhost:3001/api/test?screen_name=${encodeURIComponent(
+      screenName
+    )}`,
   ];
 
   try {
@@ -168,9 +172,9 @@ export async function GET(request: NextRequest) {
     } catch (error: any) {
       lastError = error;
       console.log(`Primary URL failed: ${error.message}, trying fallback...`);
-      
+
       // エラーメッセージから503や429をチェック
-      if (error.message.includes('503') || error.message.includes('429')) {
+      if (error.message.includes("503") || error.message.includes("429")) {
         try {
           response = await fetchWithBackoff(
             urls[1],
@@ -184,7 +188,7 @@ export async function GET(request: NextRequest) {
             }
           );
         } catch (fallbackError) {
-          console.error('Fallback URL also failed:', fallbackError);
+          console.error("Fallback URL also failed:", fallbackError);
           throw lastError; // 元のエラーを投げる
         }
       } else {

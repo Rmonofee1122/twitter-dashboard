@@ -398,7 +398,7 @@ export async function fetchIpRankingTop5(): Promise<IpData[]> {
 export async function fetchAccountDetails(twitterId: string): Promise<any> {
   try {
     const { data, error } = await supabase
-      .from("twitter_create_logs")
+      .from("twitter_account_v2")
       .select("*")
       .eq("twitter_id", twitterId)
       .single();

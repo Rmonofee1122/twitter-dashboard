@@ -71,6 +71,7 @@ const navigation = [
   },
   // { name: '画像一覧', href: '/images', icon: Image },
   { name: "画像一覧（R2）", href: "/images-r2", icon: Image },
+  { name: "アカウント一覧v2", href: "/accounts-v2", icon: Users },
   { name: "設定", href: "/settings", icon: Settings },
 ];
 

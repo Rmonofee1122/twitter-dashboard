@@ -1,4 +1,15 @@
-import { X, Copy, Check, Save, Shield } from "lucide-react";
+import {
+  X,
+  Copy,
+  Check,
+  Save,
+  Shield,
+  User,
+  BarChart3,
+  Settings,
+  Lock,
+  Search,
+} from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { TwitterAccountInfo } from "@/types/database";
 import {
@@ -27,6 +38,7 @@ export default function AccountDetailModal({
   const [shadowbanData, setShadowbanData] = useState<any>(null);
   const [isCheckingShadowban, setIsCheckingShadowban] = useState(false);
   const [showShadowbanResult, setShowShadowbanResult] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("basic");
 
   // アカウントが変更されたときにステータスを初期化
   useEffect(() => {
@@ -89,6 +101,15 @@ export default function AccountDetailModal({
 
   if (!isOpen || !account) return null;
 
+  // タブの定義
+  const tabs = [
+    { id: "basic", label: "基本情報", icon: User },
+    { id: "stats", label: "統計情報", icon: BarChart3 },
+    { id: "technical", label: "技術情報", icon: Settings },
+    { id: "security", label: "セキュリティ", icon: Lock },
+    { id: "shadowban", label: "シャドバン判定", icon: Search },
+  ];
+
   const copyToClipboard = async (text: string, fieldName: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -127,11 +148,11 @@ export default function AccountDetailModal({
     return (
       <button
         onClick={() => copyToClipboard(value, fieldName)}
-        className="ml-2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+        className="ml-3 p-2 text-gray-400 hover:text-blue-600 bg-white hover:bg-blue-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md"
         title="コピー"
       >
         {isCopied ? (
-          <Check className="h-4 w-4 text-green-500" />
+          <Check className="h-4 w-4 text-green-600" />
         ) : (
           <Copy className="h-4 w-4" />
         )}
@@ -139,319 +160,417 @@ export default function AccountDetailModal({
     );
   };
 
-  return (
-    <div className="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-semibold text-gray-900">
-            アカウント詳細
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label="モーダルを閉じる"
-          >
-            <X className="h-6 w-6" />
-          </button>
+  // タブコンテンツをレンダリング
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "basic":
+        return renderBasicInfo();
+      case "stats":
+        return renderStatsInfo();
+      case "technical":
+        return renderTechnicalInfo();
+      case "security":
+        return renderSecurityInfo();
+      case "shadowban":
+        return renderShadowbanInfo();
+      default:
+        return renderBasicInfo();
+    }
+  };
+
+  // 基本情報タブ
+  const renderBasicInfo = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            Twitter ID
+          </label>
+          <div className="flex items-center bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-all duration-200">
+            <p className="text-sm font-medium text-gray-800 flex-1 font-mono">
+              {account.twitter_id || "未設定"}
+            </p>
+            <CopyButton
+              value={account.twitter_id || ""}
+              fieldName="twitter_id"
+            />
+          </div>
         </div>
-
-        <div className="p-6 space-y-6">
-          {/* 基本情報 */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">基本情報</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Twitter ID
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
-                    {account.twitter_id || "未設定"}
-                  </p>
-                  <CopyButton
-                    value={account.twitter_id || ""}
-                    fieldName="twitter_id"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  名前
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
-                    {account.name || "未設定"}
-                  </p>
-                  <CopyButton value={account.name || ""} fieldName="name" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  紹介文
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
-                    {account.description_text || "未設定"}
-                  </p>
-                  <CopyButton
-                    value={account.description_text || ""}
-                    fieldName="description_text"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  メールアドレス
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
-                    {account.email || "未設定"}
-                  </p>
-                  <CopyButton value={account.email || ""} fieldName="email" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ステータス
-                </label>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="true">アクティブ</option>
-                  <option value="false">除外</option>
-                  <option value="suspend">BAN・凍結</option>
-                  <option value="email_ban">Email BAN</option>
-                  <option value="FarmUp">保留中（FarmUp）</option>
-                  <option value="farmup">保留中（farmup）</option>
-                </select>
-                <div className="mt-2">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
-                      getAccountStatus(selectedStatus)
-                    )}`}
-                  >
-                    {getStatusText(getAccountStatus(selectedStatus))}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  作成日時
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
-                    {formatDate(account.created_at)}
-                  </p>
-                  <CopyButton
-                    value={formatDate(account.created_at)}
-                    fieldName="created_at"
-                  />
-                </div>
-              </div>
-            </div>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            名前
+          </label>
+          <div className="flex items-center bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-all duration-200">
+            <p className="text-sm font-medium text-gray-800 flex-1">
+              {account.name || "未設定"}
+            </p>
+            <CopyButton value={account.name || ""} fieldName="name" />
           </div>
-
-          {/* 統計情報 */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">統計情報</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  フォロワー数
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
-                    {account.follower_count !== null
-                      ? account.follower_count
-                      : "未設定"}
-                  </p>
-                  <CopyButton
-                    value={account.follower_count?.toString() || ""}
-                    fieldName="follower_count"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  フォロー数
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
-                    {account.following_count !== null
-                      ? account.following_count
-                      : "未設定"}
-                  </p>
-                  <CopyButton
-                    value={account.following_count?.toString() || ""}
-                    fieldName="following_count"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  メディア数
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
-                    {account.media_count !== null
-                      ? account.media_count
-                      : "未設定"}
-                  </p>
-                  <CopyButton
-                    value={account.media_count?.toString() || ""}
-                    fieldName="media_count"
-                  />
-                </div>
-              </div>
-            </div>
+        </div>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            紹介文
+          </label>
+          <div className="flex items-center bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-all duration-200">
+            <p className="text-sm font-medium text-gray-800 flex-1 break-words">
+              {account.description_text || "未設定"}
+            </p>
+            <CopyButton
+              value={account.description_text || ""}
+              fieldName="description_text"
+            />
           </div>
-
-          {/* 技術情報 */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">技術情報</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  作成IP
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded font-mono flex-1">
-                    {account.create_ip || "未設定"}
-                  </p>
-                  <CopyButton
-                    value={account.create_ip || ""}
-                    fieldName="create_ip"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email ID
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
-                    {account.email_id || "未設定"}
-                  </p>
-                  <CopyButton
-                    value={account.email_id || ""}
-                    fieldName="email_id"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  CT0トークン
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded font-mono flex-1">
-                    {account.ct0
-                      ? `${account.ct0.substring(0, 20)}...`
-                      : "未設定"}
-                  </p>
-                  <CopyButton value={account.ct0 || ""} fieldName="ct0" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  2FAコード
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
-                    {account.twitter_2fa_code || "未設定"}
-                  </p>
-                  <CopyButton
-                    value={account.twitter_2fa_code || ""}
-                    fieldName="twitter_2fa_code"
-                  />
-                </div>
-              </div>
-            </div>
+        </div>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            メールアドレス
+          </label>
+          <div className="flex items-center bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-all duration-200">
+            <p className="text-sm font-medium text-gray-800 flex-1 font-mono">
+              {account.email || "未設定"}
+            </p>
+            <CopyButton value={account.email || ""} fieldName="email" />
           </div>
-
-          {/* セキュリティ情報 */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              セキュリティ情報
-            </h3>
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  パスワード
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
-                    {account.twitter_pass || "未設定"}
-                  </p>
-                  <CopyButton
-                    value={account.twitter_pass || ""}
-                    fieldName="twitter_pass"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  デバイス情報
-                </label>
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded flex-1">
-                    {account.device_base64
-                      ? `${account.device_base64.substring(0, 20)}...`
-                      : "デバイス情報なし"}
-                  </p>
-                  <CopyButton
-                    value={account.device_base64 || ""}
-                    fieldName="device_base64"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* シャドバン判定 */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              シャドバン判定
-            </h3>
-            <div className="space-y-4">
-              <button
-                onClick={handleShadowbanCheck}
-                disabled={isCheckingShadowban || !account.twitter_id}
-                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        </div>
+        <div className="space-y-3">
+          <label className="block text-sm font-semibold text-gray-700">
+            ステータス
+          </label>
+          <div className="space-y-3">
+            <select
+              value={selectedStatus}
+              onChange={(e) => handleStatusChange(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm transition-all duration-200 font-medium"
+            >
+              <option value="true">アクティブ</option>
+              <option value="false">除外</option>
+              <option value="suspend">BAN・凍結</option>
+              <option value="email_ban">Email BAN</option>
+              <option value="FarmUp">保留中（FarmUp）</option>
+              <option value="farmup">保留中（farmup）</option>
+            </select>
+            <div className="flex justify-center">
+              <span
+                className={`inline-flex px-4 py-2 text-sm font-bold rounded-full shadow-sm ${getStatusBadgeColor(
+                  getAccountStatus(selectedStatus)
+                )}`}
               >
-                <Shield className="h-4 w-4 mr-2" />
-                {isCheckingShadowban ? "判定中..." : "シャドバン判定"}
-              </button>
+                {getStatusText(getAccountStatus(selectedStatus))}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            作成日時
+          </label>
+          <div className="flex items-center bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-all duration-200">
+            <p className="text-sm font-medium text-gray-800 flex-1 font-mono">
+              {formatDate(account.created_at)}
+            </p>
+            <CopyButton
+              value={formatDate(account.created_at)}
+              fieldName="created_at"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
-              {showShadowbanResult && shadowbanData && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">
-                    判定結果
-                  </h4>
-                  <div className="bg-white rounded border p-3">
-                    <pre className="text-xs text-gray-800 whitespace-pre-wrap overflow-x-auto">
-                      {JSON.stringify(shadowbanData, null, 2)}
-                    </pre>
-                  </div>
-                  <button
-                    onClick={() => setShowShadowbanResult(false)}
-                    className="mt-2 text-sm text-gray-600 hover:text-gray-800"
-                  >
-                    結果を閉じる
-                  </button>
+  // 統計情報タブ
+  const renderStatsInfo = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 border border-blue-200 hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-bold text-blue-800">
+              フォロワー数
+            </label>
+            <CopyButton
+              value={account.follower_count?.toString() || ""}
+              fieldName="follower_count"
+            />
+          </div>
+          <p className="text-2xl font-bold text-blue-900">
+            {account.follower_count !== null
+              ? account.follower_count.toLocaleString()
+              : "未設定"}
+          </p>
+        </div>
+        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-5 border border-green-200 hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-bold text-green-800">
+              フォロー数
+            </label>
+            <CopyButton
+              value={account.following_count?.toString() || ""}
+              fieldName="following_count"
+            />
+          </div>
+          <p className="text-2xl font-bold text-green-900">
+            {account.following_count !== null
+              ? account.following_count.toLocaleString()
+              : "未設定"}
+          </p>
+        </div>
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 border border-purple-200 hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-bold text-purple-800">
+              メディア数
+            </label>
+            <CopyButton
+              value={account.media_count?.toString() || ""}
+              fieldName="media_count"
+            />
+          </div>
+          <p className="text-2xl font-bold text-purple-900">
+            {account.media_count !== null
+              ? account.media_count.toLocaleString()
+              : "未設定"}
+          </p>
+        </div>
+        <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-5 border border-pink-200 hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-bold text-pink-800">いいね数</label>
+            <CopyButton
+              value={account.favourites_count?.toString() || ""}
+              fieldName="favourites_count"
+            />
+          </div>
+          <p className="text-2xl font-bold text-pink-900">
+            {account.favourites_count !== null
+              ? account.favourites_count.toLocaleString()
+              : "未設定"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  // 技術情報タブ
+  const renderTechnicalInfo = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            作成IP
+          </label>
+          <div className="flex items-center bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-all duration-200">
+            <p className="text-sm font-medium text-gray-800 font-mono flex-1">
+              {account.create_ip || "未設定"}
+            </p>
+            <CopyButton value={account.create_ip || ""} fieldName="create_ip" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            Email ID
+          </label>
+          <div className="flex items-center bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-all duration-200">
+            <p className="text-sm font-medium text-gray-800 flex-1">
+              {account.email_id || "未設定"}
+            </p>
+            <CopyButton value={account.email_id || ""} fieldName="email_id" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            CT0トークン
+          </label>
+          <div className="flex items-center bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-all duration-200">
+            <p className="text-sm font-medium text-gray-800 font-mono flex-1 truncate">
+              {account.ct0 ? `${account.ct0.substring(0, 20)}...` : "未設定"}
+            </p>
+            <CopyButton value={account.ct0 || ""} fieldName="ct0" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            2FAコード
+          </label>
+          <div className="flex items-center bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-all duration-200">
+            <p className="text-sm font-medium text-gray-800 font-mono flex-1">
+              {account.twitter_2fa_code || "未設定"}
+            </p>
+            <CopyButton
+              value={account.twitter_2fa_code || ""}
+              fieldName="twitter_2fa_code"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // セキュリティ情報タブ
+  const renderSecurityInfo = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="grid grid-cols-1 gap-6">
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            パスワード
+          </label>
+          <div className="flex items-center bg-gradient-to-r from-red-50 to-red-100 rounded-lg border border-red-200 p-4 hover:shadow-sm transition-all duration-200">
+            <p className="text-sm font-medium text-gray-800 font-mono flex-1">
+              {account.twitter_pass || "未設定"}
+            </p>
+            <CopyButton
+              value={account.twitter_pass || ""}
+              fieldName="twitter_pass"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            デバイス情報
+          </label>
+          <div className="flex items-center bg-gradient-to-r from-red-50 to-red-100 rounded-lg border border-red-200 p-4 hover:shadow-sm transition-all duration-200">
+            <p className="text-sm font-medium text-gray-800 font-mono flex-1 truncate">
+              {account.device_base64
+                ? `${account.device_base64.substring(0, 20)}...`
+                : "デバイス情報なし"}
+            </p>
+            <CopyButton
+              value={account.device_base64 || ""}
+              fieldName="device_base64"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // シャドバン判定タブ
+  const renderShadowbanInfo = () => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="space-y-4">
+        <button
+          onClick={handleShadowbanCheck}
+          disabled={isCheckingShadowban || !account.twitter_id}
+          className="flex items-center px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-semibold"
+        >
+          <Shield className="h-5 w-5 mr-3" />
+          {isCheckingShadowban ? "判定中..." : "シャドバン判定"}
+        </button>
+
+        {showShadowbanResult && shadowbanData && (
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 p-5 shadow-inner">
+            <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+              判定結果
+            </h4>
+            <div className="bg-white rounded-lg border border-gray-300 p-4 shadow-sm">
+              <pre className="text-sm text-gray-700 whitespace-pre-wrap overflow-x-auto font-mono leading-relaxed">
+                {JSON.stringify(shadowbanData, null, 2)}
+              </pre>
+            </div>
+            <button
+              onClick={() => setShowShadowbanResult(false)}
+              className="mt-4 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 bg-white rounded-lg border border-gray-300 hover:border-gray-400 transition-all duration-200 font-medium"
+            >
+              結果を閉じる
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden">
+        <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6">
+          <div className="flex items-center justify-between">
+            {/* プロフ画像 */}
+            <div className="flex-shrink-0 h-20 w-20 mr-2">
+              {account.profile_image_url_https ? (
+                <img
+                  className="h-20 w-20 rounded-full object-cover border-3 border-white shadow-lg"
+                  src={account.profile_image_url_https}
+                  alt={`${account.twitter_id || "User"} profile`}
+                  onError={(e) => {
+                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      account.twitter_id || "User"
+                    )}&background=6366f1&color=fff&size=80`;
+                  }}
+                />
+              ) : (
+                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center border-3 border-white shadow-lg">
+                  <span className="text-white text-lg font-bold">
+                    {account.twitter_id
+                      ? account.twitter_id.charAt(0).toUpperCase()
+                      : "U"}
+                  </span>
                 </div>
               )}
             </div>
+            {/* アカウント詳細・twitter_id */}
+            <div className="flex-2 flex flex-col justify-center">
+              <h2 className="text-2xl font-bold text-white mb-1">
+                アカウント詳細
+              </h2>
+              <p className="text-blue-100 text-sm">
+                {account.twitter_id || "Twitter Account"}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-white/80 hover:text-white bg-white/20 hover:bg-white/30 rounded-full p-2 transition-all duration-200"
+              aria-label="モーダルを閉じる"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
         </div>
 
-        <div className="flex justify-between items-center p-6 border-t bg-gray-50">
-          <div className="text-sm text-gray-500">
+        {/* タブナビゲーション */}
+        <div className="bg-gray-100 border-b border-gray-200 px-6">
+          <div className="flex space-x-1 overflow-x-auto">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`
+                    flex items-center px-6 py-4 text-sm font-semibold whitespace-nowrap transition-all duration-300
+                    ${
+                      isActive
+                        ? "text-blue-600 border-b-3 border-blue-600 bg-white rounded-t-lg shadow-sm"
+                        : "text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-t-lg"
+                    }
+                  `}
+                >
+                  <Icon
+                    className={`h-4 w-4 mr-2 ${
+                      isActive ? "text-blue-600" : "text-gray-500"
+                    }`}
+                  />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* タブコンテンツ */}
+        <div className="overflow-y-auto max-h-[calc(95vh-200px)] p-8 bg-gray-50">
+          <div className="transition-all duration-300 ease-in-out">
+            {renderTabContent()}
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center p-6 bg-gradient-to-r from-gray-100 to-gray-200 border-t border-gray-300">
+          <div className="text-sm">
             {selectedStatus !== (account.app_login || "") && (
-              <span className="text-yellow-600">
-                ※ ステータスが変更されています
-              </span>
+              <div className="flex items-center bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg border border-yellow-200">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></div>
+                <span className="font-medium">
+                  ステータスが変更されています
+                </span>
+              </div>
             )}
           </div>
           <div className="flex space-x-3">
@@ -459,7 +578,7 @@ export default function AccountDetailModal({
               <button
                 onClick={handleSaveStatus}
                 disabled={isSaving}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-semibold"
               >
                 <Save className="h-4 w-4 mr-2" />
                 {isSaving ? "保存中..." : "保存"}
@@ -467,7 +586,7 @@ export default function AccountDetailModal({
             )}
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+              className="px-6 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-xl hover:from-gray-600 hover:to-gray-700 transition-all duration-200 shadow-lg hover:shadow-xl font-semibold"
             >
               閉じる
             </button>

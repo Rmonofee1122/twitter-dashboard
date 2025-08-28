@@ -13,8 +13,8 @@ const supabase = createClient(
 // 5分おき（東京タイムゾーン）で起動する「宣言的スケジュール」
 // v3の scheduled task / timezone 指定の書式に準拠
 export const shadowbanCron = schedules.task({
-  id: "shadowban-every-5m",
-  cron: { pattern: "*/5 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで5分おき
+  id: "shadowban-every-3m-v2",
+  cron: { pattern: "*/3 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで3分おき
   // 同時二重起動を避けたいなら queue を1に
   queue: { concurrencyLimit: 1 },
   run: async (_payload) => {
@@ -42,7 +42,7 @@ export const shadowbanCron = schedules.task({
     for (const job of jobs) {
       try {
         const data = await fetchWithBackoff(
-          `${SHADOWBAN_API_BASE}/api/test?screen_name=${encodeURIComponent(
+          `https://twitter-shadowban-v2.vercel.app/api/test?screen_name=${encodeURIComponent(
             job.screen_name
           )}`,
           { headers: { accept: "application/json" } },

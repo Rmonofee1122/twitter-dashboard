@@ -16,7 +16,8 @@ export async function GET(request: Request) {
 
     let query = supabase
       .from("twitter_account_v2")
-      .select("*", { count: "exact" });
+      .select("*", { count: "exact" })
+      .order("log_created_at", { ascending: false });
 
     // 検索フィルター
     if (search) {
@@ -69,7 +70,6 @@ export async function GET(request: Request) {
       );
     }
 
-
     // ステータス別の件数も取得（フィルター適用）
     let statusCounts = null;
     if (page === 1) {
@@ -108,12 +108,12 @@ export async function GET(request: Request) {
 
         // アクティブ
         const { count: activeCount } = await createBaseQuery().or(
-          'status.eq.true,status.eq."true"'
+          'status.eq.true,status.eq.active,status.eq."true"'
         );
 
         // BAN
         const { count: suspendedCount } = await createBaseQuery().or(
-          "status.eq.suspend,status.eq.email_ban,status.eq.Email_BAN"
+          "status.eq.suspend,status.eq.email_ban,status.eq.suspended"
         );
 
         // 除外

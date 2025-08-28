@@ -33,6 +33,9 @@ export interface TwitterAccountInfo {
   follower_count: number | null;
   following_count: number | null;
   media_count: number | null;
+  favourites_count: number | null;
+  verified: boolean;
+  protected: boolean;
   not_found: boolean;
   suspend: boolean;
   protect: boolean;

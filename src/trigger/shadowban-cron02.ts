@@ -13,8 +13,8 @@ const supabase = createClient(
 // 5分おき（東京タイムゾーン）で起動する「宣言的スケジュール」
 // v3の scheduled task / timezone 指定の書式に準拠
 export const shadowbanCron = schedules.task({
-  id: "shadowban-every-2m",
-  cron: { pattern: "*/2 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで2分おき
+  id: "shadowban-every-3m",
+  cron: { pattern: "*/3 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで3分おき
   // 同時二重起動を避けたいなら queue を1に
   queue: { concurrencyLimit: 1 },
   run: async (_payload) => {
@@ -141,7 +141,7 @@ async function upsertTwitterAccount(
     twitter_id: "@" + (screen_name ?? ""),
     name: data?.user?.legacy?.name ?? "",
     screen_name: data?.user?.legacy?.screen_name ?? screen_name,
-    status: data?.user?.reason.toLowerCase() ?? "active",
+    status: String(data?.user?.reason ?? "active").toLowerCase(),
     description_text: data?.user?.legacy?.description ?? null,
     profile_image_url_https:
       data?.user?.legacy?.profile_image_url_https ?? null,

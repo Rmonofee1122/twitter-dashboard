@@ -42,53 +42,59 @@ export async function GET(request: Request) {
           );
           break;
         case "excluded":
-          query = query.or('status.eq.false,status.eq."false",status.eq.not_found');
+          query = query.or(
+            'status.eq.false,status.eq."false",status.eq.not_found'
+          );
           break;
       }
     }
 
     // 日付フィルター
     if (startDate) {
-      query = query.gte("log_created_at", startDate);
+      query = query.gte("created_at", startDate);
     }
     if (endDate) {
       // 終了日は23:59:59まで含める
       const endDateTime = new Date(endDate);
       endDateTime.setHours(23, 59, 59, 999);
-      query = query.lte("log_created_at", endDateTime.toISOString());
+      query = query.lte("created_at", endDateTime.toISOString());
     }
 
     // ソート処理
-    if (sortField && sortDirection && (sortDirection === 'asc' || sortDirection === 'desc')) {
-      const ascending = sortDirection === 'asc';
-      
+    if (
+      sortField &&
+      sortDirection &&
+      (sortDirection === "asc" || sortDirection === "desc")
+    ) {
+      const ascending = sortDirection === "asc";
+
       switch (sortField) {
-        case 'twitter_id':
+        case "twitter_id":
           query = query.order("twitter_id", { ascending });
           break;
-        case 'follower_count':
+        case "follower_count":
           query = query.order("follower_count", { ascending });
           break;
-        case 'following_count':
+        case "following_count":
           query = query.order("following_count", { ascending });
           break;
-        case 'posts_count':
+        case "posts_count":
           query = query.order("posts_count", { ascending });
           break;
-        case 'status':
+        case "status":
           query = query.order("status", { ascending });
           break;
-        case 'created_at':
-          query = query.order("log_created_at", { ascending });
+        case "created_at":
+          query = query.order("created_at", { ascending });
           break;
         default:
           // デフォルトソート
-          query = query.order("log_created_at", { ascending: false });
+          query = query.order("created_at", { ascending: false });
           break;
       }
     } else {
       // ソートが指定されていない場合のデフォルト
-      query = query.order("log_created_at", { ascending: false });
+      query = query.order("created_at", { ascending: false });
     }
 
     // ページネーション
@@ -124,15 +130,12 @@ export async function GET(request: Request) {
 
           // 日付フィルター適用
           if (startDate) {
-            baseQuery = baseQuery.gte("log_created_at", startDate);
+            baseQuery = baseQuery.gte("created_at", startDate);
           }
           if (endDate) {
             const endDateTime = new Date(endDate);
             endDateTime.setHours(23, 59, 59, 999);
-            baseQuery = baseQuery.lte(
-              "log_created_at",
-              endDateTime.toISOString()
-            );
+            baseQuery = baseQuery.lte("created_at", endDateTime.toISOString());
           }
 
           return baseQuery;

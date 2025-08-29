@@ -14,10 +14,7 @@ import {
 } from "lucide-react";
 import { memo, useCallback, useState } from "react";
 import { TwitterAccountInfo } from "@/types/database";
-import {
-  getStatusText,
-  getStatusBadgeColor,
-} from "@/utils/status-helpers";
+import { getStatusText, getStatusBadgeColor } from "@/utils/status-helpers";
 import { fetchAccountDetails } from "@/app/api/stats/route";
 import { updateAccountStatus } from "@/lib/account-actions";
 import AccountDetailModal02 from "./account-detail-modal-v2";
@@ -73,13 +70,13 @@ const SortableHeader = memo(function SortableHeader({
     if (sortField !== field) {
       return <ChevronsUpDown className="h-4 w-4 text-gray-400" />;
     }
-    
+
     if (sortDirection === "asc") {
       return <ChevronUp className="h-4 w-4 text-blue-600" />;
     } else if (sortDirection === "desc") {
       return <ChevronDown className="h-4 w-4 text-blue-600" />;
     }
-    
+
     return <ChevronsUpDown className="h-4 w-4 text-gray-400" />;
   };
 
@@ -233,44 +230,44 @@ const AccountTable = memo(function AccountTable({
       <table className="w-full">
         <thead className="bg-gray-50">
           <tr>
-            <SortableHeader 
-              label="アカウント情報" 
-              field="twitter_id" 
+            <SortableHeader
+              label="アカウント情報"
+              field="twitter_id"
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={onSort}
             />
-            <SortableHeader 
-              label="フォロワー数" 
-              field="follower_count" 
+            <SortableHeader
+              label="フォロワー数"
+              field="follower_count"
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={onSort}
             />
-            <SortableHeader 
-              label="フォロー数" 
-              field="following_count" 
+            <SortableHeader
+              label="フォロー数"
+              field="following_count"
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={onSort}
             />
-            <SortableHeader 
-              label="投稿数" 
-              field="posts_count" 
+            <SortableHeader
+              label="投稿数"
+              field="posts_count"
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={onSort}
             />
-            <SortableHeader 
-              label="ステータス" 
-              field="status" 
+            <SortableHeader
+              label="ステータス"
+              field="status"
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={onSort}
             />
-            <SortableHeader 
-              label="作成日時" 
-              field="created_at" 
+            <SortableHeader
+              label="作成日時"
+              field="created_at"
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={onSort}
@@ -291,13 +288,26 @@ const AccountTable = memo(function AccountTable({
                   <div className="flex-shrink-0 h-10 w-10 mr-4">
                     <img
                       className="h-10 w-10 rounded-full object-cover border-2 border-gray-200 shadow-sm"
-                      src={account.profile_image_url_https || `https://ui-avatars.com/api/?name=${encodeURIComponent(account.twitter_id || 'User')}&background=6366f1&color=fff&size=40`}
+                      src={
+                        account.profile_image_url_https ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                          account.twitter_id || "User"
+                        )}&background=6366f1&color=fff&size=40`
+                      }
                       alt={`${account.twitter_id || "User"} profile`}
                       onError={(e) => {
-                        const fallbackDiv = document.createElement('div');
-                        fallbackDiv.className = "h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center border-2 border-gray-200 shadow-sm";
-                        fallbackDiv.innerHTML = `<span class="text-white text-sm font-semibold">${account.twitter_id ? account.twitter_id.charAt(0).toUpperCase() : 'U'}</span>`;
-                        e.currentTarget.parentNode?.replaceChild(fallbackDiv, e.currentTarget);
+                        const fallbackDiv = document.createElement("div");
+                        fallbackDiv.className =
+                          "h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center border-2 border-gray-200 shadow-sm";
+                        fallbackDiv.innerHTML = `<span class="text-white text-sm font-semibold">${
+                          account.twitter_id
+                            ? account.twitter_id.charAt(0).toUpperCase()
+                            : "U"
+                        }</span>`;
+                        e.currentTarget.parentNode?.replaceChild(
+                          fallbackDiv,
+                          e.currentTarget
+                        );
                       }}
                     />
                   </div>
@@ -337,7 +347,7 @@ const AccountTable = memo(function AccountTable({
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {formatDate(account.log_created_at)}
+                {formatDate(account.created_at)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
                 {account.create_ip}

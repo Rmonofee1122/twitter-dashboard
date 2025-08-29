@@ -13,13 +13,13 @@ export async function GET(request: Request) {
       const today = new Date();
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(today.getDate() - 30);
-      
-      endDate = today.toISOString().split('T')[0];
-      startDate = thirtyDaysAgo.toISOString().split('T')[0];
+
+      endDate = today.toISOString().split("T")[0];
+      startDate = thirtyDaysAgo.toISOString().split("T")[0];
     }
 
     let query = supabase
-      .from("status_count_per_day")
+      .from("status_count_per_day02")
       .select("*")
       .gte("created_date", startDate)
       .lte("created_date", endDate)
@@ -37,23 +37,23 @@ export async function GET(request: Request) {
 
     // データを整形
     const statusData = data || [];
-    
+
     // 指定期間の全日付を生成
     const generateDateRange = (start: string, end: string) => {
       const dates = [];
       const startDate = new Date(start);
       const endDate = new Date(end);
-      
+
       const currentDate = new Date(startDate);
       while (currentDate <= endDate) {
-        dates.push(currentDate.toISOString().split('T')[0]);
+        dates.push(currentDate.toISOString().split("T")[0]);
         currentDate.setDate(currentDate.getDate() + 1);
       }
       return dates;
     };
 
     const allDates = generateDateRange(startDate, endDate);
-    
+
     // 日付ごとにグループ化
     const groupedByDate = statusData.reduce((acc, item) => {
       const dateKey = item.created_date;
@@ -65,46 +65,60 @@ export async function GET(request: Request) {
     }, {} as Record<string, Record<string, number>>);
 
     // ステータスフィルターの解析
-    const selectedStatuses = statusFilter ? statusFilter.split(',') : ['active', 'suspended', 'pending', 'excluded'];
+    const selectedStatuses = statusFilter
+      ? statusFilter.split(",")
+      : ["active", "suspended", "pending", "excluded"];
 
     // チャート用データに変換（全日付を含む、データがない日は0）
-    const chartData = allDates.map(date => {
+    const chartData = allDates.map((date) => {
       const statuses = groupedByDate[date] || {};
       const dayData: any = { date };
-      
-      if (selectedStatuses.includes('active')) {
-        dayData.active = statuses["true"] || 0;
+
+      if (selectedStatuses.includes("active")) {
+        dayData.active = statuses["active"] || 0;
       }
-      if (selectedStatuses.includes('suspended')) {
-        dayData.suspended = (statuses["suspend"] || 0) + (statuses["email_ban"] || 0) + (statuses["Email_BAN"] || 0);
+      if (selectedStatuses.includes("suspended")) {
+        dayData.suspended =
+          (statuses["suspend"] || 0) +
+          (statuses["suspended"] || 0) +
+          (statuses["Email_BAN"] || 0);
       }
-      if (selectedStatuses.includes('pending')) {
+      if (selectedStatuses.includes("pending")) {
         dayData.pending = (statuses["FarmUp"] || 0) + (statuses["farmup"] || 0);
       }
-      if (selectedStatuses.includes('excluded')) {
-        dayData.excluded = statuses["false"] || 0;
+      if (selectedStatuses.includes("excluded")) {
+        dayData.excluded =
+          (statuses["false"] || 0) + (statuses["not_found"] || 0);
       }
-      
+
       return dayData;
     });
 
     // 全体統計を計算
-    const totalStats = statusData.reduce((acc, item) => {
-      const status = item.status;
-      const count = item.count;
-      
-      if (status === "true") {
-        acc.active += count;
-      } else if (status === "suspend" || status === "email_ban" || status === "Email_BAN") {
-        acc.suspended += count;
-      } else if (status === "FarmUp" || status === "farmup") {
-        acc.pending += count;
-      } else if (status === "false") {
-        acc.excluded += count;
-      }
-      acc.total += count;
-      return acc;
-    }, { total: 0, active: 0, suspended: 0, pending: 0, excluded: 0 });
+    const totalStats = statusData.reduce(
+      (acc, item) => {
+        const status = item.status;
+        const count = item.count;
+
+        if (status === "active" || status === "true") {
+          acc.active += count;
+        } else if (
+          status === "suspend" ||
+          status === "suspended" ||
+          status === "email_ban" ||
+          status === "Email_BAN"
+        ) {
+          acc.suspended += count;
+        } else if (status === "FarmUp" || status === "farmup") {
+          acc.pending += count;
+        } else if (status === "false" || status === "not_found") {
+          acc.excluded += count;
+        }
+        acc.total += count;
+        return acc;
+      },
+      { total: 0, active: 0, suspended: 0, pending: 0, excluded: 0 }
+    );
 
     return NextResponse.json({
       chartData,

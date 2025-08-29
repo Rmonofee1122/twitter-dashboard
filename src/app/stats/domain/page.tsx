@@ -20,60 +20,76 @@ interface DomainStatsData {
 }
 
 export default function DomainStatsPage() {
-  const [domainStatsData, setDomainStatsData] = useState<DomainStatsData | null>(null);
+  const [domainStatsData, setDomainStatsData] =
+    useState<DomainStatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
 
-  const fetchDomainStats = useCallback(async (start?: string, end?: string, domains?: string[]) => {
-    try {
-      setLoading(true);
-      
-      let apiStartDate = start || startDate;
-      let apiEndDate = end || endDate;
-      let apiDomains = domains || selectedDomains;
-      
-      // 日付が指定されていない場合はデフォルトで過去30日間
-      if (!apiStartDate || !apiEndDate) {
-        const today = new Date();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(today.getDate() - 30);
-        
-        apiEndDate = today.toISOString().split('T')[0];
-        apiStartDate = thirtyDaysAgo.toISOString().split('T')[0];
+  const fetchDomainStats = useCallback(
+    async (start?: string, end?: string, domains?: string[]) => {
+      try {
+        setLoading(true);
+
+        let apiStartDate = start || startDate;
+        let apiEndDate = end || endDate;
+        let apiDomains = domains || selectedDomains;
+
+        // 日付が指定されていない場合はデフォルトで過去30日間
+        if (!apiStartDate || !apiEndDate) {
+          const today = new Date();
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(today.getDate() - 30);
+
+          apiEndDate = today.toISOString().split("T")[0];
+          apiStartDate = thirtyDaysAgo.toISOString().split("T")[0];
+        }
+
+        const domainParams =
+          apiDomains.length > 0 ? `&domains=${apiDomains.join(",")}` : "";
+        const response = await fetch(
+          `/api/domain-stats?startDate=${apiStartDate}&endDate=${apiEndDate}${domainParams}`
+        );
+        const data = await response.json();
+        setDomainStatsData(data);
+      } catch (error) {
+        console.error("Failed to fetch domain data:", error);
+      } finally {
+        setLoading(false);
       }
-      
-      const domainParams = apiDomains.length > 0 ? `&domains=${apiDomains.join(',')}` : '';
-      const response = await fetch(`/api/domain-stats?startDate=${apiStartDate}&endDate=${apiEndDate}${domainParams}`);
-      const data = await response.json();
-      setDomainStatsData(data);
-    } catch (error) {
-      console.error("Failed to fetch domain data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [startDate, endDate, selectedDomains]);
+    },
+    [startDate, endDate, selectedDomains]
+  );
 
   useEffect(() => {
     fetchDomainStats();
   }, [fetchDomainStats]);
 
-  const handleStartDateChange = useCallback((date: string) => {
-    setStartDate(date);
-    fetchDomainStats(date, endDate, selectedDomains);
-  }, [endDate, selectedDomains, fetchDomainStats]);
+  const handleStartDateChange = useCallback(
+    (date: string) => {
+      setStartDate(date);
+      fetchDomainStats(date, endDate, selectedDomains);
+    },
+    [endDate, selectedDomains, fetchDomainStats]
+  );
 
-  const handleEndDateChange = useCallback((date: string) => {
-    setEndDate(date);
-    fetchDomainStats(startDate, date, selectedDomains);
-  }, [startDate, selectedDomains, fetchDomainStats]);
+  const handleEndDateChange = useCallback(
+    (date: string) => {
+      setEndDate(date);
+      fetchDomainStats(startDate, date, selectedDomains);
+    },
+    [startDate, selectedDomains, fetchDomainStats]
+  );
 
-  const handleQuickSelect = useCallback((start: string, end: string) => {
-    setStartDate(start);
-    setEndDate(end);
-    fetchDomainStats(start, end, selectedDomains);
-  }, [selectedDomains, fetchDomainStats]);
+  const handleQuickSelect = useCallback(
+    (start: string, end: string) => {
+      setStartDate(start);
+      setEndDate(end);
+      fetchDomainStats(start, end, selectedDomains);
+    },
+    [selectedDomains, fetchDomainStats]
+  );
 
   const handleClearFilter = useCallback(() => {
     setStartDate("");
@@ -81,18 +97,21 @@ export default function DomainStatsPage() {
     fetchDomainStats("", "", selectedDomains);
   }, [selectedDomains, fetchDomainStats]);
 
-  const handleDomainChange = useCallback((domains: string[]) => {
-    setSelectedDomains(domains);
-    fetchDomainStats(startDate, endDate, domains);
-  }, [startDate, endDate, fetchDomainStats]);
+  const handleDomainChange = useCallback(
+    (domains: string[]) => {
+      setSelectedDomains(domains);
+      fetchDomainStats(startDate, endDate, domains);
+    },
+    [startDate, endDate, fetchDomainStats]
+  );
 
   const handleClearDomainFilter = useCallback(() => {
     setSelectedDomains([]);
     fetchDomainStats(startDate, endDate, []);
   }, [startDate, endDate, fetchDomainStats]);
 
-  const maxCount = domainStatsData?.domainRanking 
-    ? Math.max(...domainStatsData.domainRanking.map((d) => d.count), 1) 
+  const maxCount = domainStatsData?.domainRanking
+    ? Math.max(...domainStatsData.domainRanking.map((d) => d.count), 1)
     : 1;
 
   if (loading) {
@@ -125,7 +144,7 @@ export default function DomainStatsPage() {
           onQuickSelect={handleQuickSelect}
           onClear={handleClearFilter}
         />
-        
+
         {domainStatsData?.allDomains && (
           <DomainFilter
             availableDomains={domainStatsData.allDomains}
@@ -173,7 +192,8 @@ export default function DomainStatsPage() {
           </h3>
         </div>
 
-        {!domainStatsData?.domainRanking || domainStatsData.domainRanking.length === 0 ? (
+        {!domainStatsData?.domainRanking ||
+        domainStatsData.domainRanking.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             ドメインデータがありません
           </div>
@@ -196,7 +216,10 @@ export default function DomainStatsPage() {
                       全体の{" "}
                       {(
                         (item.count /
-                          domainStatsData.domainRanking.reduce((sum, d) => sum + d.count, 0)) *
+                          domainStatsData.domainRanking.reduce(
+                            (sum, d) => sum + d.count,
+                            0
+                          )) *
                         100
                       ).toFixed(1)}
                       %

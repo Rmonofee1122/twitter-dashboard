@@ -508,11 +508,16 @@ export default function AccountDetailModal({
             {/* アカウント詳細・twitter_id */}
             <div className="flex-2 flex flex-col justify-center">
               <h2 className="text-2xl font-bold text-white mb-1">
-                アカウント詳細
+                <a
+                  href={`https://x.com/${account.twitter_id}`}
+                  className="hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {account.twitter_id || "Twitter Account"}
+                </a>
               </h2>
-              <p className="text-blue-100 text-sm">
-                {account.twitter_id || "Twitter Account"}
-              </p>
+              <p className="text-blue-100 text-sm">アカウント詳細</p>
             </div>
             <button
               onClick={onClose}

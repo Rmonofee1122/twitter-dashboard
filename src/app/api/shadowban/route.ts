@@ -18,10 +18,6 @@ async function saveShadowbanDataToSupabase(
       return;
     }
 
-    // デバッグ: user.legacy構造を確認
-    console.log("user.legacy data:", JSON.stringify(shadowbanData.user?.legacy, null, 2));
-    console.log("statuses_count value:", shadowbanData.user?.legacy?.statuses_count);
-
     // データを整形
     const accountData = {
       twitter_id: "@" + screenName || "",
@@ -48,6 +44,8 @@ async function saveShadowbanDataToSupabase(
       no_reply: shadowbanData.no_reply === true || false,
       ghost_ban: shadowbanData.ghost_ban === true || false,
       reply_deboosting: shadowbanData.reply_deboosting === true || false,
+      created_at:
+        shadowbanData.user?.legacy?.created_at || new Date().toISOString(),
     };
 
     if (accountData.not_found === true) {
@@ -60,7 +58,14 @@ async function saveShadowbanDataToSupabase(
       .from("twitter_account_v1")
       .upsert(accountData, { onConflict: "twitter_id" }); // ← 一発
 
-    if (error) console.error("upsert error:", error);
+    if (error) {
+      console.error("upsert error:", error);
+      console.error(
+        "accountData that caused error:",
+        JSON.stringify(accountData, null, 2)
+      );
+      throw new Error(`Database upsert failed: ${error.message}`);
+    }
   } catch (error) {
     console.error("Error saving shadowban data to Supabase:", error);
   }
@@ -214,16 +219,30 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
 
     // デバッグ: APIレスポンスの構造を確認
-    console.log("Shadowban API response structure:", JSON.stringify(data, null, 2));
+    console.log(
+      "Shadowban API response structure:",
+      JSON.stringify(data, null, 2)
+    );
 
     // Supabaseにデータを保存
-    await saveShadowbanDataToSupabase(screenName, data);
+    try {
+      await saveShadowbanDataToSupabase(screenName, data);
+    } catch (saveError) {
+      console.error("Failed to save shadowban data to database:", saveError);
+      // データベース保存エラーがあってもAPIレスポンスは返す
+    }
 
     return NextResponse.json(data);
   } catch (error) {
     console.error("Shadowban API error:", error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : typeof error === "string"
+        ? error
+        : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to fetch shadowban data" },
+      { error: `Failed to fetch shadowban data: ${errorMessage}` },
       { status: 500 }
     );
   }

@@ -148,7 +148,7 @@ async function upsertTwitterAccount(
     profile_banner_url: data?.user?.legacy?.profile_banner_url ?? null,
     follower_count: data?.user?.legacy?.followers_count ?? 0,
     following_count: data?.user?.legacy?.friends_count ?? 0,
-    posts_count: data?.user.legacy?.statuses_count ?? 0,
+    posts_count: data?.user?.legacy?.statuses_count ?? 0,
     media_count: data?.user?.legacy?.media_count ?? 0,
     favourites_count: data?.user?.legacy?.favourites_count ?? 0,
     not_found: !!data?.not_found,
@@ -160,6 +160,7 @@ async function upsertTwitterAccount(
     no_reply: !!data?.no_reply,
     ghost_ban: !!data?.ghost_ban,
     reply_deboosting: !!data?.reply_deboosting,
+    created_at: !!data?.user?.legacy?.created_at || new Date().toISOString(),
   };
   if (d.not_found === true) {
     d.status = "not_found";

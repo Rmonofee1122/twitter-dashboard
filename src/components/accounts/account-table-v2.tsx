@@ -163,6 +163,7 @@ const AccountTable = memo(function AccountTable({
         return <Clock className="h-4 w-4 text-yellow-500" />;
       case "excluded":
       case "false":
+      case "not_found":
         return <Minus className="h-4 w-4 text-gray-500" />;
       default:
         return <Clock className="h-4 w-4 text-gray-500" />;
@@ -211,15 +212,19 @@ const AccountTable = memo(function AccountTable({
                       <img
                         className="h-10 w-10 rounded-full object-cover border-2 border-gray-200"
                         src={account.profile_image_url_https}
-                        alt={`${account.twitter_id || 'User'} profile`}
+                        alt={`${account.twitter_id || "User"} profile`}
                         onError={(e) => {
-                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(account.twitter_id || 'User')}&background=6366f1&color=fff&size=40`;
+                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                            account.twitter_id || "User"
+                          )}&background=6366f1&color=fff&size=40`;
                         }}
                       />
                     ) : (
                       <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center border-2 border-gray-200">
                         <span className="text-white text-sm font-semibold">
-                          {account.twitter_id ? account.twitter_id.charAt(0).toUpperCase() : 'U'}
+                          {account.twitter_id
+                            ? account.twitter_id.charAt(0).toUpperCase()
+                            : "U"}
                         </span>
                       </div>
                     )}

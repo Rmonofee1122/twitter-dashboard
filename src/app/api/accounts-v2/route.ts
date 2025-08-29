@@ -41,24 +41,24 @@ export async function GET(request: Request) {
           );
           break;
         case "excluded":
-          query = query.or('status.eq.false,status.eq."false"');
+          query = query.or('status.eq.false,status.eq."false",status.eq.not_found');
           break;
       }
     }
 
     // 日付フィルター
     if (startDate) {
-      query = query.gte("created_at", startDate);
+      query = query.gte("log_created_at", startDate);
     }
     if (endDate) {
       // 終了日は23:59:59まで含める
       const endDateTime = new Date(endDate);
       endDateTime.setHours(23, 59, 59, 999);
-      query = query.lte("created_at", endDateTime.toISOString());
+      query = query.lte("log_created_at", endDateTime.toISOString());
     }
 
     // ページネーション
-    query = query.range(from, to).order("created_at", { ascending: false });
+    query = query.range(from, to).order("log_created_at", { ascending: false });
 
     const { data, error, count } = await query;
 
@@ -90,12 +90,15 @@ export async function GET(request: Request) {
 
           // 日付フィルター適用
           if (startDate) {
-            baseQuery = baseQuery.gte("created_at", startDate);
+            baseQuery = baseQuery.gte("log_created_at", startDate);
           }
           if (endDate) {
             const endDateTime = new Date(endDate);
             endDateTime.setHours(23, 59, 59, 999);
-            baseQuery = baseQuery.lte("created_at", endDateTime.toISOString());
+            baseQuery = baseQuery.lte(
+              "log_created_at",
+              endDateTime.toISOString()
+            );
           }
 
           return baseQuery;
@@ -118,7 +121,7 @@ export async function GET(request: Request) {
 
         // 除外
         const { count: excludedCount } = await createBaseQuery().or(
-          'status.eq.false,status.eq."false"'
+          'status.eq.false,status.eq."false",status.eq.not_found'
         );
 
         statusCounts = {

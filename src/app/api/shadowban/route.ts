@@ -21,18 +21,20 @@ async function saveShadowbanDataToSupabase(
     // データを整形
     const accountData = {
       twitter_id: "@" + screenName || "",
-      name: shadowbanData.user.legacy?.name || "",
-      screen_name: shadowbanData.user.legacy?.screen_name || "",
-      status: shadowbanData.user.reason.toLowerCase() || "active",
-      description_text: shadowbanData.user.legacy?.description || null,
+      name: shadowbanData.user?.legacy?.name || "",
+      screen_name: shadowbanData.user?.legacy?.screen_name || "",
+      status: String(shadowbanData.user?.reason ?? "active").toLowerCase(),
+      description_text: shadowbanData.user?.legacy?.description || null,
       profile_image_url_https:
-        shadowbanData.user.legacy?.profile_image_url_https || null,
-      profile_banner_url: shadowbanData.user.legacy?.profile_banner_url || null,
-      follower_count: shadowbanData.user.legacy?.followers_count || 0,
-      following_count: shadowbanData.user.legacy?.friends_count || 0,
-      media_count: shadowbanData.user.legacy?.media_count || 0,
-      favourites_count: shadowbanData.user.legacy?.favourites_count || 0,
-      not_found: shadowbanData.no_profile === true || false,
+        shadowbanData.user?.legacy?.profile_image_url_https || null,
+      profile_banner_url:
+        shadowbanData.user?.legacy?.profile_banner_url || null,
+      follower_count: shadowbanData.user?.legacy?.followers_count || 0,
+      following_count: shadowbanData.user?.legacy?.friends_count || 0,
+      posts_count: shadowbanData.user?.legacy?.statuses_count || 0,
+      media_count: shadowbanData.user?.legacy?.media_count || 0,
+      favourites_count: shadowbanData.user?.legacy?.favourites_count || 0,
+      not_found: shadowbanData.not_found === true || false,
       suspend: shadowbanData.suspend === true || false,
       protect: shadowbanData.protected === true || false,
       no_tweet: shadowbanData.no_tweet === true || false,
@@ -44,7 +46,12 @@ async function saveShadowbanDataToSupabase(
       reply_deboosting: shadowbanData.reply_deboosting === true || false,
     };
 
-    // screen_nameで既存レコードを検索
+    if (accountData.not_found === true) {
+      accountData.status = "not_found";
+      accountData.name = "test_not_found";
+    }
+
+    // screen_nameで既存レコードを検索・追加または更新
     const { error } = await supabase
       .from("twitter_account_v1")
       .upsert(accountData, { onConflict: "twitter_id" }); // ← 一発
@@ -144,10 +151,10 @@ export async function GET(request: NextRequest) {
   }
 
   const urls = [
-    `https://shadowban.lami.zip/api/test?screen_name=${encodeURIComponent(
+    `https://twitter-shadowban.vercel.app/api/test?screen_name=${encodeURIComponent(
       screenName
     )}`,
-    `http://localhost:3001/api/test?screen_name=${encodeURIComponent(
+    `https://twitter-shadowban-v2.vercel.app/api/test?screen_name=${encodeURIComponent(
       screenName
     )}`,
   ];

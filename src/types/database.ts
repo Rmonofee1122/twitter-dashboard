@@ -32,6 +32,7 @@ export interface TwitterAccountInfo {
   profile_banner_url: string | null;
   follower_count: number | null;
   following_count: number | null;
+  posts_count: number | null;
   media_count: number | null;
   favourites_count: number | null;
   verified: boolean;

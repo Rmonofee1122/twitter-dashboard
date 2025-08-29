@@ -56,29 +56,37 @@ export function getStatusText(
   status: "pending" | "active" | "suspended" | "excluded" | string | null
 ): string {
   if (!status) return "不明";
-  
+
   const statusValue = status.toString().toLowerCase();
-  
+
   // 保留中: FarmUp または farmup
   if (statusValue === "farmup" || statusValue === "pending") {
     return "保留中";
   }
-  
+
   // アクティブ: true または active
   if (statusValue === "true" || statusValue === "active") {
     return "アクティブ";
   }
-  
+
   // BAN: suspend または email_ban または Email_BAN または suspended
-  if (statusValue === "suspend" || statusValue === "email_ban" || statusValue === "suspended") {
+  if (
+    statusValue === "suspend" ||
+    statusValue === "email_ban" ||
+    statusValue === "suspended"
+  ) {
     return "BAN";
   }
-  
+
   // 除外: false または excluded
-  if (statusValue === "false" || statusValue === "excluded") {
+  if (
+    statusValue === "false" ||
+    statusValue === "excluded" ||
+    statusValue === "not_found"
+  ) {
     return "除外";
   }
-  
+
   return "不明";
 }
 
@@ -86,29 +94,33 @@ export function getStatusBadgeColor(
   status: "pending" | "active" | "suspended" | "excluded" | string | null
 ): string {
   if (!status) return "bg-gray-100 text-gray-800";
-  
+
   const statusValue = status.toString().toLowerCase();
-  
+
   // 保留中: FarmUp または farmup
   if (statusValue === "farmup" || statusValue === "pending") {
     return "bg-yellow-100 text-yellow-800";
   }
-  
+
   // アクティブ: true または active
   if (statusValue === "true" || statusValue === "active") {
     return "bg-green-100 text-green-800";
   }
-  
+
   // BAN: suspend または email_ban または Email_BAN または suspended
-  if (statusValue === "suspend" || statusValue === "email_ban" || statusValue === "suspended") {
+  if (
+    statusValue === "suspend" ||
+    statusValue === "email_ban" ||
+    statusValue === "suspended"
+  ) {
     return "bg-red-100 text-red-800";
   }
-  
-  // 除外: false または excluded
-  if (statusValue === "false" || statusValue === "excluded") {
+
+  // 除外: false または excluded または not_found
+  if (statusValue === "false" || statusValue === "excluded" || statusValue === "not_found") {
     return "bg-gray-100 text-gray-800";
   }
-  
+
   return "bg-gray-100 text-gray-800";
 }
 

@@ -18,6 +18,10 @@ async function saveShadowbanDataToSupabase(
       return;
     }
 
+    // デバッグ: user.legacy構造を確認
+    console.log("user.legacy data:", JSON.stringify(shadowbanData.user?.legacy, null, 2));
+    console.log("statuses_count value:", shadowbanData.user?.legacy?.statuses_count);
+
     // データを整形
     const accountData = {
       twitter_id: "@" + screenName || "",
@@ -208,6 +212,9 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+
+    // デバッグ: APIレスポンスの構造を確認
+    console.log("Shadowban API response structure:", JSON.stringify(data, null, 2));
 
     // Supabaseにデータを保存
     await saveShadowbanDataToSupabase(screenName, data);

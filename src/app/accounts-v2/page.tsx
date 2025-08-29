@@ -42,6 +42,8 @@ export default function AccountsV2Page() {
   });
   const [loading, setLoading] = useState(true);
   const [itemsPerPage] = useState(10);
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<string>("");
   const [isBulkShadowbanCheck, setIsBulkShadowbanCheck] = useState(false);
   const [bulkShadowbanProgress, setBulkShadowbanProgress] = useState({
     current: 0,
@@ -50,7 +52,7 @@ export default function AccountsV2Page() {
 
   useEffect(() => {
     fetchAccounts();
-  }, [currentPage, searchTerm, statusFilter, startDate, endDate]);
+  }, [currentPage, searchTerm, statusFilter, startDate, endDate, sortField, sortDirection]);
 
   const fetchAccounts = async () => {
     try {
@@ -62,6 +64,8 @@ export default function AccountsV2Page() {
         status: statusFilter,
         ...(startDate && { startDate }),
         ...(endDate && { endDate }),
+        ...(sortField && { sortField }),
+        ...(sortDirection && { sortDirection }),
       });
 
       const response = await fetch(`/api/accounts-v2?${params}`);
@@ -124,6 +128,26 @@ export default function AccountsV2Page() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // 同じフィールドをクリックした場合：null → asc → desc → null のサイクル
+      if (sortDirection === "") {
+        setSortDirection('asc');
+      } else if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        setSortField("");
+        setSortDirection("");
+      }
+    } else {
+      // 異なるフィールドをクリックした場合：昇順でソート開始
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    // ソートが変わったら1ページ目に戻る
+    setCurrentPage(1);
   };
 
   const handleBulkShadowbanCheck = async () => {
@@ -280,7 +304,13 @@ export default function AccountsV2Page() {
             <p className="mt-2 text-gray-600">データを読み込み中...</p>
           </div>
         ) : (
-          <AccountTableV2 accounts={accounts} onAccountUpdate={fetchAccounts} />
+          <AccountTableV2 
+            accounts={accounts} 
+            onAccountUpdate={fetchAccounts}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+          />
         )}
 
         <Pagination

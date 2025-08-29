@@ -563,6 +563,11 @@ export default function AccountDetailModal({
         </div>
 
         <div className="flex justify-between items-center p-6 bg-gradient-to-r from-gray-100 to-gray-200 border-t border-gray-300">
+          <div className="p-4">
+            <p className="text-sm font-medium text-gray-800 font-mono">
+              更新日時：{formatDate(account.updated_at)}
+            </p>
+          </div>
           <div className="text-sm">
             {selectedStatus !== (account.app_login || "") && (
               <div className="flex items-center bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg border border-yellow-200">

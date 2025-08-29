@@ -7,12 +7,14 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
-  LucideIcon,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  type LucideIcon,
 } from "lucide-react";
 import { memo, useCallback, useState } from "react";
 import { TwitterAccountInfo } from "@/types/database";
 import {
-  getAccountStatus02,
   getStatusText,
   getStatusBadgeColor,
 } from "@/utils/status-helpers";
@@ -25,6 +27,9 @@ import ConfirmDialog from "@/components/ui/confirm-dialog";
 interface AccountTableProps {
   accounts: TwitterAccountInfo[];
   onAccountUpdate?: () => void;
+  sortField?: string;
+  sortDirection?: string;
+  onSort?: (field: string) => void;
 }
 
 interface ActionButtonProps {
@@ -42,7 +47,7 @@ const ActionButton = memo(function ActionButton({
 }: ActionButtonProps) {
   return (
     <button
-      className={`${color} p-1 rounded transition-colors`}
+      className={`${color} p-2 rounded-lg hover:bg-gray-100 transition-colors`}
       onClick={onClick}
       aria-label={ariaLabel}
     >
@@ -51,9 +56,52 @@ const ActionButton = memo(function ActionButton({
   );
 });
 
+const SortableHeader = memo(function SortableHeader({
+  label,
+  field,
+  sortField,
+  sortDirection,
+  onSort,
+}: {
+  label: string;
+  field: string;
+  sortField: string;
+  sortDirection: string;
+  onSort?: (field: string) => void;
+}) {
+  const getSortIcon = () => {
+    if (sortField !== field) {
+      return <ChevronsUpDown className="h-4 w-4 text-gray-400" />;
+    }
+    
+    if (sortDirection === "asc") {
+      return <ChevronUp className="h-4 w-4 text-blue-600" />;
+    } else if (sortDirection === "desc") {
+      return <ChevronDown className="h-4 w-4 text-blue-600" />;
+    }
+    
+    return <ChevronsUpDown className="h-4 w-4 text-gray-400" />;
+  };
+
+  return (
+    <th
+      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none"
+      onClick={() => onSort?.(field)}
+    >
+      <div className="flex items-center justify-between">
+        {label}
+        {getSortIcon()}
+      </div>
+    </th>
+  );
+});
+
 const AccountTable = memo(function AccountTable({
   accounts,
   onAccountUpdate,
+  sortField = "",
+  sortDirection = "",
+  onSort,
 }: AccountTableProps) {
   const [selectedAccount, setSelectedAccount] =
     useState<TwitterAccountInfo | null>(null);
@@ -123,7 +171,7 @@ const AccountTable = memo(function AccountTable({
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/accounts?id=${deleteAccount.id}`, {
+      const response = await fetch(`/api/accounts-v2?id=${deleteAccount.id}`, {
         method: "DELETE",
       });
 
@@ -185,15 +233,48 @@ const AccountTable = memo(function AccountTable({
       <table className="w-full">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              アカウント情報
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              ステータス
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              作成日時
-            </th>
+            <SortableHeader 
+              label="アカウント情報" 
+              field="twitter_id" 
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={onSort}
+            />
+            <SortableHeader 
+              label="フォロワー数" 
+              field="follower_count" 
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={onSort}
+            />
+            <SortableHeader 
+              label="フォロー数" 
+              field="following_count" 
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={onSort}
+            />
+            <SortableHeader 
+              label="投稿数" 
+              field="posts_count" 
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={onSort}
+            />
+            <SortableHeader 
+              label="ステータス" 
+              field="status" 
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={onSort}
+            />
+            <SortableHeader 
+              label="作成日時" 
+              field="created_at" 
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={onSort}
+            />
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               作成IP
             </th>
@@ -208,26 +289,17 @@ const AccountTable = memo(function AccountTable({
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-10 w-10 mr-4">
-                    {account.profile_image_url_https ? (
-                      <img
-                        className="h-10 w-10 rounded-full object-cover border-2 border-gray-200"
-                        src={account.profile_image_url_https}
-                        alt={`${account.twitter_id || "User"} profile`}
-                        onError={(e) => {
-                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                            account.twitter_id || "User"
-                          )}&background=6366f1&color=fff&size=40`;
-                        }}
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center border-2 border-gray-200">
-                        <span className="text-white text-sm font-semibold">
-                          {account.twitter_id
-                            ? account.twitter_id.charAt(0).toUpperCase()
-                            : "U"}
-                        </span>
-                      </div>
-                    )}
+                    <img
+                      className="h-10 w-10 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+                      src={account.profile_image_url_https || `https://ui-avatars.com/api/?name=${encodeURIComponent(account.twitter_id || 'User')}&background=6366f1&color=fff&size=40`}
+                      alt={`${account.twitter_id || "User"} profile`}
+                      onError={(e) => {
+                        const fallbackDiv = document.createElement('div');
+                        fallbackDiv.className = "h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center border-2 border-gray-200 shadow-sm";
+                        fallbackDiv.innerHTML = `<span class="text-white text-sm font-semibold">${account.twitter_id ? account.twitter_id.charAt(0).toUpperCase() : 'U'}</span>`;
+                        e.currentTarget.parentNode?.replaceChild(fallbackDiv, e.currentTarget);
+                      }}
+                    />
                   </div>
                   <div>
                     <div className="text-sm font-medium text-gray-900">
@@ -235,6 +307,21 @@ const AccountTable = memo(function AccountTable({
                     </div>
                     <div className="text-sm text-gray-500">{account.email}</div>
                   </div>
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <div className="text-sm font-medium text-gray-900">
+                  {account.follower_count?.toLocaleString() || 0}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <div className="text-sm font-medium text-gray-900">
+                  {account.following_count?.toLocaleString() || 0}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <div className="text-sm font-medium text-gray-900">
+                  {account.posts_count?.toLocaleString() || 0}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
@@ -255,30 +342,25 @@ const AccountTable = memo(function AccountTable({
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
                 {account.create_ip}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div className="flex items-center space-x-2">
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center space-x-1">
                   <ActionButton
                     icon={Eye}
-                    color="text-blue-600 hover:text-blue-900"
+                    color="text-blue-600 hover:text-blue-700"
                     onClick={() => handleViewDetails(account.twitter_id)}
                     aria-label="アカウント詳細を表示"
                   />
                   <ActionButton
                     icon={Edit}
-                    color="text-green-600 hover:text-green-900"
+                    color="text-green-600 hover:text-green-700"
                     onClick={() => handleEditAccount(account)}
                     aria-label="アカウントを編集"
                   />
                   <ActionButton
                     icon={Trash2}
-                    color="text-red-600 hover:text-red-900"
+                    color="text-red-600 hover:text-red-700"
                     onClick={() => handleDeleteAccount(account)}
                     aria-label="アカウントを削除"
-                  />
-                  <ActionButton
-                    icon={MoreHorizontal}
-                    color="text-gray-600 hover:text-gray-900"
-                    aria-label="その他のオプション"
                   />
                 </div>
               </td>

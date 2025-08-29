@@ -23,6 +23,7 @@ export interface DashboardStats {
 export interface TwitterAccountInfo {
   id: number;
   created_at: string;
+  updated_at: string;
   twitter_id: string | null;
   name: string | null;
   screen_name: string | null;

@@ -10,14 +10,15 @@ export async function GET(request: Request) {
     const statusFilter = searchParams.get("status") || "all";
     const startDate = searchParams.get("startDate") || "";
     const endDate = searchParams.get("endDate") || "";
+    const sortField = searchParams.get("sortField") || "";
+    const sortDirection = searchParams.get("sortDirection") || "";
 
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
     let query = supabase
       .from("twitter_account_v2")
-      .select("*", { count: "exact" })
-      .order("log_created_at", { ascending: false });
+      .select("*", { count: "exact" });
 
     // 検索フィルター
     if (search) {
@@ -57,8 +58,41 @@ export async function GET(request: Request) {
       query = query.lte("log_created_at", endDateTime.toISOString());
     }
 
+    // ソート処理
+    if (sortField && sortDirection && (sortDirection === 'asc' || sortDirection === 'desc')) {
+      const ascending = sortDirection === 'asc';
+      
+      switch (sortField) {
+        case 'twitter_id':
+          query = query.order("twitter_id", { ascending });
+          break;
+        case 'follower_count':
+          query = query.order("follower_count", { ascending });
+          break;
+        case 'following_count':
+          query = query.order("following_count", { ascending });
+          break;
+        case 'posts_count':
+          query = query.order("posts_count", { ascending });
+          break;
+        case 'status':
+          query = query.order("status", { ascending });
+          break;
+        case 'created_at':
+          query = query.order("log_created_at", { ascending });
+          break;
+        default:
+          // デフォルトソート
+          query = query.order("log_created_at", { ascending: false });
+          break;
+      }
+    } else {
+      // ソートが指定されていない場合のデフォルト
+      query = query.order("log_created_at", { ascending: false });
+    }
+
     // ページネーション
-    query = query.range(from, to).order("log_created_at", { ascending: false });
+    query = query.range(from, to);
 
     const { data, error, count } = await query;
 

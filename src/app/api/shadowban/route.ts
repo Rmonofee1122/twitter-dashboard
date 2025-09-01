@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
   }
 
   const urls = [
-    `https://twitter-shadowban.vercel.app/api/test?screen_name=${encodeURIComponent(
+    `https://twitter-shadowban-v2.vercel.app/api/test?screen_name=${encodeURIComponent(
       screenName
     )}`,
     `https://twitter-shadowban-v2.vercel.app/api/test?screen_name=${encodeURIComponent(

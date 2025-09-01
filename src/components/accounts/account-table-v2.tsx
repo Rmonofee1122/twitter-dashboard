@@ -272,6 +272,13 @@ const AccountTable = memo(function AccountTable({
               sortDirection={sortDirection}
               onSort={onSort}
             />
+            <SortableHeader
+              label="判定日時"
+              field="updated_at"
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={onSort}
+            />
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               作成IP
             </th>
@@ -313,7 +320,14 @@ const AccountTable = memo(function AccountTable({
                   </div>
                   <div>
                     <div className="text-sm font-medium text-gray-900">
-                      {account.twitter_id}
+                      <a
+                        href={`https://x.com/${account.twitter_id}`}
+                        className="hover:underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {account.twitter_id}
+                      </a>
                     </div>
                     <div className="text-sm text-gray-500">{account.email}</div>
                   </div>
@@ -349,6 +363,9 @@ const AccountTable = memo(function AccountTable({
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {formatDate(account.created_at)}
               </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {formatDate(account.updated_at)}
+              </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
                 {account.create_ip}
               </td>
@@ -360,12 +377,12 @@ const AccountTable = memo(function AccountTable({
                     onClick={() => handleViewDetails(account.twitter_id)}
                     aria-label="アカウント詳細を表示"
                   />
-                  <ActionButton
+                  {/* <ActionButton
                     icon={Edit}
                     color="text-green-600 hover:text-green-700"
                     onClick={() => handleEditAccount(account)}
                     aria-label="アカウントを編集"
-                  />
+                  /> */}
                   <ActionButton
                     icon={Trash2}
                     color="text-red-600 hover:text-red-700"

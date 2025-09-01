@@ -144,32 +144,88 @@ export async function GET(request: Request) {
           return baseQuery;
         };
 
-        // 保留中
-        const { count: pendingCount } = await createBaseQuery().or(
-          "status.eq.FarmUp,status.eq.farmup"
-        );
+        // ステータスフィルターが特定のステータスの場合、そのステータスのみのカウントを返す
+        if (statusFilter !== "all") {
+          let filteredCount = 0;
+          switch (statusFilter) {
+            case "pending":
+              const { count: pendingFilteredCount } = await createBaseQuery().or(
+                "status.eq.FarmUp,status.eq.farmup"
+              );
+              filteredCount = pendingFilteredCount || 0;
+              statusCounts = {
+                pending: filteredCount,
+                active: 0,
+                suspended: 0,
+                excluded: 0,
+              };
+              break;
+            case "active":
+              const { count: activeFilteredCount } = await createBaseQuery().or(
+                'status.eq.true,status.eq.active,status.eq."true"'
+              );
+              filteredCount = activeFilteredCount || 0;
+              statusCounts = {
+                pending: 0,
+                active: filteredCount,
+                suspended: 0,
+                excluded: 0,
+              };
+              break;
+            case "suspended":
+              const { count: suspendedFilteredCount } = await createBaseQuery().or(
+                "status.eq.suspend,status.eq.email_ban,status.eq.suspended"
+              );
+              filteredCount = suspendedFilteredCount || 0;
+              statusCounts = {
+                pending: 0,
+                active: 0,
+                suspended: filteredCount,
+                excluded: 0,
+              };
+              break;
+            case "excluded":
+              const { count: excludedFilteredCount } = await createBaseQuery().or(
+                'status.eq.false,status.eq."false",status.eq.not_found'
+              );
+              filteredCount = excludedFilteredCount || 0;
+              statusCounts = {
+                pending: 0,
+                active: 0,
+                suspended: 0,
+                excluded: filteredCount,
+              };
+              break;
+          }
+        } else {
+          // "all"の場合は全ステータスのカウントを取得
+          // 保留中
+          const { count: pendingCount } = await createBaseQuery().or(
+            "status.eq.FarmUp,status.eq.farmup"
+          );
 
-        // アクティブ
-        const { count: activeCount } = await createBaseQuery().or(
-          'status.eq.true,status.eq.active,status.eq."true"'
-        );
+          // アクティブ
+          const { count: activeCount } = await createBaseQuery().or(
+            'status.eq.true,status.eq.active,status.eq."true"'
+          );
 
-        // BAN
-        const { count: suspendedCount } = await createBaseQuery().or(
-          "status.eq.suspend,status.eq.email_ban,status.eq.suspended"
-        );
+          // BAN
+          const { count: suspendedCount } = await createBaseQuery().or(
+            "status.eq.suspend,status.eq.email_ban,status.eq.suspended"
+          );
 
-        // 除外
-        const { count: excludedCount } = await createBaseQuery().or(
-          'status.eq.false,status.eq."false",status.eq.not_found'
-        );
+          // 除外
+          const { count: excludedCount } = await createBaseQuery().or(
+            'status.eq.false,status.eq."false",status.eq.not_found'
+          );
 
-        statusCounts = {
-          pending: pendingCount || 0,
-          active: activeCount || 0,
-          suspended: suspendedCount || 0,
-          excluded: excludedCount || 0,
-        };
+          statusCounts = {
+            pending: pendingCount || 0,
+            active: activeCount || 0,
+            suspended: suspendedCount || 0,
+            excluded: excludedCount || 0,
+          };
+        }
       } catch (statusError) {
         console.error("ステータス別統計の取得エラー:", statusError);
       }

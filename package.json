@@ -13,7 +13,7 @@
     "@aws-sdk/s3-request-presigner": "^3.873.0",
     "@google/genai": "^1.15.0",
     "@supabase/supabase-js": "^2.55.0",
-    "@trigger.dev/sdk": "4.0.1",
+    "@trigger.dev/sdk": "4.0.2",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.540.0",
     "next": "15.4.7",
@@ -24,7 +24,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@trigger.dev/build": "4.0.1",
+    "@trigger.dev/build": "4.0.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

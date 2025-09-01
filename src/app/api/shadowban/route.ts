@@ -50,7 +50,6 @@ async function saveShadowbanDataToSupabase(
 
     if (accountData.not_found === true) {
       accountData.status = "not_found";
-      accountData.name = "test_not_found";
     }
 
     // screen_nameで既存レコードを検索・追加または更新

@@ -160,12 +160,19 @@ async function upsertTwitterAccount(
     no_reply: !!data?.no_reply,
     ghost_ban: !!data?.ghost_ban,
     reply_deboosting: !!data?.reply_deboosting,
-    created_at: !!data?.user?.legacy?.created_at || new Date().toISOString(),
+    created_at: data?.user?.legacy?.created_at ?? new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
   if (d.not_found === true) {
     d.status = "not_found";
   }
-  await supabase
+  const { error } = await supabase
     .from("twitter_account_v1")
-    .upsert(d, { onConflict: "twitter_id" });
+    .upsert(d, { onConflict: "twitter_id" }); // ← 一発
+
+  if (error) {
+    console.error("upsert error:", error);
+    console.error("accountData that caused error:", JSON.stringify(d, null, 2));
+    throw new Error(`Database upsert failed: ${error.message}`);
+  }
 }

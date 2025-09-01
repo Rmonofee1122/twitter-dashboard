@@ -231,36 +231,8 @@ const AccountTable = memo(function AccountTable({
         <thead className="bg-gray-50">
           <tr>
             <SortableHeader
-              label="アカウント情報"
-              field="twitter_id"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="フォロワー数"
-              field="follower_count"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="フォロー数"
-              field="following_count"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="投稿数"
-              field="posts_count"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="ステータス"
-              field="status"
+              label="No"
+              field="id"
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={onSort}
@@ -273,15 +245,52 @@ const AccountTable = memo(function AccountTable({
               onSort={onSort}
             />
             <SortableHeader
-              label="判定日時"
+              label="アカウント情報"
+              field="twitter_id"
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={onSort}
+            />
+            <SortableHeader
+              label="ステータス"
+              field="status"
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={onSort}
+            />
+
+            <SortableHeader
+              label="最終チェック"
               field="updated_at"
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={onSort}
             />
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <SortableHeader
+              label="投稿数"
+              field="posts_count"
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={onSort}
+            />
+            <SortableHeader
+              label="フォロー数"
+              field="following_count"
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={onSort}
+            />
+            <SortableHeader
+              label="フォロワー数"
+              field="follower_count"
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={onSort}
+            />
+
+            {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               作成IP
-            </th>
+            </th> */}
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               操作
             </th>
@@ -290,6 +299,12 @@ const AccountTable = memo(function AccountTable({
         <tbody className="bg-white divide-y divide-gray-200">
           {accounts.map((account) => (
             <tr key={account.id} className="hover:bg-gray-50">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {account.id}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {formatDate(account.created_at)}
+              </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-10 w-10 mr-4">
@@ -333,21 +348,6 @@ const AccountTable = memo(function AccountTable({
                   </div>
                 </div>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <div className="text-sm font-medium text-gray-900">
-                  {account.follower_count?.toLocaleString() || 0}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <div className="text-sm font-medium text-gray-900">
-                  {account.following_count?.toLocaleString() || 0}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <div className="text-sm font-medium text-gray-900">
-                  {account.posts_count?.toLocaleString() || 0}
-                </div>
-              </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
                   {getStatusIcon(account.status)}
@@ -360,15 +360,30 @@ const AccountTable = memo(function AccountTable({
                   </span>
                 </div>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {formatDate(account.created_at)}
-              </td>
+
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {formatDate(account.updated_at)}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                {account.create_ip}
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <div className="text-sm font-medium text-gray-900">
+                  {account.posts_count?.toLocaleString() || 0}
+                </div>
               </td>
+
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <div className="text-sm font-medium text-gray-900">
+                  {account.following_count?.toLocaleString() || 0}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <div className="text-sm font-medium text-gray-900">
+                  {account.follower_count?.toLocaleString() || 0}
+                </div>
+              </td>
+
+              {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                {account.create_ip}
+              </td> */}
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center space-x-1">
                   <ActionButton

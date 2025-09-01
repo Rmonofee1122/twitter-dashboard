@@ -11,6 +11,7 @@ import {
   Search,
 } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
+import toast from "react-hot-toast";
 import { TwitterAccountInfo } from "@/types/database";
 import {
   getAccountStatus,
@@ -85,7 +86,7 @@ export default function AccountDetailModal({
 
   const handleShadowbanCheck = useCallback(async () => {
     if (!account?.twitter_id) {
-      alert("Twitter IDが設定されていません");
+      toast.error("Twitter IDが設定されていません");
       return;
     }
 
@@ -103,13 +104,13 @@ export default function AccountDetailModal({
       const data = await response.json();
       setShadowbanData(data);
       setShowShadowbanResult(true);
-      alert("シャドバン判定に成功しました");
+      toast.success("シャドバン判定に成功しました");
 
       // アカウントデータを再読み込み
       onAccountUpdate?.();
     } catch (error) {
       console.error("シャドバン判定エラー:", error);
-      alert("シャドバン判定に失敗しました");
+      toast.error("シャドバン判定に失敗しました");
     } finally {
       setIsCheckingShadowban(false);
     }

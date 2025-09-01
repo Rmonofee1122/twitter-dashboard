@@ -16,7 +16,7 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
   const [isBulkGenerating, setIsBulkGenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [currentBulkPrompt, setCurrentBulkPrompt] = useState("");
-  const [activeTab, setActiveTab] = useState<'single' | 'bulk'>('single');
+  const [activeTab, setActiveTab] = useState<"single" | "bulk">("single");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleGenerate = useCallback(async () => {
@@ -40,7 +40,7 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
       }
 
       const result = await response.json();
-      
+
       if (result.success && result.imageUrl) {
         onImageGenerated?.(result.imageUrl, prompt);
       } else {
@@ -54,24 +54,30 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
     }
   }, [prompt, onImageGenerated]);
 
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleGenerate();
-    }
-  }, [handleGenerate]);
-
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type === "text/plain") {
-      setSelectedFile(file);
-    } else {
-      alert("テキストファイル(.txt)を選択してください");
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+  const handleKeyPress = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleGenerate();
       }
-    }
-  }, []);
+    },
+    [handleGenerate]
+  );
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file && file.type === "text/plain") {
+        setSelectedFile(file);
+      } else {
+        alert("テキストファイル(.txt)を選択してください");
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
+    },
+    []
+  );
 
   const handleBulkGenerate = useCallback(async () => {
     if (!selectedFile) {
@@ -82,8 +88,11 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
     setIsBulkGenerating(true);
     try {
       const text = await selectedFile.text();
-      const prompts = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-      
+      const prompts = text
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+
       if (prompts.length === 0) {
         alert("有効なプロンプトが見つかりませんでした");
         return;
@@ -108,12 +117,54 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
           if (response.ok) {
             const result = await response.json();
             if (result.success && result.imageUrl) {
-              onImageGenerated?.(result.imageUrl, currentPrompt);
+              // 生成された画像をR2にアップロード
+              try {
+                const imageResponse = await fetch(result.imageUrl);
+                const imageBlob = await imageResponse.blob();
+                
+                // BlobをBase64に変換
+                const reader = new FileReader();
+                const base64Promise = new Promise((resolve) => {
+                  reader.onloadend = () => resolve(reader.result);
+                  reader.readAsDataURL(imageBlob);
+                });
+                const imageBase64 = await base64Promise as string;
+                
+                // R2にアップロード
+                const uploadResponse = await fetch("/api/upload-generated-image", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    imageBase64,
+                    prompt: currentPrompt,
+                  }),
+                });
+                
+                if (uploadResponse.ok) {
+                  const uploadResult = await uploadResponse.json();
+                  console.log(`画像をR2に保存: ${uploadResult.key}`);
+                  onImageGenerated?.(uploadResult.url, currentPrompt);
+                } else {
+                  console.error(`R2アップロード失敗 "${currentPrompt}":`, await uploadResponse.text());
+                  // アップロードに失敗しても元のURLでコールバックは呼ぶ
+                  onImageGenerated?.(result.imageUrl, currentPrompt);
+                }
+              } catch (uploadError) {
+                console.error(`R2アップロードエラー "${currentPrompt}":`, uploadError);
+                // アップロードに失敗しても元のURLでコールバックは呼ぶ
+                onImageGenerated?.(result.imageUrl, currentPrompt);
+              }
             } else {
-              console.error(`プロンプト "${currentPrompt}" の生成に失敗しました: レスポンス内容が不正`);
+              console.error(
+                `プロンプト "${currentPrompt}" の生成に失敗しました: レスポンス内容が不正`
+              );
             }
           } else {
-            console.error(`プロンプト "${currentPrompt}" の生成に失敗しました: HTTP ${response.status}`);
+            console.error(
+              `プロンプト "${currentPrompt}" の生成に失敗しました: HTTP ${response.status}`
+            );
           }
         } catch (error) {
           console.error(`プロンプト "${currentPrompt}" の生成エラー:`, error);
@@ -121,7 +172,7 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
 
         // 次の生成まで少し待機（API制限対策）
         if (i < prompts.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         }
       }
 
@@ -148,22 +199,22 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
       {/* タブナビゲーション */}
       <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-6">
         <button
-          onClick={() => setActiveTab('single')}
+          onClick={() => setActiveTab("single")}
           className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'single'
-              ? 'bg-white text-purple-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+            activeTab === "single"
+              ? "bg-white text-purple-600 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
           }`}
         >
           <Send className="h-4 w-4 mr-2" />
           単体生成
         </button>
         <button
-          onClick={() => setActiveTab('bulk')}
+          onClick={() => setActiveTab("bulk")}
           className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'bulk'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+            activeTab === "bulk"
+              ? "bg-white text-blue-600 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
           }`}
         >
           <FileText className="h-4 w-4 mr-2" />
@@ -173,7 +224,7 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
 
       <div className="space-y-4">
         {/* 単体生成タブ */}
-        {activeTab === 'single' && (
+        {activeTab === "single" && (
           <>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -219,7 +270,7 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
         )}
 
         {/* 一括生成タブ */}
-        {activeTab === 'bulk' && (
+        {activeTab === "bulk" && (
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -260,7 +311,9 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
             </div>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h5 className="text-sm font-medium text-blue-900 mb-2">使用方法</h5>
+              <h5 className="text-sm font-medium text-blue-900 mb-2">
+                使用方法
+              </h5>
               <ul className="text-xs text-blue-700 space-y-1">
                 <li>• テキストファイル（.txt）を準備してください</li>
                 <li>• 1行に1つのプロンプトを記載してください</li>
@@ -293,15 +346,22 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
               <Loader className="h-5 w-5 text-blue-600 animate-spin mr-3" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-blue-900">
-                  一括画像生成中... ({bulkProgress.current}/{bulkProgress.total})
+                  一括画像生成中... ({bulkProgress.current}/{bulkProgress.total}
+                  )
                 </p>
                 <p className="text-xs text-blue-700 mt-1">
                   現在のプロンプト: "{currentBulkPrompt}"
                 </p>
                 <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
-                  <div 
+                  <div
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${bulkProgress.total > 0 ? (bulkProgress.current / bulkProgress.total) * 100 : 0}%` }}
+                    style={{
+                      width: `${
+                        bulkProgress.total > 0
+                          ? (bulkProgress.current / bulkProgress.total) * 100
+                          : 0
+                      }%`,
+                    }}
                   ></div>
                 </div>
               </div>

@@ -69,6 +69,9 @@ export async function GET(request: Request) {
       const ascending = sortDirection === "asc";
 
       switch (sortField) {
+        case "id":
+          query = query.order("id", { ascending });
+          break;
         case "twitter_id":
           query = query.order("twitter_id", { ascending });
           break;
@@ -149,9 +152,8 @@ export async function GET(request: Request) {
           let filteredCount = 0;
           switch (statusFilter) {
             case "pending":
-              const { count: pendingFilteredCount } = await createBaseQuery().or(
-                "status.eq.FarmUp,status.eq.farmup"
-              );
+              const { count: pendingFilteredCount } =
+                await createBaseQuery().or("status.eq.FarmUp,status.eq.farmup");
               filteredCount = pendingFilteredCount || 0;
               statusCounts = {
                 pending: filteredCount,
@@ -173,9 +175,10 @@ export async function GET(request: Request) {
               };
               break;
             case "suspended":
-              const { count: suspendedFilteredCount } = await createBaseQuery().or(
-                "status.eq.suspend,status.eq.email_ban,status.eq.suspended"
-              );
+              const { count: suspendedFilteredCount } =
+                await createBaseQuery().or(
+                  "status.eq.suspend,status.eq.email_ban,status.eq.suspended"
+                );
               filteredCount = suspendedFilteredCount || 0;
               statusCounts = {
                 pending: 0,
@@ -185,9 +188,10 @@ export async function GET(request: Request) {
               };
               break;
             case "excluded":
-              const { count: excludedFilteredCount } = await createBaseQuery().or(
-                'status.eq.false,status.eq."false",status.eq.not_found'
-              );
+              const { count: excludedFilteredCount } =
+                await createBaseQuery().or(
+                  'status.eq.false,status.eq."false",status.eq.not_found'
+                );
               filteredCount = excludedFilteredCount || 0;
               statusCounts = {
                 pending: 0,

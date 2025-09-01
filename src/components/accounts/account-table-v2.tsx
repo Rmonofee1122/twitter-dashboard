@@ -401,6 +401,7 @@ const AccountTable = memo(function AccountTable({
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         onAccountUpdate={onAccountUpdate}
+        onAccountRefresh={fetchAccountDetails}
       />
 
       <AccountEditModal

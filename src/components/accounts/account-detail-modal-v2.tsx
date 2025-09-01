@@ -18,12 +18,14 @@ import {
   getStatusBadgeColor,
 } from "@/utils/status-helpers";
 import { updateAccountStatus } from "@/lib/account-actions";
+import { fetchAccountDetails } from "@/app/api/stats/route";
 
 interface AccountDetailModalProps {
   account: TwitterAccountInfo | null;
   isOpen: boolean;
   onClose: () => void;
   onAccountUpdate?: () => void;
+  onAccountRefresh?: (twitterId: string) => Promise<TwitterAccountInfo | null>;
 }
 
 export default function AccountDetailModal({
@@ -31,6 +33,7 @@ export default function AccountDetailModal({
   isOpen,
   onClose,
   onAccountUpdate,
+  onAccountRefresh,
 }: AccountDetailModalProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
@@ -38,10 +41,15 @@ export default function AccountDetailModal({
   const [shadowbanData, setShadowbanData] = useState<any>(null);
   const [isCheckingShadowban, setIsCheckingShadowban] = useState(false);
   const [showShadowbanResult, setShowShadowbanResult] = useState(false);
+  const [currentAccount, setCurrentAccount] =
+    useState<TwitterAccountInfo | null>(account);
   // アカウントが変更されたときにステータスを初期化
   useEffect(() => {
-    if (account?.app_login) {
-      setSelectedStatus(account.app_login);
+    if (account) {
+      setCurrentAccount(account);
+      if (account.status) {
+        setSelectedStatus(account.status);
+      }
     }
   }, [account]);
 
@@ -54,7 +62,13 @@ export default function AccountDetailModal({
 
     setIsSaving(true);
     try {
-      const success = await updateAccountStatus(account.id, selectedStatus);
+      if (!currentAccount) {
+        throw new Error("アカウント情報が見つかりません");
+      }
+      const success = await updateAccountStatus(
+        currentAccount.id,
+        selectedStatus
+      );
       if (success) {
         onAccountUpdate?.();
         onClose();
@@ -90,15 +104,18 @@ export default function AccountDetailModal({
       setShadowbanData(data);
       setShowShadowbanResult(true);
       alert("シャドバン判定に成功しました");
+
+      // アカウントデータを再読み込み
+      onAccountUpdate?.();
     } catch (error) {
       console.error("シャドバン判定エラー:", error);
       alert("シャドバン判定に失敗しました");
     } finally {
       setIsCheckingShadowban(false);
     }
-  }, [account]);
+  }, [account, onAccountUpdate, onAccountRefresh]);
 
-  if (!isOpen || !account) return null;
+  if (!isOpen || !currentAccount) return null;
 
   const copyToClipboard = async (text: string, fieldName: string) => {
     try {
@@ -121,7 +138,7 @@ export default function AccountDetailModal({
     });
   };
 
-  const status = getAccountStatus(account.app_login);
+  const status = getAccountStatus(currentAccount.status);
 
   const CopyButton = ({
     value,
@@ -153,6 +170,68 @@ export default function AccountDetailModal({
   // 基本情報セクション
   const renderBasicInfo = () => (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pb-4">
+        <div className="bg-blue-50 rounded-md p-3 border border-blue-200">
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-bold text-blue-800">
+              フォロワー
+            </label>
+            <CopyButton
+              value={currentAccount.follower_count?.toString() || ""}
+              fieldName="follower_count"
+            />
+          </div>
+          <p className="text-lg font-bold text-blue-900">
+            {currentAccount.follower_count !== null
+              ? currentAccount.follower_count.toLocaleString()
+              : "未設定"}
+          </p>
+        </div>
+        <div className="bg-green-50 rounded-md p-3 border border-green-200">
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-bold text-green-800">フォロー</label>
+            <CopyButton
+              value={currentAccount.following_count?.toString() || ""}
+              fieldName="following_count"
+            />
+          </div>
+          <p className="text-lg font-bold text-green-900">
+            {currentAccount.following_count !== null
+              ? currentAccount.following_count.toLocaleString()
+              : "未設定"}
+          </p>
+        </div>
+        <div className="bg-purple-50 rounded-md p-3 border border-purple-200">
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-bold text-purple-800">
+              メディア
+            </label>
+            <CopyButton
+              value={currentAccount.media_count?.toString() || ""}
+              fieldName="media_count"
+            />
+          </div>
+          <p className="text-lg font-bold text-purple-900">
+            {currentAccount.media_count !== null
+              ? currentAccount.media_count.toLocaleString()
+              : "未設定"}
+          </p>
+        </div>
+        <div className="bg-pink-50 rounded-md p-3 border border-pink-200">
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-bold text-pink-800">いいね</label>
+            <CopyButton
+              value={currentAccount.favourites_count?.toString() || ""}
+              fieldName="favourites_count"
+            />
+          </div>
+          <p className="text-lg font-bold text-pink-900">
+            {currentAccount.favourites_count !== null
+              ? currentAccount.favourites_count.toLocaleString()
+              : "未設定"}
+          </p>
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
         <div className="space-y-1">
           <label className="block text-xs font-semibold text-gray-600">
@@ -160,10 +239,10 @@ export default function AccountDetailModal({
           </label>
           <div className="flex items-center bg-gray-50 rounded-md border p-2">
             <p className="text-sm text-gray-800 flex-1 font-mono truncate">
-              {account.twitter_id || "未設定"}
+              {currentAccount.twitter_id || "未設定"}
             </p>
             <CopyButton
-              value={account.twitter_id || ""}
+              value={currentAccount.twitter_id || ""}
               fieldName="twitter_id"
             />
           </div>
@@ -174,9 +253,9 @@ export default function AccountDetailModal({
           </label>
           <div className="flex items-center bg-gray-50 rounded-md border p-2">
             <p className="text-sm text-gray-800 flex-1 truncate">
-              {account.name || "未設定"}
+              {currentAccount.name || "未設定"}
             </p>
-            <CopyButton value={account.name || ""} fieldName="name" />
+            <CopyButton value={currentAccount.name || ""} fieldName="name" />
           </div>
         </div>
         {/* <div className="space-y-1">
@@ -185,10 +264,10 @@ export default function AccountDetailModal({
           </label>
           <div className="flex items-center bg-gray-50 rounded-md border p-2">
             <p className="text-sm text-gray-800 flex-1 truncate">
-              {account.description_text || "未設定"}
+              {currentAccount.description_text || "未設定"}
             </p>
             <CopyButton
-              value={account.description_text || ""}
+              value={currentAccount.description_text || ""}
               fieldName="description_text"
             />
           </div>
@@ -199,9 +278,9 @@ export default function AccountDetailModal({
           </label>
           <div className="flex items-center bg-gray-50 rounded-md border p-2">
             <p className="text-sm text-gray-800 flex-1 font-mono truncate">
-              {account.email || "未設定"}
+              {currentAccount.email || "未設定"}
             </p>
-            <CopyButton value={account.email || ""} fieldName="email" />
+            <CopyButton value={currentAccount.email || ""} fieldName="email" />
           </div>
         </div>
         <div className="space-y-1">
@@ -210,9 +289,12 @@ export default function AccountDetailModal({
           </label>
           <div className="flex items-center bg-gray-50 rounded-md border p-2">
             <p className="text-sm text-gray-800 font-mono flex-1 truncate">
-              {account.create_ip || "未設定"}
+              {currentAccount.create_ip || "未設定"}
             </p>
-            <CopyButton value={account.create_ip || ""} fieldName="create_ip" />
+            <CopyButton
+              value={currentAccount.create_ip || ""}
+              fieldName="create_ip"
+            />
           </div>
         </div>
         <div className="space-y-1">
@@ -221,9 +303,12 @@ export default function AccountDetailModal({
           </label>
           <div className="flex items-center bg-gray-50 rounded-md border p-2">
             <p className="text-sm text-gray-800 flex-1 truncate">
-              {account.email_id || "未設定"}
+              {currentAccount.email_id || "未設定"}
             </p>
-            <CopyButton value={account.email_id || ""} fieldName="email_id" />
+            <CopyButton
+              value={currentAccount.email_id || ""}
+              fieldName="email_id"
+            />
           </div>
         </div>
         <div className="space-y-1">
@@ -232,75 +317,13 @@ export default function AccountDetailModal({
           </label>
           <div className="flex items-center bg-gray-50 rounded-md border p-2">
             <p className="text-sm text-gray-800 flex-1 font-mono">
-              {formatDate(account.created_at)}
+              {formatDate(currentAccount.created_at)}
             </p>
             <CopyButton
-              value={formatDate(account.created_at)}
+              value={formatDate(currentAccount.created_at)}
               fieldName="created_at"
             />
           </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4">
-        <div className="bg-blue-50 rounded-md p-3 border border-blue-200">
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-bold text-blue-800">
-              フォロワー
-            </label>
-            <CopyButton
-              value={account.follower_count?.toString() || ""}
-              fieldName="follower_count"
-            />
-          </div>
-          <p className="text-lg font-bold text-blue-900">
-            {account.follower_count !== null
-              ? account.follower_count.toLocaleString()
-              : "未設定"}
-          </p>
-        </div>
-        <div className="bg-green-50 rounded-md p-3 border border-green-200">
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-bold text-green-800">フォロー</label>
-            <CopyButton
-              value={account.following_count?.toString() || ""}
-              fieldName="following_count"
-            />
-          </div>
-          <p className="text-lg font-bold text-green-900">
-            {account.following_count !== null
-              ? account.following_count.toLocaleString()
-              : "未設定"}
-          </p>
-        </div>
-        <div className="bg-purple-50 rounded-md p-3 border border-purple-200">
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-bold text-purple-800">
-              メディア
-            </label>
-            <CopyButton
-              value={account.media_count?.toString() || ""}
-              fieldName="media_count"
-            />
-          </div>
-          <p className="text-lg font-bold text-purple-900">
-            {account.media_count !== null
-              ? account.media_count.toLocaleString()
-              : "未設定"}
-          </p>
-        </div>
-        <div className="bg-pink-50 rounded-md p-3 border border-pink-200">
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-bold text-pink-800">いいね</label>
-            <CopyButton
-              value={account.favourites_count?.toString() || ""}
-              fieldName="favourites_count"
-            />
-          </div>
-          <p className="text-lg font-bold text-pink-900">
-            {account.favourites_count !== null
-              ? account.favourites_count.toLocaleString()
-              : "未設定"}
-          </p>
         </div>
       </div>
     </div>
@@ -316,13 +339,13 @@ export default function AccountDetailModal({
   //             フォロワー
   //           </label>
   //           <CopyButton
-  //             value={account.follower_count?.toString() || ""}
+  //             value={currentAccount.follower_count?.toString() || ""}
   //             fieldName="follower_count"
   //           />
   //         </div>
   //         <p className="text-lg font-bold text-blue-900">
-  //           {account.follower_count !== null
-  //             ? account.follower_count.toLocaleString()
+  //           {currentAccount.follower_count !== null
+  //             ? currentAccount.follower_count.toLocaleString()
   //             : "未設定"}
   //         </p>
   //       </div>
@@ -330,13 +353,13 @@ export default function AccountDetailModal({
   //         <div className="flex items-center justify-between mb-1">
   //           <label className="text-xs font-bold text-green-800">フォロー</label>
   //           <CopyButton
-  //             value={account.following_count?.toString() || ""}
+  //             value={currentAccount.following_count?.toString() || ""}
   //             fieldName="following_count"
   //           />
   //         </div>
   //         <p className="text-lg font-bold text-green-900">
-  //           {account.following_count !== null
-  //             ? account.following_count.toLocaleString()
+  //           {currentAccount.following_count !== null
+  //             ? currentAccount.following_count.toLocaleString()
   //             : "未設定"}
   //         </p>
   //       </div>
@@ -346,13 +369,13 @@ export default function AccountDetailModal({
   //             メディア
   //           </label>
   //           <CopyButton
-  //             value={account.media_count?.toString() || ""}
+  //             value={currentAccount.media_count?.toString() || ""}
   //             fieldName="media_count"
   //           />
   //         </div>
   //         <p className="text-lg font-bold text-purple-900">
-  //           {account.media_count !== null
-  //             ? account.media_count.toLocaleString()
+  //           {currentAccount.media_count !== null
+  //             ? currentAccount.media_count.toLocaleString()
   //             : "未設定"}
   //         </p>
   //       </div>
@@ -360,13 +383,13 @@ export default function AccountDetailModal({
   //         <div className="flex items-center justify-between mb-1">
   //           <label className="text-xs font-bold text-pink-800">いいね</label>
   //           <CopyButton
-  //             value={account.favourites_count?.toString() || ""}
+  //             value={currentAccount.favourites_count?.toString() || ""}
   //             fieldName="favourites_count"
   //           />
   //         </div>
   //         <p className="text-lg font-bold text-pink-900">
-  //           {account.favourites_count !== null
-  //             ? account.favourites_count.toLocaleString()
+  //           {currentAccount.favourites_count !== null
+  //             ? currentAccount.favourites_count.toLocaleString()
   //             : "未設定"}
   //         </p>
   //       </div>
@@ -409,10 +432,10 @@ export default function AccountDetailModal({
           </label>
           <div className="flex items-center bg-red-50 rounded-md border border-red-200 p-2">
             <p className="text-sm text-gray-800 font-mono flex-1 truncate">
-              {account.twitter_pass || "未設定"}
+              {currentAccount.twitter_pass || "未設定"}
             </p>
             <CopyButton
-              value={account.twitter_pass || ""}
+              value={currentAccount.twitter_pass || ""}
               fieldName="twitter_pass"
             />
           </div>
@@ -423,10 +446,10 @@ export default function AccountDetailModal({
           </label>
           <div className="flex items-center bg-red-50 rounded-md border border-red-200 p-2">
             <p className="text-sm text-gray-800 font-mono flex-1 truncate">
-              {account.twitter_2fa_code || "未設定"}
+              {currentAccount.twitter_2fa_code || "未設定"}
             </p>
             <CopyButton
-              value={account.twitter_2fa_code || "未設定"}
+              value={currentAccount.twitter_2fa_code || "未設定"}
               fieldName="twitter_2fa_code"
             />
           </div>
@@ -437,9 +460,14 @@ export default function AccountDetailModal({
           </label>
           <div className="flex items-center bg-red-50 rounded-md border border-red-200 p-2">
             <p className="text-sm text-gray-800 font-mono flex-1 truncate">
-              {account.ct0 ? `${account.ct0.substring(0, 15)}...` : "未設定"}
+              {currentAccount.ct0
+                ? `${currentAccount.ct0.substring(0, 15)}...`
+                : "未設定"}
             </p>
-            <CopyButton value={account.ct0 || "未設定"} fieldName="ct0" />
+            <CopyButton
+              value={currentAccount.ct0 || "未設定"}
+              fieldName="ct0"
+            />
           </div>
         </div>
         <div className="space-y-1">
@@ -448,12 +476,12 @@ export default function AccountDetailModal({
           </label>
           <div className="flex items-center bg-red-50 rounded-md border border-red-200 p-2">
             <p className="text-sm text-gray-800 font-mono flex-1 truncate">
-              {account.device_base64
-                ? `${account.device_base64.substring(0, 15)}...`
+              {currentAccount.device_base64
+                ? `${currentAccount.device_base64.substring(0, 15)}...`
                 : "デバイス情報なし"}
             </p>
             <CopyButton
-              value={account.device_base64 || ""}
+              value={currentAccount.device_base64 || ""}
               fieldName="device_base64"
             />
           </div>
@@ -468,7 +496,7 @@ export default function AccountDetailModal({
       <div className="space-y-4">
         <button
           onClick={handleShadowbanCheck}
-          disabled={isCheckingShadowban || !account.twitter_id}
+          disabled={isCheckingShadowban || !currentAccount.twitter_id}
           className="flex items-center px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
         >
           <Shield className="h-4 w-4 mr-2" />
@@ -507,22 +535,22 @@ export default function AccountDetailModal({
           <div className="flex items-center justify-between">
             {/* プロフ画像 */}
             <div className="flex-shrink-0 h-20 w-20 mr-2">
-              {account.profile_image_url_https ? (
+              {currentAccount.profile_image_url_https ? (
                 <img
                   className="h-20 w-20 rounded-full object-cover border-3 border-white shadow-lg"
-                  src={account.profile_image_url_https}
-                  alt={`${account.twitter_id || "User"} profile`}
+                  src={currentAccount.profile_image_url_https}
+                  alt={`${currentAccount.twitter_id || "User"} profile`}
                   onError={(e) => {
                     e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                      account.twitter_id || "User"
+                      currentAccount.twitter_id || "User"
                     )}&background=6366f1&color=fff&size=80`;
                   }}
                 />
               ) : (
                 <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center border-3 border-white shadow-lg">
                   <span className="text-white text-lg font-bold">
-                    {account.twitter_id
-                      ? account.twitter_id.charAt(0).toUpperCase()
+                    {currentAccount.twitter_id
+                      ? currentAccount.twitter_id.charAt(0).toUpperCase()
                       : "U"}
                   </span>
                 </div>
@@ -532,12 +560,12 @@ export default function AccountDetailModal({
             <div className="flex-2 flex flex-col justify-center">
               <h2 className="text-2xl font-bold text-white mb-1">
                 <a
-                  href={`https://x.com/${account.twitter_id}`}
+                  href={`https://x.com/${currentAccount.twitter_id}`}
                   className="hover:underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {account.twitter_id || "Twitter Account"}
+                  {currentAccount.twitter_id || "Twitter Account"}
                 </a>
               </h2>
               <p className="text-blue-100 text-sm">アカウント詳細</p>
@@ -574,15 +602,6 @@ export default function AccountDetailModal({
               {renderStatsInfo()}
             </div> */}
 
-            {/* モード設定セクション */}
-            <div>
-              <div className="flex items-center mb-2">
-                <Settings className="h-4 w-4 text-purple-600 mr-2" />
-                <h3 className="text-lg font-bold text-gray-800">モード設定</h3>
-              </div>
-              {renderTechnicalInfo()}
-            </div>
-
             {/* 認証情報セクション */}
             <div>
               <div className="flex items-center mb-2">
@@ -590,6 +609,15 @@ export default function AccountDetailModal({
                 <h3 className="text-lg font-bold text-gray-800">認証情報</h3>
               </div>
               {renderSecurityInfo()}
+            </div>
+
+            {/* モード設定セクション */}
+            <div>
+              <div className="flex items-center mb-2">
+                <Settings className="h-4 w-4 text-purple-600 mr-2" />
+                <h3 className="text-lg font-bold text-gray-800">モード設定</h3>
+              </div>
+              {renderTechnicalInfo()}
             </div>
 
             {/* シャドバン判定セクション */}
@@ -608,9 +636,9 @@ export default function AccountDetailModal({
         <div className="flex justify-between items-center p-4 bg-gray-100 border-t border-gray-200">
           <div>
             <p className="text-xs text-gray-600 font-mono">
-              更新：{formatDate(account.updated_at)}
+              更新：{formatDate(currentAccount.updated_at)}
             </p>
-            {selectedStatus !== (account.app_login || "") && (
+            {selectedStatus !== (currentAccount.status || "") && (
               <div className="flex items-center bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs mt-1">
                 <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full mr-1 animate-pulse"></div>
                 <span>ステータス変更あり</span>
@@ -618,7 +646,7 @@ export default function AccountDetailModal({
             )}
           </div>
           <div className="flex space-x-2">
-            {selectedStatus !== (account.app_login || "") && (
+            {selectedStatus !== (currentAccount.status || "") && (
               <button
                 onClick={handleSaveStatus}
                 disabled={isSaving}

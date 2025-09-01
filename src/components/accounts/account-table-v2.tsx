@@ -319,7 +319,7 @@ const AccountTable = memo(function AccountTable({
                     />
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-medium text-blue-500">
                       <a
                         href={`https://x.com/${account.twitter_id}`}
                         className="hover:underline"

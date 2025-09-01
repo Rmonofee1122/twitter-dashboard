@@ -87,6 +87,9 @@ export async function GET(request: Request) {
         case "created_at":
           query = query.order("created_at", { ascending });
           break;
+        case "updated_at":
+          query = query.order("updated_at", { ascending });
+          break;
         default:
           // デフォルトソート
           query = query.order("created_at", { ascending: false });

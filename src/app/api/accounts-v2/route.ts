@@ -30,21 +30,22 @@ export async function GET(request: Request) {
     // ステータスフィルター
     if (statusFilter !== "all") {
       switch (statusFilter) {
-        case "pending":
-          query = query.or("status.eq.FarmUp,status.eq.farmup");
-          break;
         case "active":
-          query = query.or("status.eq.true,status.eq.active");
+          query = query.eq("status", "active");
+          break;
+        case "shadowban":
+          query = query.or(
+            "status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"
+          );
+          break;
+        case "stopped":
+          query = query.eq("status", "stop");
+          break;
+        case "examination":
+          query = query.eq("status", "examination");
           break;
         case "suspended":
-          query = query.or(
-            "status.eq.suspend,status.eq.email_ban,status.eq.suspended"
-          );
-          break;
-        case "excluded":
-          query = query.or(
-            'status.eq.false,status.eq."false",status.eq.not_found'
-          );
+          query = query.or("status.eq.suspend,status.eq.suspended");
           break;
       }
     }
@@ -160,6 +161,9 @@ export async function GET(request: Request) {
                 active: 0,
                 suspended: 0,
                 excluded: 0,
+                shadowban: 0,
+                stopped: 0,
+                examination: 0,
               };
               break;
             case "active":
@@ -172,6 +176,9 @@ export async function GET(request: Request) {
                 active: filteredCount,
                 suspended: 0,
                 excluded: 0,
+                shadowban: 0,
+                stopped: 0,
+                examination: 0,
               };
               break;
             case "suspended":
@@ -185,6 +192,52 @@ export async function GET(request: Request) {
                 active: 0,
                 suspended: filteredCount,
                 excluded: 0,
+                shadowban: 0,
+                stopped: 0,
+                examination: 0,
+              };
+              break;
+            case "shadowban":
+              const { count: shadowbanFilteredCount } =
+                await createBaseQuery().or(
+                  "status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"
+                );
+              filteredCount = shadowbanFilteredCount || 0;
+              statusCounts = {
+                pending: 0,
+                active: 0,
+                suspended: 0,
+                excluded: 0,
+                shadowban: filteredCount,
+                stopped: 0,
+                examination: 0,
+              };
+              break;
+            case "stopped":
+              const { count: stoppedFilteredCount } =
+                await createBaseQuery().eq("status", "stop");
+              filteredCount = stoppedFilteredCount || 0;
+              statusCounts = {
+                pending: 0,
+                active: 0,
+                suspended: 0,
+                excluded: 0,
+                shadowban: 0,
+                stopped: filteredCount,
+              };
+              break;
+            case "examination":
+              const { count: examinationFilteredCount } =
+                await createBaseQuery().eq("status", "examination");
+              filteredCount = examinationFilteredCount || 0;
+              statusCounts = {
+                pending: 0,
+                active: 0,
+                suspended: 0,
+                excluded: 0,
+                shadowban: 0,
+                stopped: 0,
+                examination: filteredCount,
               };
               break;
             case "excluded":
@@ -196,6 +249,9 @@ export async function GET(request: Request) {
               statusCounts = {
                 pending: 0,
                 active: 0,
+                shadowban: 0,
+                stopped: 0,
+                examination: 0,
                 suspended: 0,
                 excluded: filteredCount,
               };
@@ -203,31 +259,40 @@ export async function GET(request: Request) {
           }
         } else {
           // "all"の場合は全ステータスのカウントを取得
-          // 保留中
-          const { count: pendingCount } = await createBaseQuery().or(
-            "status.eq.FarmUp,status.eq.farmup"
-          );
-
           // アクティブ
-          const { count: activeCount } = await createBaseQuery().or(
-            'status.eq.true,status.eq.active,status.eq."true"'
+          const { count: activeCount } = await createBaseQuery().eq(
+            "status",
+            "active"
           );
 
-          // BAN
+          // シャドBAN
+          const { count: shadowbanCount } = await createBaseQuery().or(
+            "status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"
+          );
+
+          // 一時停止
+          const { count: stoppedCount } = await createBaseQuery().eq(
+            "status",
+            "stop"
+          );
+
+          // 審査中
+          const { count: examinationCount } = await createBaseQuery().eq(
+            "status",
+            "examination"
+          );
+
+          // 凍結
           const { count: suspendedCount } = await createBaseQuery().or(
-            "status.eq.suspend,status.eq.email_ban,status.eq.suspended"
-          );
-
-          // 除外
-          const { count: excludedCount } = await createBaseQuery().or(
-            'status.eq.false,status.eq."false",status.eq.not_found'
+            "status.eq.suspend,status.eq.suspended"
           );
 
           statusCounts = {
-            pending: pendingCount || 0,
             active: activeCount || 0,
+            shadowban: shadowbanCount || 0,
+            stopped: stoppedCount || 0,
+            examination: examinationCount || 0,
             suspended: suspendedCount || 0,
-            excluded: excludedCount || 0,
           };
         }
       } catch (statusError) {

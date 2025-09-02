@@ -1,142 +1,159 @@
 // ステータス判定のヘルパー関数
 
+export type StatusType = "active" | "shadowban" | "stopped" | "examination" | "suspended";
+
 export function getAccountStatus(
-  appLogin: string | null
-): "pending" | "active" | "suspended" | "excluded" {
-  if (!appLogin) return "excluded";
-
-  const loginValue = appLogin.toString().toLowerCase();
-
-  // 保留中: FarmUp または farmup
-  if (loginValue === "farmup") {
-    return "pending";
-  }
-
-  // アクティブ: true
-  if (loginValue === "true") {
-    return "active";
-  }
-
-  // BAN: suspend または email_ban または Email_BAN
-  if (loginValue === "suspend" || loginValue === "email_ban") {
-    return "suspended";
-  }
-
-  // 除外: false またはその他
-  return "excluded";
-}
-
-export function getAccountStatus02(
   status: string | null
-): "pending" | "active" | "suspended" | "excluded" {
-  if (!status) return "excluded";
+): StatusType | "unknown" {
+  if (!status) return "unknown";
 
-  const loginValue = status.toString().toLowerCase();
+  const statusValue = status.toString().toLowerCase();
 
-  // 保留中: FarmUp または farmup
-  if (loginValue === "farmup") {
-    return "pending";
-  }
-
-  // アクティブ: true
-  if (loginValue === "true") {
+  // アクティブ: active
+  if (statusValue === "active") {
     return "active";
   }
 
-  // BAN: suspend または email_ban または Email_BAN
-  if (loginValue === "suspend" || loginValue === "email_ban") {
+  // シャドBAN: search_ban または search_suggestion_ban または ghost_ban
+  if (
+    statusValue === "search_ban" ||
+    statusValue === "search_suggestion_ban" ||
+    statusValue === "ghost_ban"
+  ) {
+    return "shadowban";
+  }
+
+  // 一時停止: stop
+  if (statusValue === "stop") {
+    return "stopped";
+  }
+
+  // 審査中: examination
+  if (statusValue === "examination") {
+    return "examination";
+  }
+
+  // 凍結: suspend または suspended
+  if (statusValue === "suspend" || statusValue === "suspended") {
     return "suspended";
   }
 
-  // 除外: false またはその他
-  return "excluded";
+  return "unknown";
 }
 
 export function getStatusText(
-  status: "pending" | "active" | "suspended" | "excluded" | string | null
+  status: string | null
 ): string {
   if (!status) return "不明";
 
   const statusValue = status.toString().toLowerCase();
 
-  // 保留中: FarmUp または farmup
-  if (statusValue === "farmup" || statusValue === "pending") {
-    return "保留中";
-  }
-
-  // アクティブ: true または active
-  if (statusValue === "true" || statusValue === "active") {
+  // アクティブ: active
+  if (statusValue === "active") {
     return "アクティブ";
   }
 
-  // BAN: suspend または email_ban または Email_BAN または suspended
+  // シャドBAN: search_ban または search_suggestion_ban または ghost_ban
   if (
-    statusValue === "suspend" ||
-    statusValue === "email_ban" ||
-    statusValue === "suspended"
+    statusValue === "search_ban" ||
+    statusValue === "search_suggestion_ban" ||
+    statusValue === "ghost_ban"
   ) {
-    return "BAN";
+    return "シャドBAN";
   }
 
-  // 除外: false または excluded
-  if (
-    statusValue === "false" ||
-    statusValue === "excluded" ||
-    statusValue === "not_found"
-  ) {
-    return "除外";
+  // 一時停止: stop
+  if (statusValue === "stop") {
+    return "一時停止";
+  }
+
+  // 審査中: examination
+  if (statusValue === "examination") {
+    return "審査中";
+  }
+
+  // 凍結: suspend または suspended
+  if (statusValue === "suspend" || statusValue === "suspended") {
+    return "凍結";
   }
 
   return "不明";
 }
 
 export function getStatusBadgeColor(
-  status: "pending" | "active" | "suspended" | "excluded" | string | null
+  status: string | null
 ): string {
   if (!status) return "bg-gray-100 text-gray-800";
 
   const statusValue = status.toString().toLowerCase();
 
-  // 保留中: FarmUp または farmup
-  if (statusValue === "farmup" || statusValue === "pending") {
-    return "bg-yellow-100 text-yellow-800";
-  }
-
-  // アクティブ: true または active
-  if (statusValue === "true" || statusValue === "active") {
+  // アクティブ: active
+  if (statusValue === "active") {
     return "bg-green-100 text-green-800";
   }
 
-  // BAN: suspend または email_ban または Email_BAN または suspended
+  // シャドBAN: search_ban または search_suggestion_ban または ghost_ban
   if (
-    statusValue === "suspend" ||
-    statusValue === "email_ban" ||
-    statusValue === "suspended"
+    statusValue === "search_ban" ||
+    statusValue === "search_suggestion_ban" ||
+    statusValue === "ghost_ban"
   ) {
-    return "bg-red-100 text-red-800";
+    return "bg-orange-100 text-orange-800";
   }
 
-  // 除外: false または excluded または not_found
-  if (statusValue === "false" || statusValue === "excluded" || statusValue === "not_found") {
-    return "bg-gray-100 text-gray-800";
+  // 一時停止: stop
+  if (statusValue === "stop") {
+    return "bg-blue-100 text-blue-800";
+  }
+
+  // 審査中: examination
+  if (statusValue === "examination") {
+    return "bg-yellow-100 text-yellow-800";
+  }
+
+  // 凍結: suspend または suspended
+  if (statusValue === "suspend" || statusValue === "suspended") {
+    return "bg-red-100 text-red-800";
   }
 
   return "bg-gray-100 text-gray-800";
 }
 
 export function getStatusIcon(
-  status: "pending" | "active" | "suspended" | "excluded"
-) {
-  switch (status) {
-    case "pending":
-      return "Clock";
-    case "active":
-      return "CheckCircle";
-    case "suspended":
-      return "XCircle";
-    case "excluded":
-      return "Minus";
-    default:
-      return "Help";
+  status: string | null
+): string {
+  if (!status) return "Help";
+
+  const statusValue = status.toString().toLowerCase();
+
+  // アクティブ: active
+  if (statusValue === "active") {
+    return "CheckCircle";
   }
+
+  // シャドBAN: search_ban または search_suggestion_ban または ghost_ban
+  if (
+    statusValue === "search_ban" ||
+    statusValue === "search_suggestion_ban" ||
+    statusValue === "ghost_ban"
+  ) {
+    return "AlertTriangle";
+  }
+
+  // 一時停止: stop
+  if (statusValue === "stop") {
+    return "Pause";
+  }
+
+  // 審査中: examination
+  if (statusValue === "examination") {
+    return "Clock";
+  }
+
+  // 凍結: suspend または suspended
+  if (statusValue === "suspend" || statusValue === "suspended") {
+    return "XCircle";
+  }
+
+  return "Help";
 }

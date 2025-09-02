@@ -20,6 +20,9 @@ interface AccountsResponse {
     active: number;
     suspended: number;
     excluded: number;
+    shadowban: number;
+    stopped: number;
+    examination: number;
   };
 }
 
@@ -27,7 +30,12 @@ export default function AccountsV2Page() {
   const [accounts, setAccounts] = useState<TwitterAccountInfo[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "pending" | "active" | "suspended" | "excluded"
+    | "all"
+    | "active"
+    | "shadowban"
+    | "stopped"
+    | "examination"
+    | "suspended"
   >("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -39,6 +47,9 @@ export default function AccountsV2Page() {
     active: 0,
     suspended: 0,
     excluded: 0,
+    shadowban: 0,
+    stopped: 0,
+    examination: 0,
   });
   const [loading, setLoading] = useState(true);
   const [itemsPerPage] = useState(10);
@@ -52,7 +63,15 @@ export default function AccountsV2Page() {
 
   useEffect(() => {
     fetchAccounts();
-  }, [currentPage, searchTerm, statusFilter, startDate, endDate, sortField, sortDirection]);
+  }, [
+    currentPage,
+    searchTerm,
+    statusFilter,
+    startDate,
+    endDate,
+    sortField,
+    sortDirection,
+  ]);
 
   const fetchAccounts = async () => {
     try {
@@ -98,7 +117,13 @@ export default function AccountsV2Page() {
   };
 
   const handleStatusFilter = (
-    status: "all" | "pending" | "active" | "suspended" | "excluded"
+    status:
+      | "all"
+      | "active"
+      | "shadowban"
+      | "stopped"
+      | "examination"
+      | "suspended"
   ) => {
     setStatusFilter(status);
     setCurrentPage(1);
@@ -134,9 +159,9 @@ export default function AccountsV2Page() {
     if (sortField === field) {
       // 同じフィールドをクリックした場合：null → asc → desc → null のサイクル
       if (sortDirection === "") {
-        setSortDirection('asc');
-      } else if (sortDirection === 'asc') {
-        setSortDirection('desc');
+        setSortDirection("asc");
+      } else if (sortDirection === "asc") {
+        setSortDirection("desc");
       } else {
         setSortField("");
         setSortDirection("");
@@ -144,7 +169,7 @@ export default function AccountsV2Page() {
     } else {
       // 異なるフィールドをクリックした場合：昇順でソート開始
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
     // ソートが変わったら1ページ目に戻る
     setCurrentPage(1);
@@ -304,8 +329,8 @@ export default function AccountsV2Page() {
             <p className="mt-2 text-gray-600">データを読み込み中...</p>
           </div>
         ) : (
-          <AccountTableV2 
-            accounts={accounts} 
+          <AccountTableV2
+            accounts={accounts}
             onAccountUpdate={fetchAccounts}
             sortField={sortField}
             sortDirection={sortDirection}

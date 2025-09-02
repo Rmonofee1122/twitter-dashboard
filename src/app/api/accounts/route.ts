@@ -28,19 +28,20 @@ export async function GET(request: Request) {
     // ステータスフィルター
     if (statusFilter !== "all") {
       switch (statusFilter) {
-        case "pending":
-          query = query.or("app_login.eq.FarmUp,app_login.eq.farmup");
-          break;
         case "active":
-          query = query.or('app_login.eq.true,app_login.eq."true"');
+          query = query.eq("status", "active");
+          break;
+        case "shadowban":
+          query = query.or("status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban");
+          break;
+        case "stopped":
+          query = query.eq("status", "stop");
+          break;
+        case "examination":
+          query = query.eq("status", "examination");
           break;
         case "suspended":
-          query = query.or(
-            "app_login.eq.suspend,app_login.eq.email_ban,app_login.eq.Email_BAN"
-          );
-          break;
-        case "excluded":
-          query = query.or('app_login.eq.false,app_login.eq."false"');
+          query = query.or("status.eq.suspend,status.eq.suspended");
           break;
       }
     }
@@ -100,31 +101,31 @@ export async function GET(request: Request) {
           return baseQuery;
         };
 
-        // 保留中
-        const { count: pendingCount } = await createBaseQuery().or(
-          "app_login.eq.FarmUp,app_login.eq.farmup"
-        );
-
         // アクティブ
-        const { count: activeCount } = await createBaseQuery().or(
-          'app_login.eq.true,app_login.eq."true"'
+        const { count: activeCount } = await createBaseQuery().eq("status", "active");
+
+        // シャドBAN
+        const { count: shadowbanCount } = await createBaseQuery().or(
+          "status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"
         );
 
-        // BAN
+        // 一時停止
+        const { count: stoppedCount } = await createBaseQuery().eq("status", "stop");
+
+        // 審査中
+        const { count: examinationCount } = await createBaseQuery().eq("status", "examination");
+
+        // 凍結
         const { count: suspendedCount } = await createBaseQuery().or(
-          "app_login.eq.suspend,app_login.eq.email_ban,app_login.eq.Email_BAN"
-        );
-
-        // 除外
-        const { count: excludedCount } = await createBaseQuery().or(
-          'app_login.eq.false,app_login.eq."false"'
+          "status.eq.suspend,status.eq.suspended"
         );
 
         statusCounts = {
-          pending: pendingCount || 0,
           active: activeCount || 0,
+          shadowban: shadowbanCount || 0,
+          stopped: stoppedCount || 0,
+          examination: examinationCount || 0,
           suspended: suspendedCount || 0,
-          excluded: excludedCount || 0,
         };
       } catch (statusError) {
         console.error("ステータス別統計の取得エラー:", statusError);

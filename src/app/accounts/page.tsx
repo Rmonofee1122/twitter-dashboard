@@ -16,10 +16,11 @@ interface AccountsResponse {
   limit: number;
   totalPages: number;
   statusCounts?: {
-    pending: number;
     active: number;
+    shadowban: number;
+    stopped: number;
+    examination: number;
     suspended: number;
-    excluded: number;
   };
 }
 
@@ -27,7 +28,7 @@ export default function AccountsPage() {
   const [accounts, setAccounts] = useState<TwitterCreateLog[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "pending" | "active" | "suspended" | "excluded"
+    "all" | "active" | "shadowban" | "stopped" | "examination" | "suspended"
   >("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -35,10 +36,11 @@ export default function AccountsPage() {
   const [totalAccounts, setTotalAccounts] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [statusCounts, setStatusCounts] = useState({
-    pending: 0,
     active: 0,
+    shadowban: 0,
+    stopped: 0,
+    examination: 0,
     suspended: 0,
-    excluded: 0,
   });
   const [loading, setLoading] = useState(true);
   const [itemsPerPage] = useState(10);
@@ -94,7 +96,7 @@ export default function AccountsPage() {
   };
 
   const handleStatusFilter = (
-    status: "all" | "pending" | "active" | "suspended" | "excluded"
+    status: "all" | "active" | "shadowban" | "stopped" | "examination" | "suspended"
   ) => {
     setStatusFilter(status);
     setCurrentPage(1);

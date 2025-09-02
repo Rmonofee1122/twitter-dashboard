@@ -1,13 +1,21 @@
 "use client";
 
-import { Clock, CheckCircle, XCircle, Minus, LucideIcon } from "lucide-react";
+import {
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Pause,
+  LucideIcon,
+} from "lucide-react";
 import { memo, useMemo } from "react";
 
 interface StatusCounts {
-  pending: number;
   active: number;
+  shadowban: number;
+  stopped: number;
+  examination: number;
   suspended: number;
-  excluded: number;
 }
 
 interface AccountStatusSummaryProps {
@@ -30,13 +38,6 @@ const AccountStatusSummary = memo(function AccountStatusSummary({
   const statusItems: StatusItem[] = useMemo(
     () => [
       {
-        label: "保留中",
-        count: statusCounts.pending,
-        icon: Clock,
-        color: "text-yellow-600",
-        bgColor: "bg-yellow-50",
-      },
-      {
         label: "アクティブ",
         count: statusCounts.active,
         icon: CheckCircle,
@@ -44,18 +45,32 @@ const AccountStatusSummary = memo(function AccountStatusSummary({
         bgColor: "bg-green-50",
       },
       {
-        label: "BAN",
+        label: "シャドBAN",
+        count: statusCounts.shadowban,
+        icon: AlertTriangle,
+        color: "text-orange-600",
+        bgColor: "bg-orange-50",
+      },
+      {
+        label: "一時停止",
+        count: statusCounts.stopped,
+        icon: Pause,
+        color: "text-blue-600",
+        bgColor: "bg-blue-50",
+      },
+      {
+        label: "審査中",
+        count: statusCounts.examination,
+        icon: Clock,
+        color: "text-yellow-600",
+        bgColor: "bg-yellow-50",
+      },
+      {
+        label: "凍結",
         count: statusCounts.suspended,
         icon: XCircle,
         color: "text-red-600",
         bgColor: "bg-red-50",
-      },
-      {
-        label: "除外",
-        count: statusCounts.excluded,
-        icon: Minus,
-        color: "text-gray-600",
-        bgColor: "bg-gray-50",
       },
     ],
     [statusCounts]
@@ -73,7 +88,7 @@ const AccountStatusSummary = memo(function AccountStatusSummary({
       </div>
 
       {/* ステータス別件数表示 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {statusItems.map((item, index) => (
           <div
             key={index}
@@ -88,7 +103,7 @@ const AccountStatusSummary = memo(function AccountStatusSummary({
                   {item.label}
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {item.count.toLocaleString()}
+                  {item.count?.toLocaleString() || 0}
                 </p>
                 <p className="text-xs text-gray-500">
                   {totalAccounts > 0

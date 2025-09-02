@@ -10,9 +10,14 @@ import {
   ChevronUp,
   ChevronDown,
   ChevronsUpDown,
+  AlertTriangle,
+  Search,
+  MessageCircle,
+  Ghost,
+  Ban,
   type LucideIcon,
 } from "lucide-react";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useState, useEffect } from "react";
 import { TwitterAccountInfo } from "@/types/database";
 import { getStatusText, getStatusBadgeColor } from "@/utils/status-helpers";
 import { fetchAccountDetails } from "@/app/api/stats/route";
@@ -113,6 +118,7 @@ const AccountTable = memo(function AccountTable({
   );
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [suspendDates, setSuspendDates] = useState<Record<string, string>>({});
 
   const handleViewDetails = useCallback(async (twitterId: string | null) => {
     if (!twitterId) return;
@@ -206,6 +212,10 @@ const AccountTable = memo(function AccountTable({
       case "FarmUp":
       case "farmup":
         return <Clock className="h-4 w-4 text-yellow-500" />;
+      case "search_ban":
+      case "search_suggestion_ban":
+      case "ghost_ban":
+        return <AlertTriangle className="h-4 w-4 text-orange-500" />;
       case "excluded":
       case "false":
       case "not_found":
@@ -214,6 +224,95 @@ const AccountTable = memo(function AccountTable({
         return <Clock className="h-4 w-4 text-gray-500" />;
     }
   }, []);
+
+  const getShadowbanDetails = useCallback((account: TwitterAccountInfo) => {
+    const details = [];
+    
+    // search_ban
+    if (account.search_ban) {
+      details.push({
+        icon: <Search className="h-3 w-3" />,
+        label: "検索制限",
+        color: "text-red-500"
+      });
+    }
+    
+    // search_suggestion_ban
+    if (account.search_suggestion_ban) {
+      details.push({
+        icon: <Ban className="h-3 w-3" />,
+        label: "検索提案制限", 
+        color: "text-orange-500"
+      });
+    }
+    
+    // no_reply
+    if (account.no_reply) {
+      details.push({
+        icon: <MessageCircle className="h-3 w-3" />,
+        label: "リプライ制限",
+        color: "text-yellow-500"
+      });
+    }
+    
+    // ghost_ban
+    if (account.ghost_ban) {
+      details.push({
+        icon: <Ghost className="h-3 w-3" />,
+        label: "ゴーストBAN",
+        color: "text-purple-500"
+      });
+    }
+    
+    return details;
+  }, []);
+
+  const isShadeowBanned = useCallback((status: string | null) => {
+    return status === "search_ban" || 
+           status === "search_suggestion_ban" || 
+           status === "ghost_ban";
+  }, []);
+
+  const isSuspended = useCallback((status: string | null) => {
+    return status === "suspend" || status === "suspended";
+  }, []);
+
+  const fetchSuspendDate = useCallback(async (twitterId: string) => {
+    try {
+      const response = await fetch(`/api/shadowban-log?twitter_id=${encodeURIComponent(twitterId)}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      if (result.data && result.data.updated_at) {
+        setSuspendDates(prev => ({
+          ...prev,
+          [twitterId]: result.data.updated_at
+        }));
+      }
+    } catch (error) {
+      console.error(`凍結判定日取得エラー (${twitterId}):`, error);
+    }
+  }, []);
+
+  // 凍結ステータスのアカウントの凍結判定日を取得
+  const fetchSuspendDatesForAccounts = useCallback(async () => {
+    const suspendedAccounts = accounts.filter(account => 
+      isSuspended(account.status) && account.twitter_id
+    );
+    
+    for (const account of suspendedAccounts) {
+      if (account.twitter_id && !suspendDates[account.twitter_id]) {
+        await fetchSuspendDate(account.twitter_id);
+      }
+    }
+  }, [accounts, isSuspended, suspendDates, fetchSuspendDate]);
+
+  // アカウントリストが変更されたときに凍結判定日を取得
+  useEffect(() => {
+    fetchSuspendDatesForAccounts();
+  }, [accounts]);
 
   const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString("ja-JP", {
@@ -349,15 +448,35 @@ const AccountTable = memo(function AccountTable({
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  {getStatusIcon(account.status)}
-                  <span
-                    className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
-                      account.status
-                    )}`}
-                  >
-                    {getStatusText(account.status)}
-                  </span>
+                <div className="flex flex-col">
+                  <div className="flex items-center">
+                    {getStatusIcon(account.status)}
+                    <span
+                      className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
+                        account.status
+                      )}`}
+                    >
+                      {getStatusText(account.status)}
+                    </span>
+                    {isShadeowBanned(account.status) && (
+                      <div className="ml-2 flex items-center space-x-1">
+                        {getShadowbanDetails(account).map((detail, index) => (
+                          <div
+                            key={index}
+                            className={`p-1 rounded ${detail.color}`}
+                            title={detail.label}
+                          >
+                            {detail.icon}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {isSuspended(account.status) && account.twitter_id && suspendDates[account.twitter_id] && (
+                    <div className="text-xs text-gray-500 mt-1 ml-6">
+                      凍結判定: {formatDate(suspendDates[account.twitter_id])}
+                    </div>
+                  )}
                 </div>
               </td>
 

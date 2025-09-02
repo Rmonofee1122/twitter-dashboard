@@ -106,8 +106,20 @@ export default function AccountDetailModal({
       setShowShadowbanResult(true);
       toast.success("シャドバン判定に成功しました");
 
-      // アカウントデータを再読み込み
-      onAccountUpdate?.();
+      // モーダル内のアカウントデータを最新に更新（モーダルは閉じない）
+      if (onAccountRefresh && account.twitter_id) {
+        try {
+          const updatedAccount = await onAccountRefresh(account.twitter_id);
+          if (updatedAccount) {
+            setCurrentAccount(updatedAccount);
+          }
+        } catch (refreshError) {
+          console.error("アカウント情報の再取得エラー:", refreshError);
+        }
+      }
+
+      // 背景のアカウント一覧も更新（モーダルは開いたまま）
+      // onAccountUpdate?.();
     } catch (error) {
       console.error("シャドバン判定エラー:", error);
       toast.error("シャドバン判定に失敗しました");

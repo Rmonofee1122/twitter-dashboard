@@ -227,50 +227,52 @@ const AccountTable = memo(function AccountTable({
 
   const getShadowbanDetails = useCallback((account: TwitterAccountInfo) => {
     const details = [];
-    
+
     // search_ban
     if (account.search_ban) {
       details.push({
         icon: <Search className="h-3 w-3" />,
         label: "検索制限",
-        color: "text-red-500"
+        color: "text-red-500",
       });
     }
-    
+
     // search_suggestion_ban
     if (account.search_suggestion_ban) {
       details.push({
         icon: <Ban className="h-3 w-3" />,
-        label: "検索提案制限", 
-        color: "text-orange-500"
+        label: "検索提案制限",
+        color: "text-orange-500",
       });
     }
-    
+
     // no_reply
     if (account.no_reply) {
       details.push({
         icon: <MessageCircle className="h-3 w-3" />,
         label: "リプライ制限",
-        color: "text-yellow-500"
+        color: "text-yellow-500",
       });
     }
-    
+
     // ghost_ban
     if (account.ghost_ban) {
       details.push({
         icon: <Ghost className="h-3 w-3" />,
-        label: "ゴーストBAN",
-        color: "text-purple-500"
+        label: "返信一覧からの除外",
+        color: "text-purple-500",
       });
     }
-    
+
     return details;
   }, []);
 
   const isShadeowBanned = useCallback((status: string | null) => {
-    return status === "search_ban" || 
-           status === "search_suggestion_ban" || 
-           status === "ghost_ban";
+    return (
+      status === "search_ban" ||
+      status === "search_suggestion_ban" ||
+      status === "ghost_ban"
+    );
   }, []);
 
   const isSuspended = useCallback((status: string | null) => {
@@ -279,16 +281,18 @@ const AccountTable = memo(function AccountTable({
 
   const fetchSuspendDate = useCallback(async (twitterId: string) => {
     try {
-      const response = await fetch(`/api/shadowban-log?twitter_id=${encodeURIComponent(twitterId)}`);
+      const response = await fetch(
+        `/api/shadowban-log?twitter_id=${encodeURIComponent(twitterId)}`
+      );
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      
+
       const result = await response.json();
       if (result.data && result.data.updated_at) {
-        setSuspendDates(prev => ({
+        setSuspendDates((prev) => ({
           ...prev,
-          [twitterId]: result.data.updated_at
+          [twitterId]: result.data.updated_at,
         }));
       }
     } catch (error) {
@@ -298,10 +302,10 @@ const AccountTable = memo(function AccountTable({
 
   // 凍結ステータスのアカウントの凍結判定日を取得
   const fetchSuspendDatesForAccounts = useCallback(async () => {
-    const suspendedAccounts = accounts.filter(account => 
-      isSuspended(account.status) && account.twitter_id
+    const suspendedAccounts = accounts.filter(
+      (account) => isSuspended(account.status) && account.twitter_id
     );
-    
+
     for (const account of suspendedAccounts) {
       if (account.twitter_id && !suspendDates[account.twitter_id]) {
         await fetchSuspendDate(account.twitter_id);
@@ -472,11 +476,13 @@ const AccountTable = memo(function AccountTable({
                       </div>
                     )}
                   </div>
-                  {isSuspended(account.status) && account.twitter_id && suspendDates[account.twitter_id] && (
-                    <div className="text-xs text-gray-500 mt-1 ml-6">
-                      凍結判定: {formatDate(suspendDates[account.twitter_id])}
-                    </div>
-                  )}
+                  {isSuspended(account.status) &&
+                    account.twitter_id &&
+                    suspendDates[account.twitter_id] && (
+                      <div className="text-xs text-gray-500 mt-1 ml-6">
+                        凍結判定: {formatDate(suspendDates[account.twitter_id])}
+                      </div>
+                    )}
                 </div>
               </td>
 

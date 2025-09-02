@@ -3,7 +3,10 @@ import { schedules, logger } from "@trigger.dev/sdk";
 import { createClient } from "@supabase/supabase-js";
 
 // Trigger.dev 上のタスク実行環境に渡す環境変数（ダッシュボードの Env Vars に設定）
-const SHADOWBAN_API_BASE = process.env.SHADOWBAN_API_BASE!; // 例: https://your-worker.example.com
+const API_BASE_URL =
+  process.env.API_BASE_URL ||
+  process.env.SHADOWBAN_API_BASE ||
+  "https://your-app.vercel.app"; // 本番環境のURL
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,6 +44,7 @@ export const shadowbanCron = schedules.task({
     // 2) 小並列で順次処理（外部APIはバックオフ付きで）
     for (const job of jobs) {
       try {
+        // 直接外部shadowban APIを呼び出し（自分のAPIを経由しない）
         const data = await fetchWithBackoff(
           `http://localhost:3000/api/test?screen_name=${encodeURIComponent(
             job.screen_name
@@ -165,6 +169,15 @@ async function upsertTwitterAccount(
   };
   if (d.not_found === true) {
     d.status = "not_found";
+  }
+  if (d.search_ban === true) {
+    d.status = "search_ban";
+  }
+  if (d.search_suggestion_ban === true) {
+    d.status = "search_suggestion_ban";
+  }
+  if (d.ghost_ban === true) {
+    d.status = "ghost_ban";
   }
   const { error } = await supabase
     .from("twitter_account_v1")

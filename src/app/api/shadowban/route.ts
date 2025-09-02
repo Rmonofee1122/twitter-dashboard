@@ -51,6 +51,15 @@ async function saveShadowbanDataToSupabase(
     if (accountData.not_found === true) {
       accountData.status = "not_found";
     }
+    if (accountData.search_ban === true) {
+      accountData.status = "search_ban";
+    }
+    if (accountData.search_suggestion_ban === true) {
+      accountData.status = "search_suggestion_ban";
+    }
+    if (accountData.ghost_ban === true) {
+      accountData.status = "ghost_ban";
+    }
 
     // screen_nameで既存レコードを検索・追加または更新
     const { error } = await supabase

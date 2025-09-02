@@ -166,6 +166,15 @@
 //   if (d.not_found === true) {
 //     d.status = "not_found";
 //   }
+// if (d.search_ban === true) {
+//     d.status = "search_ban";
+//   }
+//   if (d.search_suggestion_ban === true) {
+//     d.status = "search_suggestion_ban";
+//   }
+//   if (d.ghost_ban === true) {
+//     d.status = "ghost_ban";
+//   }
 //   const { error } = await supabase
 //     .from("twitter_account_v1")
 //     .upsert(d, { onConflict: "twitter_id" }); // ← 一発

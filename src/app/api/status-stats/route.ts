@@ -113,6 +113,12 @@ export async function GET(request: Request) {
           acc.pending += count;
         } else if (status === "false" || status === "not_found") {
           acc.excluded += count;
+        } else if (
+          status === "search_ban" ||
+          status === "search_suggestion_ban" ||
+          status === "ghost_ban"
+        ) {
+          acc.shadowban += count;
         }
         acc.total += count;
         return acc;

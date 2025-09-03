@@ -89,7 +89,7 @@ const StatusTrendChart = memo(function StatusTrendChart({
                   : "除外"
               }
             />
-            {chartData.length > 0 && chartData[0].hasOwnProperty('active') && (
+            {chartData.length > 0 && chartData[0].hasOwnProperty("active") && (
               <Line
                 type="monotone"
                 dataKey="active"
@@ -98,16 +98,17 @@ const StatusTrendChart = memo(function StatusTrendChart({
                 dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
               />
             )}
-            {chartData.length > 0 && chartData[0].hasOwnProperty('suspended') && (
-              <Line
-                type="monotone"
-                dataKey="suspended"
-                stroke="#ef4444"
-                strokeWidth={2}
-                dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
-              />
-            )}
-            {chartData.length > 0 && chartData[0].hasOwnProperty('pending') && (
+            {chartData.length > 0 &&
+              chartData[0].hasOwnProperty("suspended") && (
+                <Line
+                  type="monotone"
+                  dataKey="suspended"
+                  stroke="#ef4444"
+                  strokeWidth={2}
+                  dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
+                />
+              )}
+            {chartData.length > 0 && chartData[0].hasOwnProperty("pending") && (
               <Line
                 type="monotone"
                 dataKey="pending"
@@ -116,15 +117,16 @@ const StatusTrendChart = memo(function StatusTrendChart({
                 dot={{ fill: "#f59e0b", strokeWidth: 2, r: 4 }}
               />
             )}
-            {chartData.length > 0 && chartData[0].hasOwnProperty('excluded') && (
-              <Line
-                type="monotone"
-                dataKey="excluded"
-                stroke="#6b7280"
-                strokeWidth={2}
-                dot={{ fill: "#6b7280", strokeWidth: 2, r: 4 }}
-              />
-            )}
+            {chartData.length > 0 &&
+              chartData[0].hasOwnProperty("excluded") && (
+                <Line
+                  type="monotone"
+                  dataKey="excluded"
+                  stroke="#6b7280"
+                  strokeWidth={2}
+                  dot={{ fill: "#6b7280", strokeWidth: 2, r: 4 }}
+                />
+              )}
           </LineChart>
         </ResponsiveContainer>
       </div>

@@ -17,7 +17,7 @@ import {
   Ban,
   type LucideIcon,
 } from "lucide-react";
-import { memo, useCallback, useState, useEffect } from "react";
+import { memo, useCallback, useState, useEffect, useMemo } from "react";
 import { TwitterAccountInfo } from "@/types/database";
 import { getStatusText, getStatusBadgeColor } from "@/utils/status-helpers";
 import { fetchAccountDetails } from "@/app/api/stats/route";
@@ -234,48 +234,6 @@ const AccountTable = memo(function AccountTable({
     }
   }, []);
 
-  const getShadowbanDetails = useCallback((account: TwitterAccountInfo) => {
-    const details = [];
-
-    // search_ban
-    if (account.search_ban) {
-      details.push({
-        icon: <Search className="h-3 w-3" />,
-        label: "検索制限",
-        color: "text-red-500",
-      });
-    }
-
-    // search_suggestion_ban
-    if (account.search_suggestion_ban) {
-      details.push({
-        icon: <Ban className="h-3 w-3" />,
-        label: "検索提案制限",
-        color: "text-orange-500",
-      });
-    }
-
-    // no_reply
-    if (account.no_reply) {
-      details.push({
-        icon: <MessageCircle className="h-3 w-3" />,
-        label: "リプライ制限",
-        color: "text-yellow-500",
-      });
-    }
-
-    // ghost_ban
-    if (account.ghost_ban) {
-      details.push({
-        icon: <Ghost className="h-3 w-3" />,
-        label: "返信一覧からの除外",
-        color: "text-purple-500",
-      });
-    }
-
-    return details;
-  }, []);
-
   const isShadeowBanned = useCallback((status: string | null) => {
     return (
       status === "search_ban" ||
@@ -283,6 +241,66 @@ const AccountTable = memo(function AccountTable({
       status === "ghost_ban"
     );
   }, []);
+
+  // シャドバン詳細のメモ化（アカウントIDをキーとして使用）
+  const shadowbanDetailsCache = useMemo(() => {
+    const cache = new Map<
+      number,
+      Array<{ icon: React.ReactElement; label: string; color: string }>
+    >();
+
+    accounts.forEach((account) => {
+      if (!isShadeowBanned(account.status)) return;
+      const details = [];
+
+      // search_ban
+      if (account.search_ban) {
+        details.push({
+          icon: <Search className="h-3 w-3" />,
+          label: "検索制限",
+          color: "text-red-500",
+        });
+      }
+
+      // search_suggestion_ban
+      if (account.search_suggestion_ban) {
+        details.push({
+          icon: <Ban className="h-3 w-3" />,
+          label: "検索提案制限",
+          color: "text-orange-500",
+        });
+      }
+
+      // no_reply
+      if (account.no_reply) {
+        details.push({
+          icon: <MessageCircle className="h-3 w-3" />,
+          label: "リプライ制限",
+          color: "text-yellow-500",
+        });
+      }
+
+      // ghost_ban
+      if (account.ghost_ban) {
+        details.push({
+          icon: <Ghost className="h-3 w-3" />,
+          label: "返信一覧からの除外",
+          color: "text-purple-500",
+        });
+      }
+
+      cache.set(account.id, details);
+    });
+
+    return cache;
+  }, [accounts, isShadeowBanned]);
+
+  const getShadowbanDetails = useCallback(
+    (account: TwitterAccountInfo) => {
+      return shadowbanDetailsCache.get(account.id) || [];
+    },
+    [shadowbanDetailsCache]
+  );
 
   const isSuspended = useCallback((status: string | null) => {
     return status === "suspend" || status === "suspended";
@@ -325,35 +343,63 @@ const AccountTable = memo(function AccountTable({
     [fetchingDates, suspendDates]
   );
 
-  // 凍結ステータスのアカウントの凍結判定日を取得（並列処理で最適化）
+  // 凍結ステータスのアカウントの凍結判定日を取得（遅延読み込みで最適化）
   const fetchSuspendDatesForAccounts = useCallback(async () => {
     const suspendedAccounts = accounts.filter(
       (account) =>
         isSuspended(account.status) &&
         account.twitter_id &&
-        !suspendDates[account.twitter_id]
+        !suspendDates[account.twitter_id] &&
+        !fetchingDates.has(account.twitter_id)
     );
 
     if (suspendedAccounts.length === 0) return;
 
-    // 並列でAPI呼び出しを実行（最大3件同時実行で負荷制御）
-    const batchSize = 3;
-    for (let i = 0; i < suspendedAccounts.length; i += batchSize) {
-      const batch = suspendedAccounts.slice(i, i + batchSize);
+    // 現在表示されているページの凍結アカウントのみ優先取得
+    const visibleAccounts = suspendedAccounts.slice(0, 5); // 最初の5件のみ即座に取得
+    const remainingAccounts = suspendedAccounts.slice(5);
+
+    // 優先アカウントを並列取得
+    if (visibleAccounts.length > 0) {
       await Promise.allSettled(
-        batch.map((account) =>
+        visibleAccounts.map((account) =>
           account.twitter_id
             ? fetchSuspendDate(account.twitter_id)
             : Promise.resolve()
         )
       );
     }
-  }, [accounts, isSuspended, suspendDates, fetchSuspendDate]);
 
-  // アカウントリストが変更されたときに凍結判定日を取得
+    // 残りのアカウントは遅延取得（バックグラウンドで実行）
+    if (remainingAccounts.length > 0) {
+      setTimeout(async () => {
+        const batchSize = 2; // バッチサイズを削減
+        for (let i = 0; i < remainingAccounts.length; i += batchSize) {
+          const batch = remainingAccounts.slice(i, i + batchSize);
+          await Promise.allSettled(
+            batch.map((account) =>
+              account.twitter_id
+                ? fetchSuspendDate(account.twitter_id)
+                : Promise.resolve()
+            )
+          );
+          // より長い間隔で実行（UX への影響を最小化）
+          if (i + batchSize < remainingAccounts.length) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
+        }
+      }, 100);
+    }
+  }, [accounts, isSuspended, suspendDates, fetchSuspendDate, fetchingDates]);
+
+  // アカウントリストが変更されたときに凍結判定日を取得（デバウンス）
   useEffect(() => {
-    fetchSuspendDatesForAccounts();
-  }, [fetchSuspendDatesForAccounts]);
+    const timer = setTimeout(() => {
+      fetchSuspendDatesForAccounts();
+    }, 100); // 100ms のデバウンス
+
+    return () => clearTimeout(timer);
+  }, [accounts.length]); // accounts.length のみを監視
 
   const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString("ja-JP", {
@@ -407,6 +453,7 @@ const AccountTable = memo(function AccountTable({
                   )}&background=6366f1&color=fff&size=40`
                 }
                 alt={`${account.twitter_id || "User"} profile`}
+                loading="lazy"
                 onError={(e) => {
                   const fallbackDiv = document.createElement("div");
                   fallbackDiv.className =
@@ -475,17 +522,17 @@ const AccountTable = memo(function AccountTable({
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
           <div className="text-sm font-medium text-gray-900">
-            {account.posts_count?.toLocaleString() || 0}
+            {account.posts_count?.toLocaleString() || "0"}
           </div>
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
           <div className="text-sm font-medium text-gray-900">
-            {account.following_count?.toLocaleString() || 0}
+            {account.following_count?.toLocaleString() || "0"}
           </div>
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
           <div className="text-sm font-medium text-gray-900">
-            {account.follower_count?.toLocaleString() || 0}
+            {account.follower_count?.toLocaleString() || "0"}
           </div>
         </td>
         <td className="px-6 py-4 whitespace-nowrap">

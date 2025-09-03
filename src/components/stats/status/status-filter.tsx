@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useMemo } from "react";
-import { Activity, CheckCircle, XCircle, Clock, Minus, X } from "lucide-react";
+import { Activity, CheckCircle, XCircle, Clock, AlertTriangle, Pause, X } from "lucide-react";
 
 interface StatusFilterProps {
   selectedStatuses: string[];
@@ -24,28 +24,36 @@ const StatusFilter = memo(function StatusFilter({
       borderColor: "border-green-200",
     },
     {
-      value: "suspended",
-      label: "BAN・凍結",
-      icon: XCircle,
-      color: "text-red-600",
-      bgColor: "bg-red-50",
-      borderColor: "border-red-200",
+      value: "shadowban",
+      label: "シャドBAN",
+      icon: AlertTriangle,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      borderColor: "border-orange-200",
     },
     {
-      value: "pending",
-      label: "保留中",
+      value: "stopped",
+      label: "一時停止",
+      icon: Pause,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      borderColor: "border-blue-200",
+    },
+    {
+      value: "examination",
+      label: "審査中",
       icon: Clock,
       color: "text-yellow-600",
       bgColor: "bg-yellow-50",
       borderColor: "border-yellow-200",
     },
     {
-      value: "excluded",
-      label: "除外",
-      icon: Minus,
-      color: "text-gray-600",
-      bgColor: "bg-gray-50",
-      borderColor: "border-gray-200",
+      value: "suspended",
+      label: "凍結",
+      icon: XCircle,
+      color: "text-red-600",
+      bgColor: "bg-red-50",
+      borderColor: "border-red-200",
     },
   ], []);
 
@@ -110,7 +118,7 @@ const StatusFilter = memo(function StatusFilter({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {statusOptions.map((option) => {
           const isSelected = selectedStatuses.includes(option.value);
           return (

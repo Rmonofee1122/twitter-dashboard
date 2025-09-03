@@ -10,16 +10,18 @@ interface StatusStatsData {
   chartData: Array<{
     date: string;
     active: number;
+    shadowban: number;
+    stopped: number;
+    examination: number;
     suspended: number;
-    pending: number;
-    excluded: number;
   }>;
   totalStats: {
     total: number;
     active: number;
+    shadowban: number;
+    stopped: number;
+    examination: number;
     suspended: number;
-    pending: number;
-    excluded: number;
   };
 }
 
@@ -30,9 +32,10 @@ export default function StatusStatsPage() {
   const [endDate, setEndDate] = useState("");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
     "active",
+    "shadowban", 
+    "stopped",
+    "examination",
     "suspended",
-    "pending",
-    "excluded",
   ]);
 
   const fetchStatusData = useCallback(

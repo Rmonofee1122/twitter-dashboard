@@ -13,7 +13,7 @@ import {
   fetchStatsData,
   fetchCreationTrendsData,
   fetchDomainRanking,
-  fetchIpRankingTop5,
+  fetchIpRanking,
   type TotalStats,
   type ChartData,
   type DomainData,
@@ -57,7 +57,7 @@ export default function StatsPage() {
         fetchStatsData(),
         fetchCreationTrendsData(),
         fetchDomainRanking(),
-        fetchIpRankingTop5(),
+        fetchIpRanking(),
       ]);
 
       setStatsData({
@@ -76,7 +76,7 @@ export default function StatsPage() {
           { name: "停止中", value: 0, color: "#EF4444" },
         ],
         domainData: domainData,
-        ipDistribution: ipData,
+        ipDistribution: ipData.data,
         totalStats: realStats,
       });
     }
@@ -106,9 +106,11 @@ export default function StatsPage() {
           statusDistribution={statsData.statusDistribution}
         />
       </div>
-
+      {/* ドメイン別作成数ランキング */}
       <DomainRankingList domainData={statsData.domainData} />
+      {/* IP別作成数ランキング */}
       <IpRankingList ipDistribution={statsData.ipDistribution} />
+      {/* パフォーマンスメトリクス */}
       <PerformanceMetrics totalStats={statsData.totalStats} />
     </div>
   );

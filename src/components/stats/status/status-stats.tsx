@@ -1,32 +1,46 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import { CheckCircle, XCircle, Clock, Minus, Users } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  Pause,
+  Users,
+} from "lucide-react";
 
 interface StatusStatsProps {
   totalStats: {
     total: number;
     active: number;
+    shadowban: number;
+    stopped: number;
+    examination: number;
     suspended: number;
-    pending: number;
-    excluded: number;
   };
 }
 
-const StatusStats = memo(function StatusStats({ totalStats }: StatusStatsProps) {
+const StatusStats = memo(function StatusStats({
+  totalStats,
+}: StatusStatsProps) {
   const stats = useMemo(() => {
-    const { total, active, suspended, pending, excluded } = totalStats;
-    
+    const { total, active, shadowban, stopped, examination, suspended } =
+      totalStats;
+
     return {
       total,
       active,
+      shadowban,
+      stopped,
+      examination,
       suspended,
-      pending,
-      excluded,
       activeRate: total > 0 ? ((active / total) * 100).toFixed(1) : "0.0",
+      shadowbanRate: total > 0 ? ((shadowban / total) * 100).toFixed(1) : "0.0",
+      stoppedRate: total > 0 ? ((stopped / total) * 100).toFixed(1) : "0.0",
+      examinationRate:
+        total > 0 ? ((examination / total) * 100).toFixed(1) : "0.0",
       suspendedRate: total > 0 ? ((suspended / total) * 100).toFixed(1) : "0.0",
-      pendingRate: total > 0 ? ((pending / total) * 100).toFixed(1) : "0.0",
-      excludedRate: total > 0 ? ((excluded / total) * 100).toFixed(1) : "0.0",
     };
   }, [totalStats]);
 
@@ -49,36 +63,45 @@ const StatusStats = memo(function StatusStats({ totalStats }: StatusStatsProps) 
       description: "正常に動作しているアカウント",
     },
     {
-      title: "BAN・凍結",
+      title: "シャドBAN",
+      value: stats.shadowban?.toLocaleString(),
+      percentage: `${stats.shadowbanRate}%`,
+      icon: AlertTriangle,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      description: "シャドバン判定されたアカウント",
+    },
+    {
+      title: "一時停止",
+      value: stats.stopped?.toLocaleString(),
+      percentage: `${stats.stoppedRate}%`,
+      icon: Pause,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      description: "一時的に停止されたアカウント",
+    },
+    {
+      title: "審査中",
+      value: stats.examination?.toLocaleString(),
+      percentage: `${stats.examinationRate}%`,
+      icon: Clock,
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-50",
+      description: "審査プロセス中のアカウント",
+    },
+    {
+      title: "凍結",
       value: stats.suspended.toLocaleString(),
       percentage: `${stats.suspendedRate}%`,
       icon: XCircle,
       color: "text-red-600",
       bgColor: "bg-red-50",
-      description: "停止またはBANされたアカウント",
-    },
-    {
-      title: "保留中",
-      value: stats.pending.toLocaleString(),
-      percentage: `${stats.pendingRate}%`,
-      icon: Clock,
-      color: "text-yellow-600",
-      bgColor: "bg-yellow-50",
-      description: "処理待ちのアカウント",
-    },
-    {
-      title: "除外",
-      value: stats.excluded.toLocaleString(),
-      percentage: `${stats.excludedRate}%`,
-      icon: Minus,
-      color: "text-gray-600",
-      bgColor: "bg-gray-50",
-      description: "除外設定されたアカウント",
+      description: "凍結されたアカウント",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
       {statusCards.map((card) => (
         <div
           key={card.title}

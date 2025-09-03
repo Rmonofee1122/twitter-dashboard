@@ -90,6 +90,12 @@ export async function GET(request: Request) {
         dayData.excluded =
           (statuses["false"] || 0) + (statuses["not_found"] || 0);
       }
+      if (selectedStatuses.includes("shadowban")) {
+        dayData.excluded =
+          (statuses["search_ban"] || 0) +
+          (statuses["ghost_ban"] || 0) +
+          (statuses["search_suggestion_ban:"] || 0);
+      }
 
       return dayData;
     });

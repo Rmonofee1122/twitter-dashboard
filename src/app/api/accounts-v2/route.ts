@@ -17,9 +17,8 @@ export async function GET(request: Request) {
     const to = from + limit - 1;
 
     // 必要な列のみを取得してパフォーマンス向上
-    let query = supabase
-      .from("twitter_account_v2")
-      .select(`
+    let query = supabase.from("twitter_account_v2").select(
+      `
         id,
         twitter_id,
         email,
@@ -34,7 +33,9 @@ export async function GET(request: Request) {
         search_suggestion_ban,
         no_reply,
         ghost_ban
-      `, { count: "exact" });
+      `,
+      { count: "exact" }
+    );
 
     // 検索フィルター
     if (search) {
@@ -103,10 +104,16 @@ export async function GET(request: Request) {
           query = query.order("twitter_id", { ascending });
           break;
         case "follower_count":
-          query = query.order("follower_count", { ascending, nullsFirst: false });
+          query = query.order("follower_count", {
+            ascending,
+            nullsFirst: false,
+          });
           break;
         case "following_count":
-          query = query.order("following_count", { ascending, nullsFirst: false });
+          query = query.order("following_count", {
+            ascending,
+            nullsFirst: false,
+          });
           break;
         case "posts_count":
           query = query.order("posts_count", { ascending, nullsFirst: false });
@@ -139,9 +146,7 @@ export async function GET(request: Request) {
     if (page === 1) {
       try {
         // 効率的な統計取得：1回のクエリで全ステータスをカウント
-        let statsQuery = supabase
-          .from("twitter_account_v2")
-          .select("status", { count: "exact" });
+        let statsQuery = supabase.from("status_count_per_day02").select();
 
         // 検索フィルター適用
         if (search) {
@@ -152,12 +157,15 @@ export async function GET(request: Request) {
 
         // 日付フィルター適用
         if (startDate) {
-          statsQuery = statsQuery.gte("created_at", startDate);
+          statsQuery = statsQuery.gte("created_date", startDate);
         }
         if (endDate) {
           const endDateTime = new Date(endDate);
           endDateTime.setHours(23, 59, 59, 999);
-          statsQuery = statsQuery.lte("created_at", endDateTime.toISOString());
+          statsQuery = statsQuery.lte(
+            "created_date",
+            endDateTime.toISOString()
+          );
         }
 
         // ステータスデータを取得
@@ -173,23 +181,29 @@ export async function GET(request: Request) {
             suspended: 0,
           };
 
-          statusData.forEach(record => {
+          statusData.forEach((record) => {
             const status = record.status?.toLowerCase();
-            
+            const plus_counts = record.count;
+
             if (status === "active") {
-              counts.active++;
-            } else if (status === "search_ban" || status === "search_suggestion_ban" || status === "ghost_ban") {
-              counts.shadowban++;
+              counts.active += plus_counts;
+            } else if (
+              status === "search_ban" ||
+              status === "search_suggestion_ban" ||
+              status === "ghost_ban"
+            ) {
+              counts.shadowban += plus_counts;
             } else if (status === "stop") {
-              counts.stopped++;
+              counts.stopped = +plus_counts;
             } else if (status === "examination") {
-              counts.examination++;
+              counts.examination += plus_counts;
             } else if (status === "suspend" || status === "suspended") {
-              counts.suspended++;
+              counts.suspended += plus_counts;
             }
           });
 
           statusCounts = counts;
+          console.log(statusCounts);
         }
       } catch (statusError) {
         console.error("ステータス別統計の取得エラー:", statusError);

@@ -1,12 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+type BackoffOpts = {
+  retries?: number;
+  baseMs?: number;
+  maxMs?: number;
+  perTryTimeoutMs?: number; // 1回あたりの上限
+  totalDeadlineMs?: number; // 全体の上限
+  tag?: string; // ログ識別子
+};
+
 export const runtime = "nodejs";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function parseRetryAfter(ra: string | null, fallbackMs: number, maxMs: number) {
+  if (!ra) return Math.min(fallbackMs, maxMs);
+  const s = Number(ra);
+  if (!Number.isNaN(s)) return Math.min(s * 1000, maxMs);
+  const t = Date.parse(ra);
+  if (!Number.isNaN(t)) {
+    const diff = t - Date.now();
+    return Math.min(Math.max(diff, 0), maxMs);
+  }
+  return Math.min(fallbackMs, maxMs);
+}
 
 async function saveShadowbanDataToSupabase(
   screenName: string,
@@ -80,80 +105,125 @@ async function saveShadowbanDataToSupabase(
 }
 
 // 使い回せる fetchWithBackoff
-async function fetchWithBackoff(
+export async function fetchWithBackoff(
   url: string,
   init: RequestInit = {},
   {
     retries = 5,
     baseMs = 300,
     maxMs = 10_000,
-    perTryTimeoutMs = 20_000, // 1回あたりの上限
-    totalDeadlineMs = 30_000, // 全体の上限（超重要）
-  } = {}
-) {
+    perTryTimeoutMs = 20_000,
+    totalDeadlineMs = 30_000,
+    tag = "fetch",
+  }: BackoffOpts = {}
+): Promise<Response> {
   const started = Date.now();
+  let lastStatus: number | undefined;
+  let lastBodyPreview: string | undefined;
+  let lastHeaders: Record<string, string | null> = {};
+  let lastError: unknown;
 
   for (let i = 0; i <= retries; i++) {
-    // 残り時間で per-try のタイムアウトを決定
     const elapsed = Date.now() - started;
     const remaining = Math.max(totalDeadlineMs - elapsed, 0);
-    if (remaining <= 0)
-      throw new Error(`Deadline exceeded (${totalDeadlineMs}ms)`);
-
+    if (remaining <= 0) {
+      const msg = `Deadline exceeded ${totalDeadlineMs}ms after ${i} attempts (lastStatus=${lastStatus})`;
+      console.error(`${tag}: ${msg}`, { url, lastBodyPreview, lastHeaders });
+      throw new Error(msg);
+    }
     const thisTryTimeout = Math.min(perTryTimeoutMs, remaining);
 
     const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), thisTryTimeout);
+    const t = setTimeout(() => ac.abort(), thisTryTimeout);
 
     try {
+      const attemptLabel = `${i + 1}/${retries + 1}`;
       const res = await fetch(url, { ...init, signal: ac.signal });
 
-      if (res.ok) return res;
-
-      // 429/503 は待って再試行
-      if (res.status === 429 || res.status === 503) {
-        const ra = res.headers.get("Retry-After");
-        const wait = ra
-          ? Math.min(+ra * 1000, maxMs)
-          : Math.min(baseMs * 2 ** i, maxMs) * (0.5 + Math.random());
-        if (i === retries)
-          throw new Error(`HTTP ${res.status} after ${retries} retries`);
-        await new Promise((r) => setTimeout(r, wait));
-        continue;
+      if (res.ok) {
+        if (i > 0) {
+          console.warn(`${tag}: succeeded after retries`, {
+            url,
+            attempt: attemptLabel,
+          });
+        }
+        return res;
       }
 
-      // 4xx（429以外）は再試行せず失敗
-      if (res.status >= 400 && res.status < 500) {
-        throw new Error(`HTTP ${res.status}`);
+      lastStatus = res.status;
+      const clone = res.clone();
+      const ct = res.headers.get("content-type") || "";
+      lastHeaders = {
+        "content-type": ct,
+        "retry-after": res.headers.get("retry-after"),
+        "x-request-id": res.headers.get("x-request-id"),
+        "cf-ray": res.headers.get("cf-ray"),
+      };
+      // 本文プレビュー（最大800文字）
+      lastBodyPreview = (await clone.text()).slice(0, 800);
+
+      // ログ出力
+      console.error(
+        `${tag}: attempt ${attemptLabel} HTTP ${res.status} ${res.statusText}`,
+        { url, headers: lastHeaders, bodyPreview: lastBodyPreview }
+      );
+
+      // 4xx（429以外）は再試行しない
+      if (res.status >= 400 && res.status < 500 && res.status !== 429) {
+        throw new Error(`HTTP ${res.status} ${res.statusText}`);
       }
 
-      // 5xx（503以外）は指数バックオフでリトライ
-      if (res.status >= 500) {
-        if (i === retries)
-          throw new Error(`HTTP ${res.status} after ${retries} retries`);
-        const wait = Math.min(baseMs * 2 ** i, maxMs) * (0.5 + Math.random());
-        await new Promise((r) => setTimeout(r, wait));
-        continue;
+      // リトライ判定 & 待機
+      if (i === retries) {
+        throw new Error(`HTTP ${res.status} after ${retries} retries`);
       }
-
-      // 想定外は即エラー
-      throw new Error(`HTTP ${res.status}`);
+      const baseWait = Math.min(baseMs * 2 ** i, maxMs);
+      const wait =
+        res.status === 429 || res.status === 503
+          ? parseRetryAfter(res.headers.get("retry-after"), baseWait, maxMs)
+          : baseWait;
+      // ジッタ
+      const jittered = Math.min(wait * (0.5 + Math.random()), maxMs);
+      await sleep(jittered);
+      continue;
     } catch (err: any) {
-      // タイムアウト/Abort はネットワーク相当としてリトライ対象
+      lastError = err;
       const isAbort = err?.name === "AbortError";
+      const attemptLabel = `${i + 1}/${retries + 1}`;
+      console.error(`${tag}: attempt ${attemptLabel} threw`, {
+        url,
+        isAbort,
+        message: String(err?.message ?? err),
+        stack: err?.stack,
+      });
+
       if (i === retries) {
         throw new Error(
-          isAbort ? `Abort after ${retries} retries` : String(err)
+          `${
+            isAbort ? "Abort" : "Error"
+          } after ${retries} retries (lastStatus=${lastStatus}): ${String(
+            err?.message ?? err
+          )}`
         );
       }
+
       const wait = Math.min(baseMs * 2 ** i, maxMs) * (0.5 + Math.random());
-      await new Promise((r) => setTimeout(r, wait));
+      await sleep(wait);
+      continue;
     } finally {
-      clearTimeout(timer);
+      clearTimeout(t);
     }
   }
 
-  throw new Error("Unreachable");
+  // 到達不可
+  const msg = `Unreachable after ${retries + 1} attempts`;
+  console.error(`${tag}: ${msg}`, {
+    url,
+    lastStatus,
+    lastBodyPreview,
+    lastError,
+  });
+  throw new Error(msg);
 }
 
 export async function GET(request: NextRequest) {
@@ -168,7 +238,7 @@ export async function GET(request: NextRequest) {
   }
 
   const urls = [
-    `https://twitter-shadowban-v2.vercel.app/api/test?screen_name=${encodeURIComponent(
+    `http://localhost:3000/api/test?screen_name=${encodeURIComponent(
       screenName
     )}`,
     `https://twitter-shadowban-v2.vercel.app/api/test?screen_name=${encodeURIComponent(

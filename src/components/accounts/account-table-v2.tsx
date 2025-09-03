@@ -119,6 +119,7 @@ const AccountTable = memo(function AccountTable({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [suspendDates, setSuspendDates] = useState<Record<string, string>>({});
+  const [fetchingDates, setFetchingDates] = useState<Set<string>>(new Set());
 
   const handleViewDetails = useCallback(async (twitterId: string | null) => {
     if (!twitterId) return;
@@ -279,44 +280,72 @@ const AccountTable = memo(function AccountTable({
     return status === "suspend" || status === "suspended";
   }, []);
 
-  const fetchSuspendDate = useCallback(async (twitterId: string) => {
-    try {
-      const response = await fetch(
-        `/api/shadowban-log?twitter_id=${encodeURIComponent(twitterId)}`
-      );
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+  const fetchSuspendDate = useCallback(
+    async (twitterId: string) => {
+      // 既に取得中または取得済みの場合はスキップ
+      if (fetchingDates.has(twitterId) || suspendDates[twitterId]) {
+        return;
       }
 
-      const result = await response.json();
-      if (result.data && result.data.updated_at) {
-        setSuspendDates((prev) => ({
-          ...prev,
-          [twitterId]: result.data.updated_at,
-        }));
-      }
-    } catch (error) {
-      console.error(`凍結判定日取得エラー (${twitterId}):`, error);
-    }
-  }, []);
+      setFetchingDates((prev) => new Set(prev).add(twitterId));
 
-  // 凍結ステータスのアカウントの凍結判定日を取得
+      try {
+        const response = await fetch(
+          `/api/shadowban-log?twitter_id=${encodeURIComponent(twitterId)}`
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (result.data && result.data.updated_at) {
+          setSuspendDates((prev) => ({
+            ...prev,
+            [twitterId]: result.data.updated_at,
+          }));
+        }
+      } catch (error) {
+        console.error(`凍結判定日取得エラー (${twitterId}):`, error);
+      } finally {
+        setFetchingDates((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(twitterId);
+          return newSet;
+        });
+      }
+    },
+    [fetchingDates, suspendDates]
+  );
+
+  // 凍結ステータスのアカウントの凍結判定日を取得（並列処理で最適化）
   const fetchSuspendDatesForAccounts = useCallback(async () => {
     const suspendedAccounts = accounts.filter(
-      (account) => isSuspended(account.status) && account.twitter_id
+      (account) =>
+        isSuspended(account.status) &&
+        account.twitter_id &&
+        !suspendDates[account.twitter_id]
     );
 
-    for (const account of suspendedAccounts) {
-      if (account.twitter_id && !suspendDates[account.twitter_id]) {
-        await fetchSuspendDate(account.twitter_id);
-      }
+    if (suspendedAccounts.length === 0) return;
+
+    // 並列でAPI呼び出しを実行（最大3件同時実行で負荷制御）
+    const batchSize = 3;
+    for (let i = 0; i < suspendedAccounts.length; i += batchSize) {
+      const batch = suspendedAccounts.slice(i, i + batchSize);
+      await Promise.allSettled(
+        batch.map((account) =>
+          account.twitter_id
+            ? fetchSuspendDate(account.twitter_id)
+            : Promise.resolve()
+        )
+      );
     }
   }, [accounts, isSuspended, suspendDates, fetchSuspendDate]);
 
   // アカウントリストが変更されたときに凍結判定日を取得
   useEffect(() => {
     fetchSuspendDatesForAccounts();
-  }, [accounts]);
+  }, [fetchSuspendDatesForAccounts]);
 
   const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString("ja-JP", {
@@ -327,6 +356,149 @@ const AccountTable = memo(function AccountTable({
       minute: "2-digit",
     });
   }, []);
+
+  // テーブル行コンポーネントをメモ化
+  const TableRow = memo(function TableRow({
+    account,
+    onViewDetails,
+    onDeleteAccount,
+    suspendDate,
+    shadowbanDetails,
+    isShadeowBanned: isShadeowBannedStatus,
+    isSuspended: isSuspendedStatus,
+  }: {
+    account: TwitterAccountInfo;
+    onViewDetails: (twitterId: string | null) => void;
+    onDeleteAccount: (account: TwitterAccountInfo) => void;
+    suspendDate?: string;
+    shadowbanDetails: Array<{
+      icon: React.ReactElement;
+      label: string;
+      color: string;
+    }>;
+    isShadeowBanned: boolean;
+    isSuspended: boolean;
+  }) {
+    return (
+      <tr key={account.id} className="hover:bg-gray-50">
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+          {account.id}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+          {formatDate(account.created_at)}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex items-center">
+            <div className="flex-shrink-0 h-10 w-10 mr-4">
+              <img
+                className="h-10 w-10 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+                src={
+                  account.profile_image_url_https ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    account.twitter_id || "User"
+                  )}&background=6366f1&color=fff&size=40`
+                }
+                alt={`${account.twitter_id || "User"} profile`}
+                onError={(e) => {
+                  const fallbackDiv = document.createElement("div");
+                  fallbackDiv.className =
+                    "h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center border-2 border-gray-200 shadow-sm";
+                  fallbackDiv.innerHTML = `<span class="text-white text-sm font-semibold">${
+                    account.twitter_id
+                      ? account.twitter_id.charAt(0).toUpperCase()
+                      : "U"
+                  }</span>`;
+                  e.currentTarget.parentNode?.replaceChild(
+                    fallbackDiv,
+                    e.currentTarget
+                  );
+                }}
+              />
+            </div>
+            <div>
+              <div className="text-sm font-medium text-blue-500">
+                <a
+                  href={`https://x.com/${account.twitter_id}`}
+                  className="hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {account.twitter_id}
+                </a>
+              </div>
+              <div className="text-sm text-gray-500">{account.email}</div>
+            </div>
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex flex-col">
+            <div className="flex items-center">
+              {getStatusIcon(account.status)}
+              <span
+                className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
+                  account.status
+                )}`}
+              >
+                {getStatusText(account.status)}
+              </span>
+              {isShadeowBannedStatus && (
+                <div className="ml-2 flex items-center space-x-1">
+                  {shadowbanDetails.map((detail, index) => (
+                    <div
+                      key={index}
+                      className={`p-1 rounded ${detail.color}`}
+                      title={detail.label}
+                    >
+                      {detail.icon}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {isSuspendedStatus && account.twitter_id && suspendDate && (
+              <div className="text-xs text-gray-500 mt-1 ml-6">
+                凍結判定: {formatDate(suspendDate)}
+              </div>
+            )}
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+          {formatDate(account.updated_at)}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+          <div className="text-sm font-medium text-gray-900">
+            {account.posts_count?.toLocaleString() || 0}
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+          <div className="text-sm font-medium text-gray-900">
+            {account.following_count?.toLocaleString() || 0}
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+          <div className="text-sm font-medium text-gray-900">
+            {account.follower_count?.toLocaleString() || 0}
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex items-center space-x-1">
+            <ActionButton
+              icon={Eye}
+              color="text-blue-600 hover:text-blue-700"
+              onClick={() => onViewDetails(account.twitter_id)}
+              aria-label="アカウント詳細を表示"
+            />
+            <ActionButton
+              icon={Trash2}
+              color="text-red-600 hover:text-red-700"
+              onClick={() => onDeleteAccount(account)}
+              aria-label="アカウントを削除"
+            />
+          </div>
+        </td>
+      </tr>
+    );
+  });
 
   return (
     <div className="overflow-x-auto">
@@ -401,137 +573,20 @@ const AccountTable = memo(function AccountTable({
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {accounts.map((account) => (
-            <tr key={account.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {account.id}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {formatDate(account.created_at)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 h-10 w-10 mr-4">
-                    <img
-                      className="h-10 w-10 rounded-full object-cover border-2 border-gray-200 shadow-sm"
-                      src={
-                        account.profile_image_url_https ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                          account.twitter_id || "User"
-                        )}&background=6366f1&color=fff&size=40`
-                      }
-                      alt={`${account.twitter_id || "User"} profile`}
-                      onError={(e) => {
-                        const fallbackDiv = document.createElement("div");
-                        fallbackDiv.className =
-                          "h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center border-2 border-gray-200 shadow-sm";
-                        fallbackDiv.innerHTML = `<span class="text-white text-sm font-semibold">${
-                          account.twitter_id
-                            ? account.twitter_id.charAt(0).toUpperCase()
-                            : "U"
-                        }</span>`;
-                        e.currentTarget.parentNode?.replaceChild(
-                          fallbackDiv,
-                          e.currentTarget
-                        );
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-blue-500">
-                      <a
-                        href={`https://x.com/${account.twitter_id}`}
-                        className="hover:underline"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {account.twitter_id}
-                      </a>
-                    </div>
-                    <div className="text-sm text-gray-500">{account.email}</div>
-                  </div>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex flex-col">
-                  <div className="flex items-center">
-                    {getStatusIcon(account.status)}
-                    <span
-                      className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
-                        account.status
-                      )}`}
-                    >
-                      {getStatusText(account.status)}
-                    </span>
-                    {isShadeowBanned(account.status) && (
-                      <div className="ml-2 flex items-center space-x-1">
-                        {getShadowbanDetails(account).map((detail, index) => (
-                          <div
-                            key={index}
-                            className={`p-1 rounded ${detail.color}`}
-                            title={detail.label}
-                          >
-                            {detail.icon}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {isSuspended(account.status) &&
-                    account.twitter_id &&
-                    suspendDates[account.twitter_id] && (
-                      <div className="text-xs text-gray-500 mt-1 ml-6">
-                        凍結判定: {formatDate(suspendDates[account.twitter_id])}
-                      </div>
-                    )}
-                </div>
-              </td>
-
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {formatDate(account.updated_at)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <div className="text-sm font-medium text-gray-900">
-                  {account.posts_count?.toLocaleString() || 0}
-                </div>
-              </td>
-
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <div className="text-sm font-medium text-gray-900">
-                  {account.following_count?.toLocaleString() || 0}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <div className="text-sm font-medium text-gray-900">
-                  {account.follower_count?.toLocaleString() || 0}
-                </div>
-              </td>
-
-              {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                {account.create_ip}
-              </td> */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center space-x-1">
-                  <ActionButton
-                    icon={Eye}
-                    color="text-blue-600 hover:text-blue-700"
-                    onClick={() => handleViewDetails(account.twitter_id)}
-                    aria-label="アカウント詳細を表示"
-                  />
-                  {/* <ActionButton
-                    icon={Edit}
-                    color="text-green-600 hover:text-green-700"
-                    onClick={() => handleEditAccount(account)}
-                    aria-label="アカウントを編集"
-                  /> */}
-                  <ActionButton
-                    icon={Trash2}
-                    color="text-red-600 hover:text-red-700"
-                    onClick={() => handleDeleteAccount(account)}
-                    aria-label="アカウントを削除"
-                  />
-                </div>
-              </td>
-            </tr>
+            <TableRow
+              key={account.id}
+              account={account}
+              onViewDetails={handleViewDetails}
+              onDeleteAccount={handleDeleteAccount}
+              suspendDate={
+                account.twitter_id
+                  ? suspendDates[account.twitter_id]
+                  : undefined
+              }
+              shadowbanDetails={getShadowbanDetails(account)}
+              isShadeowBanned={isShadeowBanned(account.status)}
+              isSuspended={isSuspended(account.status)}
+            />
           ))}
         </tbody>
       </table>

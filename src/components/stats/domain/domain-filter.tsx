@@ -20,17 +20,20 @@ const DomainFilter = memo(function DomainFilter({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const filteredDomains = useMemo(() => {
-    return availableDomains.filter(domain =>
+    return availableDomains.filter((domain) =>
       domain.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [availableDomains, searchTerm]);
 
-  const handleDomainToggle = useCallback((domain: string) => {
-    const newDomains = selectedDomains.includes(domain)
-      ? selectedDomains.filter(d => d !== domain)
-      : [...selectedDomains, domain];
-    onDomainChange(newDomains);
-  }, [selectedDomains, onDomainChange]);
+  const handleDomainToggle = useCallback(
+    (domain: string) => {
+      const newDomains = selectedDomains.includes(domain)
+        ? selectedDomains.filter((d) => d !== domain)
+        : [...selectedDomains, domain];
+      onDomainChange(newDomains);
+    },
+    [selectedDomains, onDomainChange]
+  );
 
   const handleSelectAll = useCallback(() => {
     onDomainChange(filteredDomains);
@@ -40,21 +43,28 @@ const DomainFilter = memo(function DomainFilter({
     onDomainChange([]);
   }, [onDomainChange]);
 
-  const handleSelectTop = useCallback((count: number) => {
-    onDomainChange(availableDomains.slice(0, count));
-  }, [onDomainChange, availableDomains]);
+  const handleSelectTop = useCallback(
+    (count: number) => {
+      onDomainChange(availableDomains.slice(0, count));
+    },
+    [onDomainChange, availableDomains]
+  );
 
-  const hasFilter = useMemo(() => 
-    selectedDomains.length > 0 && selectedDomains.length < availableDomains.length,
+  const hasFilter = useMemo(
+    () =>
+      selectedDomains.length > 0 &&
+      selectedDomains.length < availableDomains.length,
     [selectedDomains.length, availableDomains.length]
   );
 
-  const isAllSelected = useMemo(() => 
-    selectedDomains.length === availableDomains.length,
+  const isAllSelected = useMemo(
+    () => selectedDomains.length === availableDomains.length,
     [selectedDomains.length, availableDomains.length]
   );
 
-  const displayedDomains = isExpanded ? filteredDomains : filteredDomains.slice(0, 10);
+  const displayedDomains = isExpanded
+    ? filteredDomains
+    : filteredDomains.slice(0, 6);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
@@ -160,13 +170,14 @@ const DomainFilter = memo(function DomainFilter({
             onClick={() => setIsExpanded(!isExpanded)}
             className="flex items-center justify-center mx-auto px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
           >
-            <ChevronDown 
-              className={`h-4 w-4 mr-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+            <ChevronDown
+              className={`h-4 w-4 mr-1 transition-transform ${
+                isExpanded ? "rotate-180" : ""
+              }`}
             />
-            {isExpanded 
-              ? `折りたたむ` 
-              : `さらに表示 (${filteredDomains.length - 10}件)`
-            }
+            {isExpanded
+              ? `折りたたむ`
+              : `さらに表示 (${filteredDomains.length - 10}件)`}
           </button>
         </div>
       )}
@@ -175,10 +186,12 @@ const DomainFilter = memo(function DomainFilter({
       {hasFilter && (
         <div className="mt-4 p-3 bg-blue-50 rounded-lg">
           <p className="text-sm text-blue-800 mb-2">
-            <span className="font-medium">選択中: {selectedDomains.length}件</span>
+            <span className="font-medium">
+              選択中: {selectedDomains.length}件
+            </span>
           </p>
           <div className="flex flex-wrap gap-2">
-            {selectedDomains.slice(0, 5).map(domain => (
+            {selectedDomains.slice(0, 5).map((domain) => (
               <span
                 key={domain}
                 className="inline-flex items-center px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md"

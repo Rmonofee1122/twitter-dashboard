@@ -67,7 +67,7 @@ export async function GET(request: Request) {
     // ステータスフィルターの解析
     const selectedStatuses = statusFilter
       ? statusFilter.split(",")
-      : ["active", "suspended", "pending", "excluded"];
+      : ["active", "shadowban", "stopped", "examination", "suspended"];
 
     // チャート用データに変換（全日付を含む、データがない日は0）
     const chartData = allDates.map((date) => {
@@ -83,10 +83,10 @@ export async function GET(request: Request) {
           (statuses["suspended"] || 0) +
           (statuses["Email_BAN"] || 0);
       }
-      if (selectedStatuses.includes("pending")) {
-        dayData.pending = (statuses["FarmUp"] || 0) + (statuses["farmup"] || 0);
+      if (selectedStatuses.includes("stopped")) {
+        dayData.pending = (statuses["stop"] || 0) + (statuses["stopped"] || 0);
       }
-      if (selectedStatuses.includes("excluded")) {
+      if (selectedStatuses.includes("examination")) {
         dayData.excluded =
           (statuses["false"] || 0) + (statuses["not_found"] || 0);
       }
@@ -117,7 +117,16 @@ export async function GET(request: Request) {
         acc.total += count;
         return acc;
       },
-      { total: 0, active: 0, suspended: 0, pending: 0, excluded: 0 }
+      {
+        total: 0,
+        active: 0,
+        suspended: 0,
+        pending: 0,
+        excluded: 0,
+        shadowban: 0,
+        stopped: 0,
+        examination: 0,
+      }
     );
 
     return NextResponse.json({

@@ -32,7 +32,7 @@ export default function StatusStatsPage() {
   const [endDate, setEndDate] = useState("");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
     "active",
-    "shadowban", 
+    "shadowban",
     "stopped",
     "examination",
     "suspended",
@@ -117,7 +117,13 @@ export default function StatusStatsPage() {
   );
 
   const handleClearStatusFilter = useCallback(() => {
-    const allStatuses = ["active", "suspended", "pending", "excluded"];
+    const allStatuses = [
+      "active",
+      "shadowban",
+      "stopped",
+      "examination",
+      "suspended",
+    ];
     setSelectedStatuses(allStatuses);
     fetchStatusData(startDate, endDate, allStatuses);
   }, [startDate, endDate, fetchStatusData]);
@@ -164,7 +170,17 @@ export default function StatusStatsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        <StatusTrendChart chartData={statusData.chartData} />
+        <StatusTrendChart
+          chartData={statusData.chartData.map(
+            ({ date, active, shadowban, stopped, examination, suspended }) => ({
+              date,
+              active,
+              suspended,
+              pending: shadowban,
+              excluded: stopped + examination,
+            })
+          )}
+        />
       </div>
 
       <StatusStats totalStats={statusData.totalStats} />

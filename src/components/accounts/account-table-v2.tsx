@@ -32,6 +32,10 @@ interface AccountTableProps {
   sortField?: string;
   sortDirection?: string;
   onSort?: (field: string) => void;
+  itemsPerPage?: number;
+  onItemsPerPageChange?: (itemsPerPage: number) => void;
+  currentPage?: number;
+  totalAccounts?: number;
 }
 
 interface ActionButtonProps {
@@ -104,6 +108,10 @@ const AccountTable = memo(function AccountTable({
   sortField = "",
   sortDirection = "",
   onSort,
+  itemsPerPage = 10,
+  onItemsPerPageChange,
+  currentPage = 1,
+  totalAccounts,
 }: AccountTableProps) {
   const [selectedAccount, setSelectedAccount] =
     useState<TwitterAccountInfo | null>(null);
@@ -501,95 +509,127 @@ const AccountTable = memo(function AccountTable({
   });
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead className="bg-gray-50">
-          <tr>
-            <SortableHeader
-              label="No"
-              field="id"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="作成日時"
-              field="created_at"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="アカウント情報"
-              field="twitter_id"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="ステータス"
-              field="status"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
+    <div>
+      {/* 表示件数セレクター */}
+      {onItemsPerPageChange && (
+        <div className="flex items-center justify-between my-4 ml-2 px-2">
+          <div className="flex items-center space-x-3">
+            <span className="text-sm text-gray-600">表示件数:</span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => onItemsPerPageChange(parseInt(e.target.value))}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value={10}>10件</option>
+              <option value={20}>20件</option>
+              <option value={50}>50件</option>
+              <option value={100}>100件</option>
+            </select>
+          </div>
+          <div className="text-sm text-gray-500">
+            {totalAccounts
+              ? (() => {
+                  const startIndex = (currentPage - 1) * itemsPerPage + 1;
+                  const endIndex = Math.min(
+                    currentPage * itemsPerPage,
+                    totalAccounts
+                  );
+                  return `${startIndex}-${endIndex}件目 / 全${totalAccounts.toLocaleString()}件`;
+                })()
+              : `全${accounts.length}件`}
+          </div>
+        </div>
+      )}
 
-            <SortableHeader
-              label="最終チェック"
-              field="updated_at"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="投稿数"
-              field="posts_count"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="フォロー数"
-              field="following_count"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="フォロワー数"
-              field="follower_count"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <SortableHeader
+                label="No"
+                field="id"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="作成日時"
+                field="created_at"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="アカウント情報"
+                field="twitter_id"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="ステータス"
+                field="status"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="最終チェック"
+                field="updated_at"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="投稿数"
+                field="posts_count"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="フォロー数"
+                field="following_count"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="フォロワー数"
+                field="follower_count"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
 
-            {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               作成IP
             </th> */}
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              操作
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {accounts.map((account) => (
-            <TableRow
-              key={account.id}
-              account={account}
-              onViewDetails={handleViewDetails}
-              onDeleteAccount={handleDeleteAccount}
-              suspendDate={
-                account.twitter_id
-                  ? suspendDates[account.twitter_id]
-                  : undefined
-              }
-              shadowbanDetails={getShadowbanDetails(account)}
-              isShadeowBanned={isShadeowBanned(account.status)}
-              isSuspended={isSuspended(account.status)}
-            />
-          ))}
-        </tbody>
-      </table>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                操作
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {accounts.map((account) => (
+              <TableRow
+                key={account.id}
+                account={account}
+                onViewDetails={handleViewDetails}
+                onDeleteAccount={handleDeleteAccount}
+                suspendDate={
+                  account.twitter_id
+                    ? suspendDates[account.twitter_id]
+                    : undefined
+                }
+                shadowbanDetails={getShadowbanDetails(account)}
+                isShadeowBanned={isShadeowBanned(account.status)}
+                isSuspended={isSuspended(account.status)}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <AccountDetailModal02
         account={selectedAccount}

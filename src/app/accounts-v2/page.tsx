@@ -30,12 +30,7 @@ export default function AccountsV2Page() {
   const [accounts, setAccounts] = useState<TwitterAccountInfo[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<
-    | "all"
-    | "active"
-    | "shadowban"
-    | "stopped"
-    | "examination"
-    | "suspended"
+    "all" | "active" | "shadowban" | "stopped" | "examination" | "suspended"
   >("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -52,7 +47,7 @@ export default function AccountsV2Page() {
     examination: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<string>("");
   const [isBulkShadowbanCheck, setIsBulkShadowbanCheck] = useState(false);
@@ -71,6 +66,7 @@ export default function AccountsV2Page() {
     endDate,
     sortField,
     sortDirection,
+    itemsPerPage,
   ]);
 
   const fetchAccounts = async () => {
@@ -153,6 +149,11 @@ export default function AccountsV2Page() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // ページを1に戻す
   };
 
   const handleSort = (field: string) => {
@@ -335,6 +336,10 @@ export default function AccountsV2Page() {
             sortField={sortField}
             sortDirection={sortDirection}
             onSort={handleSort}
+            itemsPerPage={itemsPerPage}
+            onItemsPerPageChange={handleItemsPerPageChange}
+            currentPage={currentPage}
+            totalAccounts={totalAccounts}
           />
         )}
 

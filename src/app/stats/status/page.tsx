@@ -176,6 +176,9 @@ export default function StatusStatsPage() {
               date,
               active,
               suspended,
+              shadowban,
+              stopped,
+              examination,
               pending: shadowban,
               excluded: stopped + examination,
             })

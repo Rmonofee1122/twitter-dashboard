@@ -81,17 +81,17 @@ export async function GET(request: Request) {
         dayData.suspended =
           (statuses["suspend"] || 0) +
           (statuses["suspended"] || 0) +
-          (statuses["Email_BAN"] || 0);
+          (statuses["not_found"] || 0);
       }
       if (selectedStatuses.includes("stopped")) {
-        dayData.pending = (statuses["stop"] || 0) + (statuses["stopped"] || 0);
+        dayData.stopped = (statuses["stop"] || 0) + (statuses["stopped"] || 0);
       }
       if (selectedStatuses.includes("examination")) {
-        dayData.excluded =
-          (statuses["false"] || 0) + (statuses["not_found"] || 0);
+        dayData.examination =
+          (statuses["false"] || 0) + (statuses["examination"] || 0);
       }
       if (selectedStatuses.includes("shadowban")) {
-        dayData.excluded =
+        dayData.shadowban =
           (statuses["search_ban"] || 0) +
           (statuses["ghost_ban"] || 0) +
           (statuses["search_suggestion_ban:"] || 0);

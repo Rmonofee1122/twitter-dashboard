@@ -19,6 +19,9 @@ interface StatusTrendChartProps {
     suspended: number;
     pending: number;
     excluded: number;
+    shadowban: number;
+    examination: number;
+    stopped: number;
   }>;
 }
 
@@ -73,6 +76,8 @@ const StatusTrendChart = memo(function StatusTrendChart({
                   ? "アクティブ"
                   : name === "suspended"
                   ? "BAN・凍結"
+                  : name === "shadowban"
+                  ? "シャドBAN"
                   : name === "pending"
                   ? "保留中"
                   : "除外",
@@ -84,6 +89,8 @@ const StatusTrendChart = memo(function StatusTrendChart({
                   ? "アクティブ"
                   : value === "suspended"
                   ? "BAN・凍結"
+                  : value === "shadowban"
+                  ? "シャドBAN"
                   : value === "pending"
                   ? "保留中"
                   : "除外"
@@ -108,15 +115,16 @@ const StatusTrendChart = memo(function StatusTrendChart({
                   dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
                 />
               )}
-            {chartData.length > 0 && chartData[0].hasOwnProperty("pending") && (
-              <Line
-                type="monotone"
-                dataKey="pending"
-                stroke="#f59e0b"
-                strokeWidth={2}
-                dot={{ fill: "#f59e0b", strokeWidth: 2, r: 4 }}
-              />
-            )}
+            {chartData.length > 0 &&
+              chartData[0].hasOwnProperty("shadowban") && (
+                <Line
+                  type="monotone"
+                  dataKey="shadowban"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  dot={{ fill: "#f59e0b", strokeWidth: 2, r: 4 }}
+                />
+              )}
             {chartData.length > 0 &&
               chartData[0].hasOwnProperty("excluded") && (
                 <Line

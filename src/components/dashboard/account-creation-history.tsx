@@ -102,16 +102,28 @@ export default function AccountCreationHistory() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  No
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  作成日時
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   アカウント情報
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   ステータス
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  作成日時
+                  最終チェック
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  作成IP
+                  投稿数
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  フォロー数
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  フォロワー数
                 </th>
               </tr>
             </thead>
@@ -120,6 +132,12 @@ export default function AccountCreationHistory() {
                 const status = getAccountStatus(account.status);
                 return (
                   <tr key={account.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {account.id}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatDate(account.created_at)}
+                    </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
@@ -150,10 +168,16 @@ export default function AccountCreationHistory() {
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(account.created_at)}
+                      {formatDate(account.updated_at)}
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                      {account.create_ip || "未設定"}
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {account.posts_count}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {account.following_count}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {account.follower_count}
                     </td>
                   </tr>
                 );

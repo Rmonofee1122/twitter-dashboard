@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, memo } from "react";
 import { Image as ImageIcon, RefreshCw, Cloud } from "lucide-react";
 import ImageStatsSummary from "@/components/images/image-stats-summary";
 import ImageGridR2 from "@/components/images/image-grid-r2";
@@ -29,46 +29,72 @@ type Item = {
   lastModified: string | null;
 };
 
-export default function ImagesR2Page() {
+const ImagesR2Page = memo(function ImagesR2Page() {
   const [imageData, setImageData] = useState<ImageListData | null>(null);
   const [filteredImages, setFilteredImages] = useState<ImageFile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<ImageFile | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(
-    null
-  );
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [isGeneratedModalOpen, setIsGeneratedModalOpen] = useState(false);
 
-  // フィルター状態
-  const [fileNameFilter, setFileNameFilter] = useState("");
-  const [fileTypeFilter, setFileTypeFilter] = useState("all");
-  const [folderFilter, setFolderFilter] = useState("all");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // フィルター状態をメモ化
+  const [filters, setFilters] = useState({
+    fileName: "",
+    fileType: "all",
+    folder: "all",
+    startDate: "",
+    endDate: "",
+  });
 
   const fetchImages = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/images-r2");
+      setError(null);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒タイムアウト
+
+      const response = await fetch("/api/images-r2", {
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'max-age=60', // 1分間キャッシュ
+        }
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: R2画像データの取得に失敗しました`);
+      }
+
       const data = await response.json();
 
-      // R2 APIのレスポンス形式をImageFile形式に変換
-      const convertedImages: ImageFile[] =
-        data.items?.map((item: any) => ({
+      // データ検証とタイプセーフな変換
+      if (!data.items || !Array.isArray(data.items)) {
+        throw new Error("不正なデータ形式です");
+      }
+
+      // R2 APIのレスポンス形式をImageFile形式に変換（型安全）
+      const convertedImages: ImageFile[] = data.items
+        .filter((item: any) => item && typeof item.key === 'string')
+        .map((item: any) => ({
           name: item.key,
-          url: item.url,
-          size: item.size || 0,
+          url: item.url || '',
+          size: typeof item.size === 'number' ? item.size : 0,
           lastModified: item.lastModified || new Date().toISOString(),
-        })) || [];
+        }));
 
       setImageData({
         images: convertedImages,
-        total: data.count || 0,
+        total: data.count || convertedImages.length,
       });
     } catch (error) {
       console.error("R2画像データの取得に失敗しました:", error);
+      setError(error instanceof Error ? error.message : "R2データの取得に失敗しました");
+      setImageData({ images: [], total: 0 });
     } finally {
       setLoading(false);
     }
@@ -190,17 +216,23 @@ export default function ImagesR2Page() {
     [fetchImages]
   );
 
+  // フィルター操作の最適化
+  const updateFilter = useCallback((key: keyof typeof filters, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
+
   const handleClearFilters = useCallback(() => {
-    setFileNameFilter("");
-    setFileTypeFilter("all");
-    setFolderFilter("all");
-    setStartDate("");
-    setEndDate("");
+    setFilters({
+      fileName: "",
+      fileType: "all",
+      folder: "all", 
+      startDate: "",
+      endDate: "",
+    });
   }, []);
 
   const handleQuickDateSelect = useCallback((start: string, end: string) => {
-    setStartDate(start);
-    setEndDate(end);
+    setFilters(prev => ({ ...prev, startDate: start, endDate: end }));
   }, []);
 
   const handleBulkDelete = useCallback(
@@ -234,13 +266,42 @@ export default function ImagesR2Page() {
     [fetchImages]
   );
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="text-center">R2画像データを読み込み中...</div>
-      </div>
-    );
-  }
+  // ローディング・エラー・空データ状態のメモ化
+  const renderContent = useMemo(() => {
+    if (loading) {
+      return (
+        <div className="p-6">
+          <div className="text-center flex items-center justify-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
+            <span>R2画像データを読み込み中...</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="p-6">
+          <div className="text-center">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+              <p className="text-red-600 font-medium">エラーが発生しました</p>
+              <p className="text-red-500 text-sm mt-1">{error}</p>
+              <button
+                onClick={fetchImages}
+                className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                再読み込み
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  }, [loading, error, fetchImages]);
+
+  if (renderContent) return renderContent;
 
   return (
     <div className="p-6 space-y-6">
@@ -277,16 +338,16 @@ export default function ImagesR2Page() {
       <ImageSearchFilter
         images={imageData?.images || []}
         onFilteredImages={setFilteredImages}
-        fileNameFilter={fileNameFilter}
-        fileTypeFilter={fileTypeFilter}
-        folderFilter={folderFilter}
-        startDate={startDate}
-        endDate={endDate}
-        onFileNameFilterChange={setFileNameFilter}
-        onFileTypeFilterChange={setFileTypeFilter}
-        onFolderFilterChange={setFolderFilter}
-        onStartDateChange={setStartDate}
-        onEndDateChange={setEndDate}
+        fileNameFilter={filters.fileName}
+        fileTypeFilter={filters.fileType}
+        folderFilter={filters.folder}
+        startDate={filters.startDate}
+        endDate={filters.endDate}
+        onFileNameFilterChange={(value) => updateFilter('fileName', value)}
+        onFileTypeFilterChange={(value) => updateFilter('fileType', value)}
+        onFolderFilterChange={(value) => updateFilter('folder', value)}
+        onStartDateChange={(value) => updateFilter('startDate', value)}
+        onEndDateChange={(value) => updateFilter('endDate', value)}
         onClearFilters={handleClearFilters}
         onQuickDateSelect={handleQuickDateSelect}
       />
@@ -321,4 +382,6 @@ export default function ImagesR2Page() {
       />
     </div>
   );
-}
+});
+
+export default ImagesR2Page;

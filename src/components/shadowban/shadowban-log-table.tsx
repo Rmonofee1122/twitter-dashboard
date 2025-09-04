@@ -1,7 +1,7 @@
 "use client";
 
+import { Eye, AlertTriangle, type LucideIcon } from "lucide-react";
 import { memo, useCallback } from "react";
-import { AlertTriangle } from "lucide-react";
 
 export interface ShadowbanLogEntry {
   log_id: number;
@@ -31,6 +31,30 @@ interface ShadowbanLogTableProps {
   error: string | null;
   onRetry: () => void;
 }
+
+interface ActionButtonProps {
+  icon: LucideIcon;
+  color: string;
+  onClick?: () => void;
+  "aria-label"?: string;
+}
+
+const ActionButton = memo(function ActionButton({
+  icon: Icon,
+  color,
+  onClick,
+  "aria-label": ariaLabel,
+}: ActionButtonProps) {
+  return (
+    <button
+      className={`${color} p-2 rounded-lg hover:bg-gray-100 transition-colors`}
+      onClick={onClick}
+      aria-label={ariaLabel}
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  );
+});
 
 const ShadowbanLogTable = memo(function ShadowbanLogTable({
   logs,
@@ -122,6 +146,9 @@ const ShadowbanLogTable = memo(function ShadowbanLogTable({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 詳細
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                操作
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -207,6 +234,16 @@ const ShadowbanLogTable = memo(function ShadowbanLogTable({
                           制限なし
                         </span>
                       )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center space-x-1">
+                    <ActionButton
+                      icon={Eye}
+                      color="text-blue-600 hover:text-blue-700"
+                      // onClick={}
+                      aria-label="アカウント詳細を表示"
+                    />
                   </div>
                 </td>
               </tr>

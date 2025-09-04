@@ -27,10 +27,10 @@ export async function GET(request: Request) {
       if (error.code === "PGRST116") {
         return NextResponse.json({
           data: null,
-          message: "No shadowban log found for this twitter_id"
+          message: "No shadowban log found for this twitter_id",
         });
       }
-      
+
       console.error("Shadowban log取得エラー:", error);
       return NextResponse.json(
         { error: "Shadowban logの取得に失敗しました" },
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       data,
-      message: "Shadowban log取得成功"
+      message: "Shadowban log取得成功",
     });
   } catch (error) {
     console.error("API エラー:", error);

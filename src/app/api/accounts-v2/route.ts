@@ -204,7 +204,6 @@ export async function GET(request: Request) {
           });
 
           statusCounts = counts;
-          console.log(statusCounts);
         }
       } catch (statusError) {
         console.error("ステータス別統計の取得エラー:", statusError);

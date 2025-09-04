@@ -140,7 +140,7 @@ export default function AccountCreationHistory() {
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-blue-600">
                           <a
                             href={`https://x.com/${account.twitter_id}`}
                             className="hover:underline"

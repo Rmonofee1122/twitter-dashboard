@@ -42,6 +42,8 @@ export default function AccountDetailModal({
   const [shadowbanData, setShadowbanData] = useState<any>(null);
   const [isCheckingShadowban, setIsCheckingShadowban] = useState(false);
   const [showShadowbanResult, setShowShadowbanResult] = useState(false);
+  const [shadowbanLogs, setShadowbanLogs] = useState<any[]>([]);
+  const [isLoadingShadowbanLogs, setIsLoadingShadowbanLogs] = useState(false);
   const [currentAccount, setCurrentAccount] =
     useState<TwitterAccountInfo | null>(account);
   // アカウントが変更されたときにステータスを初期化
@@ -127,6 +129,38 @@ export default function AccountDetailModal({
       setIsCheckingShadowban(false);
     }
   }, [account, onAccountUpdate, onAccountRefresh]);
+
+  const fetchShadowbanLogs = useCallback(async () => {
+    if (!account?.twitter_id) return;
+
+    setIsLoadingShadowbanLogs(true);
+    try {
+      const response = await fetch(
+        `/api/shadowban-logs?twitter_id=${encodeURIComponent(
+          account.twitter_id
+        )}&limit=10`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      setShadowbanLogs(result.logs || []);
+    } catch (error) {
+      console.error("シャドバンログ取得エラー:", error);
+      setShadowbanLogs([]);
+    } finally {
+      setIsLoadingShadowbanLogs(false);
+    }
+  }, [account?.twitter_id]);
+
+  // モーダルが開かれた時にログを取得
+  useEffect(() => {
+    if (isOpen && account?.twitter_id) {
+      fetchShadowbanLogs();
+    }
+  }, [isOpen, account?.twitter_id, fetchShadowbanLogs]);
 
   if (!isOpen || !currentAccount) return null;
 
@@ -515,29 +549,112 @@ export default function AccountDetailModal({
           <Shield className="h-4 w-4 mr-2" />
           {isCheckingShadowban ? "判定中..." : "シャドバン判定"}
         </button>
-
-        {/* {showShadowbanResult && shadowbanData && (
-          <div className="bg-gray-50 rounded-md border border-gray-200 p-2">
-            <div className="flex items-center justify-between mb-1">
-              <h4 className="text-xs font-bold text-gray-800 flex items-center">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1"></div>
-                結果
-              </h4>
-              <button
-                onClick={() => setShowShadowbanResult(false)}
-                className="px-1 py-0.5 text-xs text-gray-600 hover:text-gray-800 bg-white rounded border"
-              >
-                ×
-              </button>
-            </div>
-            <div className="bg-white rounded border p-1 max-h-32 overflow-y-auto">
-              <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono leading-tight">
-                {JSON.stringify(shadowbanData, null, 1)}
-              </pre>
-            </div>
-          </div>
-        )} */}
       </div>
+    </div>
+  );
+
+  // シャドバン判定ログセクション
+  const renderShadowbanLogs = () => (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-sm font-semibold text-gray-800">
+          シャドバン判定ログ
+        </h4>
+        <button
+          onClick={fetchShadowbanLogs}
+          disabled={isLoadingShadowbanLogs}
+          className="flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors disabled:opacity-50"
+        >
+          <Shield className="h-3 w-3 mr-1" />
+          {isLoadingShadowbanLogs ? "読み込み中..." : "更新"}
+        </button>
+      </div>
+
+      {isLoadingShadowbanLogs ? (
+        <div className="text-center py-4">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mx-auto"></div>
+          <p className="text-xs text-gray-500 mt-1">ログを読み込み中...</p>
+        </div>
+      ) : shadowbanLogs.length === 0 ? (
+        <div className="text-center py-4">
+          <p className="text-xs text-gray-500">ログがありません</p>
+        </div>
+      ) : (
+        <div className="space-y-2 max-h-48 overflow-y-auto">
+          {shadowbanLogs.map((log, index) => (
+            <div
+              key={log.log_id}
+              className="p-2 bg-gray-50 rounded-md border border-gray-100 text-xs"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium text-gray-700">
+                  {new Date(log.logged_at).toLocaleDateString("ja-JP", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium ${
+                    log.status === "suspended" || log.suspend
+                      ? "bg-red-100 text-red-800"
+                      : log.search_ban ||
+                        log.search_suggestion_ban ||
+                        log.ghost_ban
+                      ? "bg-orange-100 text-orange-800"
+                      : log.not_found
+                      ? "bg-gray-100 text-gray-800"
+                      : "bg-green-100 text-green-800"
+                  }`}
+                >
+                  {log.status || "確認済み"}
+                </span>
+              </div>
+
+              {/* シャドバン詳細フラグの表示 */}
+              <div className="flex flex-wrap gap-1">
+                {log.search_ban && (
+                  <span className="px-1 py-0.5 bg-red-200 text-red-800 rounded text-xs">
+                    検索制限
+                  </span>
+                )}
+                {log.search_suggestion_ban && (
+                  <span className="px-1 py-0.5 bg-orange-200 text-orange-800 rounded text-xs">
+                    検索提案制限
+                  </span>
+                )}
+                {log.no_reply && (
+                  <span className="px-1 py-0.5 bg-yellow-200 text-yellow-800 rounded text-xs">
+                    リプライ制限
+                  </span>
+                )}
+                {log.ghost_ban && (
+                  <span className="px-1 py-0.5 bg-purple-200 text-purple-800 rounded text-xs">
+                    ゴーストBAN
+                  </span>
+                )}
+                {log.reply_deboosting && (
+                  <span className="px-1 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">
+                    リプライ制限
+                  </span>
+                )}
+                {log.suspend && (
+                  <span className="px-1 py-0.5 bg-red-200 text-red-800 rounded text-xs">
+                    凍結
+                  </span>
+                )}
+                {log.not_found && (
+                  <span className="px-1 py-0.5 bg-gray-200 text-gray-800 rounded text-xs">
+                    アカウント未発見
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 
@@ -633,16 +750,16 @@ export default function AccountDetailModal({
               {renderTechnicalInfo()}
             </div>
 
-            {/* シャドバン判定セクション */}
-            {/* <div>
+            {/* シャドバン判定ログセクション */}
+            <div>
               <div className="flex items-center mb-2">
                 <Search className="h-4 w-4 text-orange-600 mr-2" />
                 <h3 className="text-lg font-bold text-gray-800">
-                  シャドバン判定
+                  シャドバン判定ログ
                 </h3>
               </div>
-              {renderShadowbanInfo()}
-            </div> */}
+              {renderShadowbanLogs()}
+            </div>
           </div>
         </div>
 

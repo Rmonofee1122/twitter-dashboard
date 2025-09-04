@@ -217,7 +217,7 @@ export default function AccountDetailModal({
   // 基本情報セクション
   const renderBasicInfo = () => (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pb-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pb-4">
         <div className="bg-blue-50 rounded-md p-3 border border-blue-200">
           <div className="flex items-center justify-between mb-1">
             <label className="text-xs font-bold text-blue-800">
@@ -245,6 +245,20 @@ export default function AccountDetailModal({
           <p className="text-lg font-bold text-green-900">
             {currentAccount.following_count !== null
               ? currentAccount.following_count.toLocaleString()
+              : "未設定"}
+          </p>
+        </div>
+        <div className="bg-yellow-50 rounded-md p-3 border border-yellow-200">
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-bold text-yellow-800">投稿</label>
+            <CopyButton
+              value={currentAccount.media_count?.toString() || ""}
+              fieldName="posts_count"
+            />
+          </div>
+          <p className="text-lg font-bold text-yellow-900">
+            {currentAccount.posts_count !== null
+              ? currentAccount.posts_count.toLocaleString()
               : "未設定"}
           </p>
         </div>
@@ -580,79 +594,105 @@ export default function AccountDetailModal({
           <p className="text-xs text-gray-500">ログがありません</p>
         </div>
       ) : (
-        <div className="space-y-2 max-h-48 overflow-y-auto">
-          {shadowbanLogs.map((log, index) => (
-            <div
-              key={log.log_id}
-              className="p-2 bg-gray-50 rounded-md border border-gray-100 text-xs"
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-medium text-gray-700">
-                  {new Date(log.logged_at).toLocaleDateString("ja-JP", {
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+          {/* テーブルヘッダー */}
+          <div className="bg-gray-50 grid grid-cols-3 gap-4 p-3 border-b border-gray-200">
+            <div className="text-xs font-semibold text-gray-700">日時</div>
+            <div className="text-xs font-semibold text-gray-700">判定結果</div>
+            <div className="text-xs font-semibold text-gray-700">詳細</div>
+          </div>
+
+          {/* ログデータ */}
+          <div className="max-h-48 overflow-y-auto">
+            {shadowbanLogs.map((log, index) => (
+              <div
+                key={log.log_id}
+                className={`grid grid-cols-3 gap-4 p-3 border-b border-gray-100 text-xs ${
+                  index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                } hover:bg-blue-50 transition-colors`}
+              >
+                {/* 日時 */}
+                <div className="font-medium text-gray-700">
+                  {new Date(log.updated_at).toLocaleDateString("ja-JP", {
                     year: "numeric",
                     month: "2-digit",
                     day: "2-digit",
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
-                </span>
-                <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${
-                    log.status === "suspended" || log.suspend
-                      ? "bg-red-100 text-red-800"
-                      : log.search_ban ||
-                        log.search_suggestion_ban ||
-                        log.ghost_ban
-                      ? "bg-orange-100 text-orange-800"
-                      : log.not_found
-                      ? "bg-gray-100 text-gray-800"
-                      : "bg-green-100 text-green-800"
-                  }`}
-                >
-                  {log.status || "確認済み"}
-                </span>
-              </div>
+                </div>
 
-              {/* シャドバン詳細フラグの表示 */}
-              <div className="flex flex-wrap gap-1">
-                {log.search_ban && (
-                  <span className="px-1 py-0.5 bg-red-200 text-red-800 rounded text-xs">
-                    検索制限
+                {/* 判定結果 */}
+                <div>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${
+                      log.status === "suspended" || log.suspend
+                        ? "bg-red-100 text-red-800"
+                        : log.search_ban ||
+                          log.search_suggestion_ban ||
+                          log.ghost_ban
+                        ? "bg-orange-100 text-orange-800"
+                        : log.not_found
+                        ? "bg-gray-100 text-gray-800"
+                        : "bg-green-100 text-green-800"
+                    }`}
+                  >
+                    {log.status || "確認済み"}
                   </span>
-                )}
-                {log.search_suggestion_ban && (
-                  <span className="px-1 py-0.5 bg-orange-200 text-orange-800 rounded text-xs">
-                    検索提案制限
-                  </span>
-                )}
-                {log.no_reply && (
-                  <span className="px-1 py-0.5 bg-yellow-200 text-yellow-800 rounded text-xs">
-                    リプライ制限
-                  </span>
-                )}
-                {log.ghost_ban && (
-                  <span className="px-1 py-0.5 bg-purple-200 text-purple-800 rounded text-xs">
-                    ゴーストBAN
-                  </span>
-                )}
-                {log.reply_deboosting && (
-                  <span className="px-1 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">
-                    リプライ制限
-                  </span>
-                )}
-                {log.suspend && (
-                  <span className="px-1 py-0.5 bg-red-200 text-red-800 rounded text-xs">
-                    凍結
-                  </span>
-                )}
-                {log.not_found && (
-                  <span className="px-1 py-0.5 bg-gray-200 text-gray-800 rounded text-xs">
-                    アカウント未発見
-                  </span>
-                )}
+                </div>
+
+                {/* 詳細（シャドバン詳細フラグ） */}
+                <div className="flex flex-wrap gap-1">
+                  {log.search_ban && (
+                    <span className="px-1 py-0.5 bg-red-200 text-red-800 rounded text-xs">
+                      検索制限
+                    </span>
+                  )}
+                  {log.search_suggestion_ban && (
+                    <span className="px-1 py-0.5 bg-orange-200 text-orange-800 rounded text-xs">
+                      検索サジェスト制限
+                    </span>
+                  )}
+                  {log.no_reply && (
+                    <span className="px-1 py-0.5 bg-yellow-200 text-yellow-800 rounded text-xs">
+                      リプライ制限
+                    </span>
+                  )}
+                  {log.ghost_ban && (
+                    <span className="px-1 py-0.5 bg-purple-200 text-purple-800 rounded text-xs">
+                      ゴーストBAN
+                    </span>
+                  )}
+                  {log.reply_deboosting && (
+                    <span className="px-1 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">
+                      リプライ制限
+                    </span>
+                  )}
+                  {log.suspend && (
+                    <span className="px-1 py-0.5 bg-red-200 text-red-800 rounded text-xs">
+                      凍結
+                    </span>
+                  )}
+                  {log.not_found && (
+                    <span className="px-1 py-0.5 bg-gray-200 text-gray-800 rounded text-xs">
+                      アカウント未発見
+                    </span>
+                  )}
+                  {!log.search_ban &&
+                    !log.search_suggestion_ban &&
+                    !log.no_reply &&
+                    !log.ghost_ban &&
+                    !log.reply_deboosting &&
+                    !log.suspend &&
+                    !log.not_found && (
+                      <span className="px-1 py-0.5 bg-green-200 text-green-800 rounded text-xs">
+                        制限なし
+                      </span>
+                    )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>

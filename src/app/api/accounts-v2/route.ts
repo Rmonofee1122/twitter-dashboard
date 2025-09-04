@@ -23,6 +23,7 @@ export async function GET(request: Request) {
         twitter_id,
         email,
         status,
+        log_created_at,
         created_at,
         updated_at,
         posts_count,
@@ -69,13 +70,13 @@ export async function GET(request: Request) {
 
     // 日付フィルター
     if (startDate) {
-      query = query.gte("created_at", startDate);
+      query = query.gte("log_created_at", startDate);
     }
     if (endDate) {
       // 終了日は23:59:59まで含める
       const endDateTime = new Date(endDate);
       endDateTime.setHours(23, 59, 59, 999);
-      query = query.lte("created_at", endDateTime.toISOString());
+      query = query.lte("log_created_at", endDateTime.toISOString());
     }
 
     // ソート処理（インデックス効率を考慮）
@@ -89,7 +90,7 @@ export async function GET(request: Request) {
       // よく使われるフィールドを優先してインデックス効果を期待
       switch (sortField) {
         case "created_at":
-          query = query.order("created_at", { ascending });
+          query = query.order("log_created_at", { ascending });
           break;
         case "id":
           query = query.order("id", { ascending });
@@ -125,7 +126,7 @@ export async function GET(request: Request) {
       }
     } else {
       // ソートが指定されていない場合のデフォルト（最も効率的）
-      query = query.order("created_at", { ascending: false });
+      query = query.order("log_created_at", { ascending: false });
     }
 
     // ページネーション
@@ -157,13 +158,13 @@ export async function GET(request: Request) {
 
         // 日付フィルター適用
         if (startDate) {
-          statsQuery = statsQuery.gte("created_date", startDate);
+          statsQuery = statsQuery.gte("log_created_at", startDate);
         }
         if (endDate) {
           const endDateTime = new Date(endDate);
           endDateTime.setHours(23, 59, 59, 999);
           statsQuery = statsQuery.lte(
-            "created_date",
+            "log_created_at",
             endDateTime.toISOString()
           );
         }

@@ -439,7 +439,7 @@ const AccountTable = memo(function AccountTable({
           {account.id}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-          {formatDate(account.created_at)}
+          {formatDate(account.log_created_at)}
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="flex items-center">

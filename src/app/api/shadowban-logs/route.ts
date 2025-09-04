@@ -17,7 +17,8 @@ export async function GET(request: Request) {
     // 指定されたtwitter_idのシャドバンログを取得（最新順）
     const { data, error } = await supabase
       .from("shadowban_account_log")
-      .select(`
+      .select(
+        `
         log_id,
         logged_at,
         status,
@@ -29,8 +30,11 @@ export async function GET(request: Request) {
         search_suggestion_ban,
         no_reply,
         ghost_ban,
-        reply_deboosting
-      `)
+        reply_deboosting,
+        created_at,
+        updated_at
+      `
+      )
       .eq("twitter_id", twitterId)
       .order("logged_at", { ascending: false })
       .limit(limit);
@@ -48,9 +52,9 @@ export async function GET(request: Request) {
       logs: data || [],
       total: data?.length || 0,
     });
-    
-    response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=60'); // 1分間キャッシュ
-    
+
+    response.headers.set("Cache-Control", "public, max-age=60, s-maxage=60"); // 1分間キャッシュ
+
     return response;
   } catch (error) {
     console.error("API エラー:", error);

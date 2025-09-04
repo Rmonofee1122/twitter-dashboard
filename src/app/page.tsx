@@ -23,6 +23,7 @@ export default function Home() {
     weekCreated: 0,
     monthCreated: 0,
     activeAccounts: 0,
+    totalAccounts: 0,
   });
   const [activityLoading, setActivityLoading] = useState(false);
 
@@ -64,6 +65,7 @@ export default function Home() {
         weekCreated: 89,
         monthCreated: 347,
         activeAccounts: 2341,
+        totalAccounts: 5000,
       });
     } finally {
       setActivityLoading(false);
@@ -118,7 +120,7 @@ export default function Home() {
       time: "今月",
     },
     {
-      action: "アクティブアカウント",
+      action: "総アクティブアカウント",
       count: recentActivity.activeAccounts,
       time: "現在",
     },
@@ -145,7 +147,8 @@ export default function Home() {
     },
   ];
 
-  const activeRate = (stats.activeAccounts / stats.totalAccounts) * 100;
+  const activeRate =
+    (recentActivity.activeAccounts / recentActivity.totalAccounts) * 100;
 
   return (
     <div className="space-y-6">

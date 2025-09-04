@@ -3,51 +3,64 @@ import { supabase } from "@/lib/supabase";
 
 export async function GET() {
   try {
-    // 新規作成 (app_login = 'FarmUP')
-    const { count: newCreationCount, error: newCreationError } = await supabase
-      .from("twitter_create_logs")
+    // アクティブ (status = 'active')
+    const { count: activeCount, error: activeError } = await supabase
+      .from("twitter_account_v2")
       .select("*", { count: "exact", head: true })
-      .or("app_login.eq.FarmUP,app_login.eq.farmup");
+      .or("status.eq.active");
 
-    if (newCreationError) {
-      console.error("新規作成データの取得エラー:", newCreationError);
+    if (activeError) {
+      console.error("アクティブデータの取得エラー:", activeError);
     }
 
-    // 運用中 (app_login = 'true' または true)
-    const { count: inOperationCount, error: inOperationError } = await supabase
-      .from("twitter_create_logs")
+    // シャドBAN (status = 'search_ban' または 'search_suggestion_ban','ghost_ban')
+    const { count: shadowbanCount, error: shadowbanError } = await supabase
+      .from("twitter_account_v2")
       .select("*", { count: "exact", head: true })
-      .or('app_login.eq.true,app_login.eq."true"');
+      .or(
+        "status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"
+      );
 
-    if (inOperationError) {
-      console.error("運用中データの取得エラー:", inOperationError);
+    if (shadowbanError) {
+      console.error("シャドBANデータの取得エラー:", shadowbanError);
     }
 
-    // 除外 (app_login = 'false' または false)
-    const { count: excludedCount, error: excludedError } = await supabase
-      .from("twitter_create_logs")
+    // 一時停止 (status = 'stop' または 'stopped')
+    const { count: stoppedCount, error: stoppedError } = await supabase
+      .from("twitter_account_v2")
       .select("*", { count: "exact", head: true })
-      .or('app_login.eq.false,app_login.eq."false"');
+      .or("status.eq.stop,status.eq.stopped");
 
-    if (excludedError) {
-      console.error("除外データの取得エラー:", excludedError);
+    if (stoppedError) {
+      console.error("一時停止データの取得エラー:", stoppedError);
     }
 
-    // BAN (app_login = 'suspend' または 'email_ban', 'Email_BAN')
-    const { count: bannedCount, error: bannedError } = await supabase
-      .from("twitter_create_logs")
+    // 審査中 (status = 'stop' または 'stopped')
+    const { count: examinationCount, error: examinationError } = await supabase
+      .from("twitter_account_v2")
       .select("*", { count: "exact", head: true })
-      .or("app_login.eq.suspend,app_login.eq.email_ban,app_login.eq.Email_BAN");
+      .or("status.eq.examination");
 
-    if (bannedError) {
-      console.error("BANデータの取得エラー:", bannedError);
+    if (examinationError) {
+      console.error("審査中データの取得エラー:", examinationError);
+    }
+
+    // 凍結・除外 (status = 'suspend' または 'suspended','not_found')
+    const { count: suspendedCount, error: suspendedError } = await supabase
+      .from("twitter_account_v2")
+      .select("*", { count: "exact", head: true })
+      .or("status.eq.suspend,status.eq.suspended,status.eq.not_found");
+
+    if (suspendedError) {
+      console.error("凍結・除外データの取得エラー:", suspendedError);
     }
 
     const stats = {
-      newCreation: newCreationCount || 0,
-      inOperation: inOperationCount || 0,
-      excluded: excludedCount || 0,
-      banned: bannedCount || 0,
+      active: activeCount || 0,
+      shadowban: shadowbanCount || 0,
+      stopped: stoppedCount || 0,
+      examination: examinationCount || 0,
+      suspended: suspendedCount || 0,
     };
 
     return NextResponse.json(stats);

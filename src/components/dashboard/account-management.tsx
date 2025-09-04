@@ -1,22 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserPlus, Users, UserX, Shield } from "lucide-react";
+import {
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Pause,
+  LucideIcon,
+} from "lucide-react";
 import StatCard from "@/components/ui/stat-card";
 
 interface AccountManagementStats {
-  newCreation: number; // app_login = 'FarmUp'
-  inOperation: number; // app_login = 'true' または true
-  excluded: number; // app_login = 'false' または false
-  banned: number; // app_login = 'suspend' または 'email_ban'
+  active: number; // app_login = 'FarmUp'
+  shadowban: number; // app_login = 'true' または true
+  stopped: number; // app_login = 'false' または false
+  examination: number; // app_login = 'false' または false
+  suspended: number; // app_login = 'suspend' または 'email_ban'
 }
 
 export default function AccountManagement() {
   const [stats, setStats] = useState<AccountManagementStats>({
-    newCreation: 0,
-    inOperation: 0,
-    excluded: 0,
-    banned: 0,
+    active: 0,
+    shadowban: 0,
+    stopped: 0,
+    examination: 0,
+    suspended: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -39,10 +48,11 @@ export default function AccountManagement() {
       console.error("アカウント統計の取得に失敗しました:", error);
       // エラーの場合は仮のデータを設定
       setStats({
-        newCreation: 145,
-        inOperation: 2341,
-        excluded: 89,
-        banned: 23,
+        active: 0,
+        shadowban: 0,
+        stopped: 0,
+        examination: 0,
+        suspended: 0,
       });
     } finally {
       setLoading(false);
@@ -51,34 +61,42 @@ export default function AccountManagement() {
 
   const statCards = [
     {
-      title: "新規作成",
-      subtitle: 'app_login = "FarmUp"',
-      value: stats.newCreation,
-      icon: UserPlus,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-    },
-    {
-      title: "運用中",
-      subtitle: "app_login = true",
-      value: stats.inOperation,
-      icon: Users,
+      title: "アクティブ",
+      subtitle: "",
+      value: stats.active,
+      icon: CheckCircle,
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
     {
-      title: "除外",
-      subtitle: "app_login = false",
-      value: stats.excluded,
-      icon: UserX,
+      title: "シャドBAN",
+      subtitle: "",
+      value: stats.shadowban,
+      icon: AlertTriangle,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
     },
     {
-      title: "BAN",
-      subtitle: "suspend / email_ban",
-      value: stats.banned,
-      icon: Shield,
+      title: "一時停止",
+      subtitle: "",
+      value: stats.stopped,
+      icon: Pause,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+    },
+    {
+      title: "審査中",
+      subtitle: "",
+      value: stats.examination,
+      icon: Clock,
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-50",
+    },
+    {
+      title: "凍結",
+      subtitle: "",
+      value: stats.suspended,
+      icon: XCircle,
       color: "text-red-600",
       bgColor: "bg-red-50",
     },
@@ -111,7 +129,11 @@ export default function AccountManagement() {
   }
 
   const totalAccounts =
-    stats.newCreation + stats.inOperation + stats.excluded + stats.banned;
+    stats.active +
+    stats.shadowban +
+    stats.stopped +
+    stats.examination +
+    stats.suspended;
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -133,7 +155,7 @@ export default function AccountManagement() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {statCards.map((stat, index) => (
           <StatCard
             key={index}
@@ -154,38 +176,46 @@ export default function AccountManagement() {
         </h4>
         <div className="flex h-3 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className="bg-blue-500"
-            style={{ width: `${(stats.newCreation / totalAccounts) * 100}%` }}
-            title={`新規作成: ${stats.newCreation}件`}
-          />
-          <div
             className="bg-green-500"
-            style={{ width: `${(stats.inOperation / totalAccounts) * 100}%` }}
-            title={`運用中: ${stats.inOperation}件`}
+            style={{ width: `${(stats.active / totalAccounts) * 100}%` }}
+            title={`アクティブ: ${stats.active}件`}
           />
           <div
             className="bg-orange-500"
-            style={{ width: `${(stats.excluded / totalAccounts) * 100}%` }}
-            title={`除外: ${stats.excluded}件`}
+            style={{ width: `${(stats.shadowban / totalAccounts) * 100}%` }}
+            title={`シャドBAN: ${stats.shadowban}件`}
+          />
+          <div
+            className="bg-blue-500"
+            style={{ width: `${(stats.examination / totalAccounts) * 100}%` }}
+            title={`一時停止: ${stats.examination}件`}
+          />
+          <div
+            className="bg-yellow-500"
+            style={{ width: `${(stats.examination / totalAccounts) * 100}%` }}
+            title={`審査中: ${stats.examination}件`}
           />
           <div
             className="bg-red-500"
-            style={{ width: `${(stats.banned / totalAccounts) * 100}%` }}
-            title={`BAN: ${stats.banned}件`}
+            style={{ width: `${(stats.suspended / totalAccounts) * 100}%` }}
+            title={`凍結: ${stats.suspended}件`}
           />
         </div>
         <div className="flex justify-between text-xs text-gray-500 mt-1">
           <span>
-            新規作成 ({((stats.newCreation / totalAccounts) * 100).toFixed(1)}%)
+            アクティブ ({((stats.active / totalAccounts) * 100).toFixed(1)}%)
           </span>
           <span>
-            運用中 ({((stats.inOperation / totalAccounts) * 100).toFixed(1)}%)
+            シャドバン ({((stats.shadowban / totalAccounts) * 100).toFixed(1)}%)
           </span>
           <span>
-            除外 ({((stats.excluded / totalAccounts) * 100).toFixed(1)}%)
+            一時停止 ({((stats.stopped / totalAccounts) * 100).toFixed(1)}%)
           </span>
           <span>
-            BAN ({((stats.banned / totalAccounts) * 100).toFixed(1)}%)
+            審査中 ({((stats.examination / totalAccounts) * 100).toFixed(1)}%)
+          </span>
+          <span>
+            凍結 ({((stats.suspended / totalAccounts) * 100).toFixed(1)}%)
           </span>
         </div>
       </div>

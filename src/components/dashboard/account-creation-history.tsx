@@ -1,6 +1,12 @@
-import { useEffect, useState } from "react";
-import { CheckCircle, XCircle, Clock, Minus } from "lucide-react";
-import { TwitterCreateLog } from "@/types/database";
+import { memo, useCallback, useState, useEffect, useMemo } from "react";
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  Minus,
+  AlertTriangle,
+} from "lucide-react";
+import { TwitterAccountInfo } from "@/types/database";
 import { fetchRecentAccounts } from "@/app/api/stats/route";
 import {
   getAccountStatus,
@@ -9,7 +15,7 @@ import {
 } from "@/utils/status-helpers";
 
 export default function AccountCreationHistory() {
-  const [accounts, setAccounts] = useState<TwitterCreateLog[]>([]);
+  const [accounts, setAccounts] = useState<TwitterAccountInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,21 +34,32 @@ export default function AccountCreationHistory() {
     }
   };
 
-  const getStatusIcon = (appLogin: string | null) => {
-    const status = getAccountStatus(appLogin);
+  const getStatusIcon = useCallback((status: string | null) => {
     switch (status) {
       case "active":
+      case "true":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case "suspended":
+      case "suspend":
+      case "email_ban":
+      case "Email_BAN":
         return <XCircle className="h-4 w-4 text-red-500" />;
       case "pending":
+      case "FarmUp":
+      case "farmup":
         return <Clock className="h-4 w-4 text-yellow-500" />;
+      case "search_ban":
+      case "search_suggestion_ban":
+      case "ghost_ban":
+        return <AlertTriangle className="h-4 w-4 text-orange-500" />;
       case "excluded":
+      case "false":
+      case "not_found":
         return <Minus className="h-4 w-4 text-gray-500" />;
       default:
         return <Clock className="h-4 w-4 text-gray-500" />;
     }
-  };
+  }, []);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("ja-JP", {
@@ -100,13 +117,20 @@ export default function AccountCreationHistory() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {accounts.map((account) => {
-                const status = getAccountStatus(account.app_login);
+                const status = getAccountStatus(account.status);
                 return (
                   <tr key={account.id} className="hover:bg-gray-50">
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {account.twitter_id || "未設定"}
+                          <a
+                            href={`https://x.com/${account.twitter_id}`}
+                            className="hover:underline"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {account.twitter_id || "未設定"}
+                          </a>
                         </div>
                         <div className="text-sm text-gray-500">
                           {account.email || "未設定"}
@@ -115,7 +139,7 @@ export default function AccountCreationHistory() {
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        {getStatusIcon(account.app_login)}
+                        {getStatusIcon(account.status)}
                         <span
                           className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
                             status

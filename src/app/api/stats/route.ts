@@ -40,14 +40,14 @@ export async function fetchStatsData(): Promise<TotalStats> {
   try {
     // 総アカウント数
     const { count: totalAccounts } = await supabase
-      .from("twitter_create_logs")
+      .from("twitter_account_v2")
       .select("*", { count: "exact", head: true });
 
     // アクティブアカウント数（login_app = true）
     const { count: activeAccounts } = await supabase
-      .from("twitter_create_logs")
+      .from("twitter_account_v2")
       .select("*", { count: "exact", head: true })
-      .eq("app_login", true);
+      .eq("status", "active");
 
     // 今日の作成数
     const { count: todayCreated } = await supabase
@@ -418,7 +418,7 @@ export async function fetchAccountDetails(twitterId: string): Promise<any> {
 export async function fetchRecentAccounts(): Promise<any[]> {
   try {
     const { data, error } = await supabase
-      .from("twitter_create_logs")
+      .from("twitter_account_v2")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(5);

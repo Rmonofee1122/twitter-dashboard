@@ -3,6 +3,7 @@ interface DisplayConfig {
   timezone: string;
   dateFormat: 'japanese' | 'iso' | 'us';
   itemsPerPage: number;
+  colorScheme: 'default' | 'dark' | 'blue' | 'green' | 'purple';
 }
 
 interface DisplaySettingsProps {
@@ -87,6 +88,48 @@ export default function DisplaySettings({ config, onChange }: DisplaySettingsPro
           <option value={50}>50件</option>
           <option value={100}>100件</option>
         </select>
+      </div>
+
+      {/* カラースキーム選択 */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-3">
+          画面モード（カラースキーム）
+        </label>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[
+            { value: 'default', label: 'デフォルト', color: 'bg-gray-100', preview: 'border-gray-400' },
+            { value: 'dark', label: 'ダーク', color: 'bg-gray-800', preview: 'border-gray-600' },
+            { value: 'blue', label: 'ブルー', color: 'bg-blue-100', preview: 'border-blue-400' },
+            { value: 'green', label: 'グリーン', color: 'bg-green-100', preview: 'border-green-400' },
+            { value: 'purple', label: 'パープル', color: 'bg-purple-100', preview: 'border-purple-400' },
+          ].map((scheme) => (
+            <button
+              key={scheme.value}
+              onClick={() => onChange({
+                ...config,
+                colorScheme: scheme.value as DisplayConfig['colorScheme']
+              })}
+              className={`p-3 border-2 rounded-lg transition-all duration-200 ${
+                config.colorScheme === scheme.value
+                  ? `${scheme.preview} bg-blue-50`
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <div className={`w-6 h-6 rounded-full ${scheme.color} border border-gray-300`}></div>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-gray-900">{scheme.label}</p>
+                  {config.colorScheme === scheme.value && (
+                    <p className="text-xs text-blue-600">現在選択中</p>
+                  )}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          カラースキームの変更は次回ページ読み込み時に適用されます
+        </p>
       </div>
     </div>
   );

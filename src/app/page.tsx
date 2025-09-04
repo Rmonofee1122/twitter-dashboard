@@ -165,6 +165,9 @@ export default function Home() {
       {/* アカウント管理 */}
       <AccountManagement />
 
+      {/* クイックアクション */}
+      <QuickLinks links={quickLinks} />
+
       {/* 統計カード */}
       {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => (
@@ -181,15 +184,15 @@ export default function Home() {
 
       {/* クイックアクション */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ActivityCard
+        {/* <ActivityCard
           title="最近の活動"
           activities={recentActivities}
           onRefresh={fetchRecentActivity}
           loading={activityLoading}
-        />
+        /> */}
 
         {/* アカウント状況 */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        {/* <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             アカウント状況
           </h3>
@@ -215,13 +218,11 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* アカウントの追加履歴 */}
       <AccountCreationHistory />
-
-      <QuickLinks links={quickLinks} />
     </div>
   );
 }

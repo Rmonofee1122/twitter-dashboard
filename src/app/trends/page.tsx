@@ -185,6 +185,9 @@ export default function TrendsPage() {
       {/* 統計カード */}
       <TrendStatsCards />
 
+      {/* パフォーマンス指標 */}
+      {/* <PerformanceMetrics metrics={performanceMetrics} /> */}
+
       {/* 日付フィルター */}
       <DateFilter
         startDate={startDate}
@@ -216,9 +219,6 @@ export default function TrendsPage() {
 
       {/* インサイト */}
       {/* <TrendInsights insights={insights} /> */}
-
-      {/* パフォーマンス指標 */}
-      <PerformanceMetrics metrics={performanceMetrics} />
     </div>
   );
 }

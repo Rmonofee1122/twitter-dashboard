@@ -32,6 +32,7 @@ interface Settings {
     timezone: string;
     dateFormat: "japanese" | "iso" | "us";
     itemsPerPage: number;
+    colorScheme: "default" | "dark" | "blue" | "green" | "purple";
   };
 }
 
@@ -60,6 +61,7 @@ export default function SettingsPage() {
       timezone: "Asia/Tokyo",
       dateFormat: "japanese",
       itemsPerPage: 20,
+      colorScheme: "default",
     },
   });
 

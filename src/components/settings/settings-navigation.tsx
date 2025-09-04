@@ -1,4 +1,4 @@
-import { Database, Bell, Shield, Globe, LucideIcon } from 'lucide-react';
+import { Database, Bell, Shield, Palette, LucideIcon } from 'lucide-react';
 
 type SettingsTab = 'database' | 'notifications' | 'security' | 'display';
 
@@ -17,7 +17,7 @@ const tabs: Tab[] = [
   { id: 'database', name: 'データベース', icon: Database },
   { id: 'notifications', name: '通知設定', icon: Bell },
   { id: 'security', name: 'セキュリティ', icon: Shield },
-  { id: 'display', name: '表示設定', icon: Globe },
+  { id: 'display', name: '表示設定', icon: Palette },
 ];
 
 export default function SettingsNavigation({ activeTab, onTabChange }: SettingsNavigationProps) {

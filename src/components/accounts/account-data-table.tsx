@@ -60,11 +60,6 @@ export default function AccountDataTable({
 
   return (
     <div className="space-y-6">
-      <AccountFilters
-        searchTerm={searchTerm}
-        setSearchTerm={onSearchTermChange}
-      />
-
       <DateFilter
         startDate={startDate}
         endDate={endDate}
@@ -72,6 +67,11 @@ export default function AccountDataTable({
         onEndDateChange={onEndDateChange}
         onQuickSelect={handleQuickSelect}
         onClear={onDateFilterClear}
+      />
+
+      <AccountFilters
+        searchTerm={searchTerm}
+        setSearchTerm={onSearchTermChange}
       />
 
       <div className="bg-white rounded-lg shadow-sm">

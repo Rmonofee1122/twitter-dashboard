@@ -14,13 +14,21 @@ export default function NotfoundAccountsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<string>("");
 
   useEffect(() => {
     loadNotfoundAccounts();
-  }, [currentPage, searchTerm, startDate, endDate, sortField, sortDirection]);
+  }, [
+    currentPage,
+    searchTerm,
+    startDate,
+    endDate,
+    sortField,
+    sortDirection,
+    itemsPerPage,
+  ]);
 
   const loadNotfoundAccounts = async () => {
     try {
@@ -54,6 +62,13 @@ export default function NotfoundAccountsPage() {
     setCurrentPage(1);
   };
 
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // ページを1に戻す
+  };
+
+  const totalCountStr = totalCount.toLocaleString();
+
   const handleSort = (field: string) => {
     if (sortField === field) {
       // 同じフィールドをクリックした場合：null → asc → desc → null のサイクル
@@ -78,7 +93,7 @@ export default function NotfoundAccountsPage() {
     <div className="space-y-6">
       <AccountPageHeader
         title={`未発見アカウント (${totalCount}件)`}
-        description="システムから未発見のアカウント一覧"
+        description={`システムから未発見のアカウント ${totalCountStr}件`}
         onRefresh={loadNotfoundAccounts}
         refreshButtonColor="bg-gray-100 text-gray-700 hover:bg-gray-200"
       />
@@ -103,6 +118,7 @@ export default function NotfoundAccountsPage() {
         sortField={sortField}
         sortDirection={sortDirection}
         onSort={handleSort}
+        onItemsPerPageChange={handleItemsPerPageChange}
       />
     </div>
   );

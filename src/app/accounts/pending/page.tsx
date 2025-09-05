@@ -14,13 +14,21 @@ export default function PendingAccountsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<string>("");
 
   useEffect(() => {
     loadPendingAccounts();
-  }, [currentPage, searchTerm, startDate, endDate, sortField, sortDirection]);
+  }, [
+    currentPage,
+    searchTerm,
+    startDate,
+    endDate,
+    sortField,
+    sortDirection,
+    itemsPerPage,
+  ]);
 
   const loadPendingAccounts = async () => {
     try {
@@ -54,6 +62,13 @@ export default function PendingAccountsPage() {
     setCurrentPage(1);
   };
 
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // ページを1に戻す
+  };
+
+  const totalCountStr = totalCount.toLocaleString();
+
   const handleSort = (field: string) => {
     if (sortField === field) {
       // 同じフィールドをクリックした場合：null → asc → desc → null のサイクル
@@ -78,7 +93,7 @@ export default function PendingAccountsPage() {
     <div className="space-y-6">
       <AccountPageHeader
         title="審査中アカウント"
-        description="まだログインが完了していない審査中のアカウント一覧"
+        description={`まだログインが完了していない審査中のアカウント ${totalCountStr}件`}
         onRefresh={loadPendingAccounts}
         refreshButtonColor="bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
       />
@@ -103,6 +118,7 @@ export default function PendingAccountsPage() {
         sortField={sortField}
         sortDirection={sortDirection}
         onSort={handleSort}
+        onItemsPerPageChange={handleItemsPerPageChange}
       />
     </div>
   );

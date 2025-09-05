@@ -14,13 +14,21 @@ export default function ActiveAccountsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<string>("");
 
   useEffect(() => {
     loadActiveAccounts();
-  }, [currentPage, searchTerm, startDate, endDate, sortField, sortDirection]);
+  }, [
+    currentPage,
+    searchTerm,
+    startDate,
+    endDate,
+    sortField,
+    sortDirection,
+    itemsPerPage,
+  ]);
 
   const loadActiveAccounts = async () => {
     try {
@@ -54,6 +62,11 @@ export default function ActiveAccountsPage() {
   const handleSearchTermChange = (term: string) => {
     setSearchTerm(term);
     setCurrentPage(1);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // ページを1に戻す
   };
 
   const handleSort = (field: string) => {
@@ -105,6 +118,7 @@ export default function ActiveAccountsPage() {
         sortField={sortField}
         sortDirection={sortDirection}
         onSort={handleSort}
+        onItemsPerPageChange={handleItemsPerPageChange}
       />
     </div>
   );

@@ -25,6 +25,7 @@ interface AccountDataTableProps {
   sortField?: string;
   sortDirection?: string;
   onSort?: (field: string) => void;
+  onItemsPerPageChange?: (itemsPerPage: number) => void;
 }
 
 export default function AccountDataTable({
@@ -48,6 +49,7 @@ export default function AccountDataTable({
   sortField = "",
   sortDirection = "",
   onSort,
+  onItemsPerPageChange,
 }: AccountDataTableProps) {
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
@@ -98,11 +100,15 @@ export default function AccountDataTable({
                 更新
               </button>
             </div>
-            <AccountTable 
+            <AccountTable
               accounts={accounts}
               sortField={sortField}
               sortDirection={sortDirection}
               onSort={onSort}
+              itemsPerPage={itemsPerPage}
+              onItemsPerPageChange={onItemsPerPageChange}
+              currentPage={currentPage}
+              totalAccounts={totalCount}
             />
 
             {/* ページネーション */}

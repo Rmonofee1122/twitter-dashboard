@@ -14,13 +14,21 @@ export default function ActiveAccountsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<string>("");
 
   useEffect(() => {
     loadShadowbanAccounts();
-  }, [currentPage, searchTerm, startDate, endDate, sortField, sortDirection]);
+  }, [
+    currentPage,
+    searchTerm,
+    startDate,
+    endDate,
+    sortField,
+    sortDirection,
+    itemsPerPage,
+  ]);
 
   const loadShadowbanAccounts = async () => {
     try {
@@ -43,8 +51,6 @@ export default function ActiveAccountsPage() {
     }
   };
 
-  const totalCountStr = totalCount.toLocaleString();
-
   const handleDateFilterClear = () => {
     setStartDate("");
     setEndDate("");
@@ -55,6 +61,13 @@ export default function ActiveAccountsPage() {
     setSearchTerm(term);
     setCurrentPage(1);
   };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // ページを1に戻す
+  };
+
+  const totalCountStr = totalCount.toLocaleString();
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -80,7 +93,7 @@ export default function ActiveAccountsPage() {
     <div className="space-y-6">
       <AccountPageHeader
         title={`シャドBANアカウント`}
-        description={`検索制限や検索サジェスト制限があるTwitterアカウント一覧 ${totalCountStr}件`}
+        description={`検索制限や検索サジェスト制限があるTwitterアカウント ${totalCountStr}件`}
         onRefresh={loadShadowbanAccounts}
         refreshButtonColor="bg-orange-100 text-orange-700 hover:bg-orange-200"
       />
@@ -105,6 +118,7 @@ export default function ActiveAccountsPage() {
         sortField={sortField}
         sortDirection={sortDirection}
         onSort={handleSort}
+        onItemsPerPageChange={handleItemsPerPageChange}
       />
     </div>
   );

@@ -14,13 +14,21 @@ export default function BannedAccountsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<string>("");
 
   useEffect(() => {
     loadBannedAccounts();
-  }, [currentPage, searchTerm, startDate, endDate, sortField, sortDirection]);
+  }, [
+    currentPage,
+    searchTerm,
+    startDate,
+    endDate,
+    sortField,
+    sortDirection,
+    itemsPerPage,
+  ]);
 
   const loadBannedAccounts = async () => {
     try {
@@ -54,6 +62,13 @@ export default function BannedAccountsPage() {
     setCurrentPage(1);
   };
 
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // ページを1に戻す
+  };
+
+  const totalCountStr = totalCount.toLocaleString();
+
   const handleSort = (field: string) => {
     if (sortField === field) {
       // 同じフィールドをクリックした場合：null → asc → desc → null のサイクル
@@ -78,7 +93,7 @@ export default function BannedAccountsPage() {
     <div className="space-y-6">
       <AccountPageHeader
         title="凍結アカウント"
-        description="凍結されたアカウント一覧"
+        description={`凍結されたアカウント ${totalCountStr}件`}
         onRefresh={loadBannedAccounts}
         refreshButtonColor="bg-red-100 text-red-700 hover:bg-red-200"
       />
@@ -103,6 +118,7 @@ export default function BannedAccountsPage() {
         sortField={sortField}
         sortDirection={sortDirection}
         onSort={handleSort}
+        onItemsPerPageChange={handleItemsPerPageChange}
       />
     </div>
   );

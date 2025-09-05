@@ -53,8 +53,8 @@ export default function BannedAccountsPage() {
   return (
     <div className="space-y-6">
       <AccountPageHeader
-        title="BANアカウント"
-        description="利用制限またはBANされたアカウント一覧"
+        title="凍結アカウント"
+        description="凍結されたアカウント一覧"
         onRefresh={loadBannedAccounts}
         refreshButtonColor="bg-red-100 text-red-700 hover:bg-red-200"
       />
@@ -62,8 +62,8 @@ export default function BannedAccountsPage() {
         accounts={accounts}
         loading={loading}
         onRefresh={loadBannedAccounts}
-        title="BANアカウント"
-        emptyMessage="BANアカウントがありません"
+        title="凍結アカウント"
+        emptyMessage="凍結アカウントがありません"
         refreshButtonColor="bg-red-100 text-red-700 hover:bg-red-200"
         currentPage={currentPage}
         totalCount={totalCount}

@@ -1,6 +1,12 @@
 // ステータス判定のヘルパー関数
 
-export type StatusType = "active" | "shadowban" | "stopped" | "examination" | "suspended";
+export type StatusType =
+  | "active"
+  | "shadowban"
+  | "stopped"
+  | "examination"
+  | "not_found"
+  | "suspended";
 
 export function getAccountStatus(
   status: string | null
@@ -33,6 +39,11 @@ export function getAccountStatus(
     return "examination";
   }
 
+  // 未発見: not_found
+  if (statusValue === "not_found") {
+    return "not_found";
+  }
+
   // 凍結: suspend または suspended
   if (statusValue === "suspend" || statusValue === "suspended") {
     return "suspended";
@@ -41,9 +52,7 @@ export function getAccountStatus(
   return "unknown";
 }
 
-export function getStatusText(
-  status: string | null
-): string {
+export function getStatusText(status: string | null): string {
   if (!status) return "不明";
 
   const statusValue = status.toString().toLowerCase();
@@ -72,6 +81,11 @@ export function getStatusText(
     return "審査中";
   }
 
+  // 未発見: not_found
+  if (statusValue === "not_found") {
+    return "未発見";
+  }
+
   // 凍結: suspend または suspended
   if (statusValue === "suspend" || statusValue === "suspended") {
     return "凍結";
@@ -80,9 +94,7 @@ export function getStatusText(
   return "不明";
 }
 
-export function getStatusBadgeColor(
-  status: string | null
-): string {
+export function getStatusBadgeColor(status: string | null): string {
   if (!status) return "bg-gray-100 text-gray-800";
 
   const statusValue = status.toString().toLowerCase();
@@ -111,6 +123,11 @@ export function getStatusBadgeColor(
     return "bg-yellow-100 text-yellow-800";
   }
 
+  // 未発見: not_found
+  if (statusValue === "not_found") {
+    return "bg-gray-100 text-gray-800";
+  }
+
   // 凍結: suspend または suspended
   if (statusValue === "suspend" || statusValue === "suspended") {
     return "bg-red-100 text-red-800";
@@ -119,9 +136,7 @@ export function getStatusBadgeColor(
   return "bg-gray-100 text-gray-800";
 }
 
-export function getStatusIcon(
-  status: string | null
-): string {
+export function getStatusIcon(status: string | null): string {
   if (!status) return "Help";
 
   const statusValue = status.toString().toLowerCase();
@@ -148,6 +163,11 @@ export function getStatusIcon(
   // 審査中: examination
   if (statusValue === "examination") {
     return "Clock";
+  }
+
+  // 未発見: not_found
+  if (statusValue === "not_found") {
+    return "EyeOff";
   }
 
   // 凍結: suspend または suspended

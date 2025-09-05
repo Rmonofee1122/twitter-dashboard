@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Download, Shield } from "lucide-react";
-import { TwitterCreateLog } from "@/types/database";
+import { TwitterAccountInfo } from "@/types/database";
 import AccountTable from "@/components/accounts/account-table";
 import AccountFilters from "@/components/accounts/account-filters";
 import DateFilter from "@/components/accounts/date-filter";
@@ -10,7 +10,7 @@ import AccountStatusSummary from "@/components/accounts/account-status-summary";
 import Pagination from "@/components/ui/pagination";
 
 interface AccountsResponse {
-  accounts: TwitterCreateLog[];
+  accounts: TwitterAccountInfo[];
   total: number;
   page: number;
   limit: number;
@@ -25,7 +25,7 @@ interface AccountsResponse {
 }
 
 export default function AccountsPage() {
-  const [accounts, setAccounts] = useState<TwitterCreateLog[]>([]);
+  const [accounts, setAccounts] = useState<TwitterAccountInfo[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "shadowban" | "stopped" | "examination" | "suspended"
@@ -96,7 +96,13 @@ export default function AccountsPage() {
   };
 
   const handleStatusFilter = (
-    status: "all" | "active" | "shadowban" | "stopped" | "examination" | "suspended"
+    status:
+      | "all"
+      | "active"
+      | "shadowban"
+      | "stopped"
+      | "examination"
+      | "suspended"
   ) => {
     setStatusFilter(status);
     setCurrentPage(1);

@@ -447,9 +447,9 @@ export async function fetchActiveAccounts(
     const to = from + limit - 1;
 
     let query = supabase
-      .from("twitter_create_logs")
+      .from("twitter_account_v2")
       .select("*", { count: "exact" })
-      .or('app_login.eq.true,app_login.eq."true"');
+      .or('status.eq.active,status.eq."active"');
 
     if (startDate) {
       query = query.gte("created_at", startDate + "T00:00:00");
@@ -541,9 +541,9 @@ export async function fetchBannedAccounts(
     const to = from + limit - 1;
 
     let query = supabase
-      .from("twitter_create_logs")
+      .from("twitter_account_v2")
       .select("*", { count: "exact" })
-      .or("app_login.eq.suspend,app_login.eq.email_ban,app_login.eq.Email_BAN");
+      .or("status.eq.suspend,status.eq.suspended");
 
     if (startDate) {
       query = query.gte("created_at", startDate + "T00:00:00");
@@ -576,7 +576,7 @@ export async function fetchBannedAccounts(
   }
 }
 
-export async function fetchExcludedAccounts(
+export async function fetchNotfoundAccounts(
   page: number = 1,
   limit: number = 10,
   startDate?: string,
@@ -588,9 +588,9 @@ export async function fetchExcludedAccounts(
     const to = from + limit - 1;
 
     let query = supabase
-      .from("twitter_create_logs")
+      .from("twitter_account_v2")
       .select("*", { count: "exact" })
-      .or('app_login.eq.false,app_login.eq."false"');
+      .or("status.eq.not_found");
 
     if (startDate) {
       query = query.gte("created_at", startDate + "T00:00:00");

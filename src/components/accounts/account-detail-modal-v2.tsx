@@ -572,7 +572,7 @@ export default function AccountDetailModal({
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-sm font-semibold text-gray-800">
-          シャドバン判定ログ
+          ステータス変更履歴
         </h4>
         <button
           onClick={fetchShadowbanLogs}

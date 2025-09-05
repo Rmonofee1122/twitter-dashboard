@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { TwitterCreateLog } from "@/types/database";
-import { fetchExcludedAccounts } from "@/app/api/stats/route";
+import { fetchNotfoundAccounts } from "@/app/api/stats/route";
 import AccountPageHeader from "@/components/accounts/account-page-header";
 import AccountDataTable from "@/components/accounts/account-data-table";
 
-export default function ExcludedAccountsPage() {
+export default function NotfoundAccountsPage() {
   const [accounts, setAccounts] = useState<TwitterCreateLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -17,13 +17,13 @@ export default function ExcludedAccountsPage() {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    loadExcludedAccounts();
+    loadNotfoundAccounts();
   }, [currentPage, startDate, endDate, searchTerm]);
 
-  const loadExcludedAccounts = async () => {
+  const loadNotfoundAccounts = async () => {
     try {
       setLoading(true);
-      const result = await fetchExcludedAccounts(
+      const result = await fetchNotfoundAccounts(
         currentPage,
         itemsPerPage,
         startDate,
@@ -33,7 +33,7 @@ export default function ExcludedAccountsPage() {
       setAccounts(result.data);
       setTotalCount(result.totalCount);
     } catch (error) {
-      console.error("Error fetching excluded accounts:", error);
+      console.error("Error fetching Notfound accounts:", error);
     } finally {
       setLoading(false);
     }
@@ -53,17 +53,17 @@ export default function ExcludedAccountsPage() {
   return (
     <div className="space-y-6">
       <AccountPageHeader
-        title="除外アカウント"
-        description="システムから除外されたアカウント一覧"
-        onRefresh={loadExcludedAccounts}
+        title="未発見アカウント"
+        description="システムから未発見のアカウント一覧"
+        onRefresh={loadNotfoundAccounts}
         refreshButtonColor="bg-gray-100 text-gray-700 hover:bg-gray-200"
       />
       <AccountDataTable
         accounts={accounts}
         loading={loading}
-        onRefresh={loadExcludedAccounts}
-        title="除外アカウント"
-        emptyMessage="除外アカウントがありません"
+        onRefresh={loadNotfoundAccounts}
+        title="未発見アカウント"
+        emptyMessage="未発見アカウントがありません"
         refreshButtonColor="bg-gray-100 text-gray-700 hover:bg-gray-200"
         currentPage={currentPage}
         totalCount={totalCount}

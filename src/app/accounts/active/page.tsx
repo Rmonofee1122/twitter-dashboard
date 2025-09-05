@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TwitterCreateLog } from "@/types/database";
+import { TwitterAccountInfo } from "@/types/database";
 import { fetchActiveAccounts } from "@/app/api/stats/route";
 import AccountPageHeader from "@/components/accounts/account-page-header";
 import AccountDataTable from "@/components/accounts/account-data-table";
 
 export default function ActiveAccountsPage() {
-  const [accounts, setAccounts] = useState<TwitterCreateLog[]>([]);
+  const [accounts, setAccounts] = useState<TwitterAccountInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);

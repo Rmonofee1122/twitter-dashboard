@@ -25,6 +25,7 @@ import {
   Clock8,
   Image,
   FileText,
+  EyeOff,
 } from "lucide-react";
 
 const navigation = [
@@ -52,8 +53,8 @@ const navigation = [
         icon: UserCheck,
       },
       { name: "保留中アカウント", href: "/accounts/pending", icon: Clock },
-      { name: "BANアカウント", href: "/accounts/banned", icon: UserX },
-      { name: "除外アカウント", href: "/accounts/excluded", icon: UserMinus },
+      { name: "凍結アカウント", href: "/accounts/banned", icon: UserX },
+      { name: "未発見アカウント", href: "/accounts/notfound", icon: EyeOff },
     ],
   },
   {

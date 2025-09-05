@@ -440,7 +440,9 @@ export async function fetchActiveAccounts(
   limit: number = 10,
   startDate?: string,
   endDate?: string,
-  searchTerm?: string
+  searchTerm?: string,
+  sortField?: string,
+  sortDirection?: string
 ): Promise<{ data: any[]; totalCount: number }> {
   try {
     const from = (page - 1) * limit;
@@ -461,6 +463,56 @@ export async function fetchActiveAccounts(
       query = query.or(
         `twitter_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,create_ip.ilike.%${searchTerm}%`
       );
+    }
+
+    // ソート処理（インデックス効率を考慮）
+    if (
+      sortField &&
+      sortDirection &&
+      (sortDirection === "asc" || sortDirection === "desc")
+    ) {
+      const ascending = sortDirection === "asc";
+
+      // よく使われるフィールドを優先してインデックス効果を期待
+      switch (sortField) {
+        case "created_at":
+          query = query.order("log_created_at", { ascending });
+          break;
+        case "id":
+          query = query.order("id", { ascending });
+          break;
+        case "status":
+          query = query.order("status", { ascending });
+          break;
+        case "updated_at":
+          query = query.order("updated_at", { ascending });
+          break;
+        case "twitter_id":
+          query = query.order("twitter_id", { ascending });
+          break;
+        case "follower_count":
+          query = query.order("follower_count", {
+            ascending,
+            nullsFirst: false,
+          });
+          break;
+        case "following_count":
+          query = query.order("following_count", {
+            ascending,
+            nullsFirst: false,
+          });
+          break;
+        case "posts_count":
+          query = query.order("posts_count", { ascending, nullsFirst: false });
+          break;
+        default:
+          // デフォルトソート（最も効率的）
+          query = query.order("created_at", { ascending: false });
+          break;
+      }
+    } else {
+      // ソートが指定されていない場合のデフォルト（最も効率的）
+      query = query.order("log_created_at", { ascending: false });
     }
 
     const { data, error, count } = await query
@@ -487,16 +539,18 @@ export async function fetchPendingAccounts(
   limit: number = 10,
   startDate?: string,
   endDate?: string,
-  searchTerm?: string
+  searchTerm?: string,
+  sortField?: string,
+  sortDirection?: string
 ): Promise<{ data: any[]; totalCount: number }> {
   try {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
     let query = supabase
-      .from("twitter_create_logs")
+      .from("twitter_account_v3")
       .select("*", { count: "exact" })
-      .or("app_login.eq.FarmUP,app_login.eq.farmup");
+      .or('status.eq.examination,status.eq."examination"');
 
     if (startDate) {
       query = query.gte("created_at", startDate + "T00:00:00");
@@ -508,6 +562,56 @@ export async function fetchPendingAccounts(
       query = query.or(
         `twitter_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,create_ip.ilike.%${searchTerm}%`
       );
+    }
+
+    // ソート処理（インデックス効率を考慮）
+    if (
+      sortField &&
+      sortDirection &&
+      (sortDirection === "asc" || sortDirection === "desc")
+    ) {
+      const ascending = sortDirection === "asc";
+
+      // よく使われるフィールドを優先してインデックス効果を期待
+      switch (sortField) {
+        case "created_at":
+          query = query.order("log_created_at", { ascending });
+          break;
+        case "id":
+          query = query.order("id", { ascending });
+          break;
+        case "status":
+          query = query.order("status", { ascending });
+          break;
+        case "updated_at":
+          query = query.order("updated_at", { ascending });
+          break;
+        case "twitter_id":
+          query = query.order("twitter_id", { ascending });
+          break;
+        case "follower_count":
+          query = query.order("follower_count", {
+            ascending,
+            nullsFirst: false,
+          });
+          break;
+        case "following_count":
+          query = query.order("following_count", {
+            ascending,
+            nullsFirst: false,
+          });
+          break;
+        case "posts_count":
+          query = query.order("posts_count", { ascending, nullsFirst: false });
+          break;
+        default:
+          // デフォルトソート（最も効率的）
+          query = query.order("created_at", { ascending: false });
+          break;
+      }
+    } else {
+      // ソートが指定されていない場合のデフォルト（最も効率的）
+      query = query.order("log_created_at", { ascending: false });
     }
 
     const { data, error, count } = await query
@@ -534,7 +638,9 @@ export async function fetchBannedAccounts(
   limit: number = 10,
   startDate?: string,
   endDate?: string,
-  searchTerm?: string
+  searchTerm?: string,
+  sortField?: string,
+  sortDirection?: string
 ): Promise<{ data: any[]; totalCount: number }> {
   try {
     const from = (page - 1) * limit;
@@ -555,6 +661,55 @@ export async function fetchBannedAccounts(
       query = query.or(
         `twitter_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,create_ip.ilike.%${searchTerm}%`
       );
+    }
+    // ソート処理（インデックス効率を考慮）
+    if (
+      sortField &&
+      sortDirection &&
+      (sortDirection === "asc" || sortDirection === "desc")
+    ) {
+      const ascending = sortDirection === "asc";
+
+      // よく使われるフィールドを優先してインデックス効果を期待
+      switch (sortField) {
+        case "created_at":
+          query = query.order("log_created_at", { ascending });
+          break;
+        case "id":
+          query = query.order("id", { ascending });
+          break;
+        case "status":
+          query = query.order("status", { ascending });
+          break;
+        case "updated_at":
+          query = query.order("updated_at", { ascending });
+          break;
+        case "twitter_id":
+          query = query.order("twitter_id", { ascending });
+          break;
+        case "follower_count":
+          query = query.order("follower_count", {
+            ascending,
+            nullsFirst: false,
+          });
+          break;
+        case "following_count":
+          query = query.order("following_count", {
+            ascending,
+            nullsFirst: false,
+          });
+          break;
+        case "posts_count":
+          query = query.order("posts_count", { ascending, nullsFirst: false });
+          break;
+        default:
+          // デフォルトソート（最も効率的）
+          query = query.order("created_at", { ascending: false });
+          break;
+      }
+    } else {
+      // ソートが指定されていない場合のデフォルト（最も効率的）
+      query = query.order("log_created_at", { ascending: false });
     }
 
     const { data, error, count } = await query
@@ -581,7 +736,9 @@ export async function fetchShadowbanAccounts(
   limit: number = 10,
   startDate?: string,
   endDate?: string,
-  searchTerm?: string
+  searchTerm?: string,
+  sortField?: string,
+  sortDirection?: string
 ): Promise<{ data: any[]; totalCount: number }> {
   try {
     const from = (page - 1) * limit;
@@ -604,6 +761,56 @@ export async function fetchShadowbanAccounts(
       query = query.or(
         `twitter_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,create_ip.ilike.%${searchTerm}%`
       );
+    }
+
+    // ソート処理（インデックス効率を考慮）
+    if (
+      sortField &&
+      sortDirection &&
+      (sortDirection === "asc" || sortDirection === "desc")
+    ) {
+      const ascending = sortDirection === "asc";
+
+      // よく使われるフィールドを優先してインデックス効果を期待
+      switch (sortField) {
+        case "created_at":
+          query = query.order("log_created_at", { ascending });
+          break;
+        case "id":
+          query = query.order("id", { ascending });
+          break;
+        case "status":
+          query = query.order("status", { ascending });
+          break;
+        case "updated_at":
+          query = query.order("updated_at", { ascending });
+          break;
+        case "twitter_id":
+          query = query.order("twitter_id", { ascending });
+          break;
+        case "follower_count":
+          query = query.order("follower_count", {
+            ascending,
+            nullsFirst: false,
+          });
+          break;
+        case "following_count":
+          query = query.order("following_count", {
+            ascending,
+            nullsFirst: false,
+          });
+          break;
+        case "posts_count":
+          query = query.order("posts_count", { ascending, nullsFirst: false });
+          break;
+        default:
+          // デフォルトソート（最も効率的）
+          query = query.order("created_at", { ascending: false });
+          break;
+      }
+    } else {
+      // ソートが指定されていない場合のデフォルト（最も効率的）
+      query = query.order("log_created_at", { ascending: false });
     }
 
     const { data, error, count } = await query
@@ -630,7 +837,9 @@ export async function fetchNotfoundAccounts(
   limit: number = 10,
   startDate?: string,
   endDate?: string,
-  searchTerm?: string
+  searchTerm?: string,
+  sortField?: string,
+  sortDirection?: string
 ): Promise<{ data: any[]; totalCount: number }> {
   try {
     const from = (page - 1) * limit;
@@ -651,6 +860,56 @@ export async function fetchNotfoundAccounts(
       query = query.or(
         `twitter_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,create_ip.ilike.%${searchTerm}%`
       );
+    }
+
+    // ソート処理（インデックス効率を考慮）
+    if (
+      sortField &&
+      sortDirection &&
+      (sortDirection === "asc" || sortDirection === "desc")
+    ) {
+      const ascending = sortDirection === "asc";
+
+      // よく使われるフィールドを優先してインデックス効果を期待
+      switch (sortField) {
+        case "created_at":
+          query = query.order("log_created_at", { ascending });
+          break;
+        case "id":
+          query = query.order("id", { ascending });
+          break;
+        case "status":
+          query = query.order("status", { ascending });
+          break;
+        case "updated_at":
+          query = query.order("updated_at", { ascending });
+          break;
+        case "twitter_id":
+          query = query.order("twitter_id", { ascending });
+          break;
+        case "follower_count":
+          query = query.order("follower_count", {
+            ascending,
+            nullsFirst: false,
+          });
+          break;
+        case "following_count":
+          query = query.order("following_count", {
+            ascending,
+            nullsFirst: false,
+          });
+          break;
+        case "posts_count":
+          query = query.order("posts_count", { ascending, nullsFirst: false });
+          break;
+        default:
+          // デフォルトソート（最も効率的）
+          query = query.order("created_at", { ascending: false });
+          break;
+      }
+    } else {
+      // ソートが指定されていない場合のデフォルト（最も効率的）
+      query = query.order("log_created_at", { ascending: false });
     }
 
     const { data, error, count } = await query

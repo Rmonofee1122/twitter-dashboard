@@ -28,6 +28,7 @@ import {
   EyeOff,
   AlertTriangleIcon,
   CheckCircle,
+  CircleX,
 } from "lucide-react";
 
 const navigation = [
@@ -59,8 +60,8 @@ const navigation = [
         href: "/accounts/shadowban",
         icon: AlertTriangleIcon,
       },
-      { name: "保留中", href: "/accounts/pending", icon: Clock },
-      { name: "凍結", href: "/accounts/banned", icon: UserX },
+      { name: "審査中", href: "/accounts/pending", icon: Clock },
+      { name: "凍結", href: "/accounts/banned", icon: CircleX },
       { name: "未発見", href: "/accounts/notfound", icon: EyeOff },
     ],
   },

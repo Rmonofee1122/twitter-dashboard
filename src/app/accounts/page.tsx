@@ -43,7 +43,9 @@ export default function AccountsPage() {
     suspended: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<string>("");
   const [isBulkShadowbanCheck, setIsBulkShadowbanCheck] = useState(false);
   const [bulkShadowbanProgress, setBulkShadowbanProgress] = useState({
     current: 0,
@@ -52,7 +54,16 @@ export default function AccountsPage() {
 
   useEffect(() => {
     fetchAccounts();
-  }, [currentPage, searchTerm, statusFilter, startDate, endDate]);
+  }, [
+    currentPage,
+    searchTerm,
+    statusFilter,
+    startDate,
+    endDate,
+    sortField,
+    sortDirection,
+    itemsPerPage,
+  ]);
 
   const fetchAccounts = async () => {
     try {
@@ -64,6 +75,8 @@ export default function AccountsPage() {
         status: statusFilter,
         ...(startDate && { startDate }),
         ...(endDate && { endDate }),
+        ...(sortField && { sortField }),
+        ...(sortDirection && { sortDirection }),
       });
 
       const response = await fetch(`/api/accounts?${params}`);
@@ -132,6 +145,31 @@ export default function AccountsPage() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // ページを1に戻す
+  };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // 同じフィールドをクリックした場合：null → asc → desc → null のサイクル
+      if (sortDirection === "") {
+        setSortDirection("asc");
+      } else if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else {
+        setSortField("");
+        setSortDirection("");
+      }
+    } else {
+      // 異なるフィールドをクリックした場合：昇順でソート開始
+      setSortField(field);
+      setSortDirection("asc");
+    }
+    // ソートが変わったら1ページ目に戻る
+    setCurrentPage(1);
   };
 
   const handleBulkShadowbanCheck = async () => {
@@ -288,7 +326,17 @@ export default function AccountsPage() {
             <p className="mt-2 text-gray-600">データを読み込み中...</p>
           </div>
         ) : (
-          <AccountTable accounts={accounts} onAccountUpdate={fetchAccounts} />
+          <AccountTable
+            accounts={accounts}
+            onAccountUpdate={fetchAccounts}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onItemsPerPageChange={handleItemsPerPageChange}
+            onSort={handleSort}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            totalAccounts={totalAccounts}
+          />
         )}
 
         <Pagination

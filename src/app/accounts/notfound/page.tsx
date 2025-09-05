@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TwitterCreateLog } from "@/types/database";
+import { TwitterAccountInfo } from "@/types/database";
 import { fetchNotfoundAccounts } from "@/app/api/stats/route";
 import AccountPageHeader from "@/components/accounts/account-page-header";
 import AccountDataTable from "@/components/accounts/account-data-table";
 
 export default function NotfoundAccountsPage() {
-  const [accounts, setAccounts] = useState<TwitterCreateLog[]>([]);
+  const [accounts, setAccounts] = useState<TwitterAccountInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -15,10 +15,12 @@ export default function NotfoundAccountsPage() {
   const [endDate, setEndDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const itemsPerPage = 10;
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<string>("");
 
   useEffect(() => {
     loadNotfoundAccounts();
-  }, [currentPage, startDate, endDate, searchTerm]);
+  }, [currentPage, searchTerm, startDate, endDate, sortField, sortDirection]);
 
   const loadNotfoundAccounts = async () => {
     try {
@@ -28,7 +30,9 @@ export default function NotfoundAccountsPage() {
         itemsPerPage,
         startDate,
         endDate,
-        searchTerm
+        searchTerm,
+        sortField,
+        sortDirection
       );
       setAccounts(result.data);
       setTotalCount(result.totalCount);
@@ -47,6 +51,26 @@ export default function NotfoundAccountsPage() {
 
   const handleSearchTermChange = (term: string) => {
     setSearchTerm(term);
+    setCurrentPage(1);
+  };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // 同じフィールドをクリックした場合：null → asc → desc → null のサイクル
+      if (sortDirection === "") {
+        setSortDirection("asc");
+      } else if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else {
+        setSortField("");
+        setSortDirection("");
+      }
+    } else {
+      // 異なるフィールドをクリックした場合：昇順でソート開始
+      setSortField(field);
+      setSortDirection("asc");
+    }
+    // ソートが変わったら1ページ目に戻る
     setCurrentPage(1);
   };
 
@@ -76,6 +100,9 @@ export default function NotfoundAccountsPage() {
         onDateFilterClear={handleDateFilterClear}
         searchTerm={searchTerm}
         onSearchTermChange={handleSearchTermChange}
+        sortField={sortField}
+        sortDirection={sortDirection}
+        onSort={handleSort}
       />
     </div>
   );

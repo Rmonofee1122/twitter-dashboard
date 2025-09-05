@@ -15,10 +15,12 @@ export default function ActiveAccountsPage() {
   const [endDate, setEndDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const itemsPerPage = 10;
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<string>("");
 
   useEffect(() => {
     loadActiveAccounts();
-  }, [currentPage, startDate, endDate, searchTerm]);
+  }, [currentPage, searchTerm, startDate, endDate, sortField, sortDirection]);
 
   const loadActiveAccounts = async () => {
     try {
@@ -28,7 +30,9 @@ export default function ActiveAccountsPage() {
         itemsPerPage,
         startDate,
         endDate,
-        searchTerm
+        searchTerm,
+        sortField,
+        sortDirection
       );
       setAccounts(result.data);
       setTotalCount(result.totalCount);
@@ -52,11 +56,31 @@ export default function ActiveAccountsPage() {
     setCurrentPage(1);
   };
 
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // 同じフィールドをクリックした場合：null → asc → desc → null のサイクル
+      if (sortDirection === "") {
+        setSortDirection("asc");
+      } else if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else {
+        setSortField("");
+        setSortDirection("");
+      }
+    } else {
+      // 異なるフィールドをクリックした場合：昇順でソート開始
+      setSortField(field);
+      setSortDirection("asc");
+    }
+    // ソートが変わったら1ページ目に戻る
+    setCurrentPage(1);
+  };
+
   return (
     <div className="space-y-6">
       <AccountPageHeader
         title={`アクティブアカウント`}
-        description={`ログイン済みのアクティブなTwitterアカウント一覧 ${totalCountStr}件`}
+        description={`ログイン済みのアクティブなTwitterアカウント ${totalCountStr}件`}
         onRefresh={loadActiveAccounts}
         refreshButtonColor="bg-green-100 text-green-700 hover:bg-green-200"
       />
@@ -78,6 +102,9 @@ export default function ActiveAccountsPage() {
         onDateFilterClear={handleDateFilterClear}
         searchTerm={searchTerm}
         onSearchTermChange={handleSearchTermChange}
+        sortField={sortField}
+        sortDirection={sortDirection}
+        onSort={handleSort}
       />
     </div>
   );

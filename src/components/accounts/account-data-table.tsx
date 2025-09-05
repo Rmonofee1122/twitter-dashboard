@@ -1,11 +1,11 @@
-import { TwitterCreateLog } from "@/types/database";
+import { TwitterAccountInfo } from "@/types/database";
 import AccountTable from "./account-table";
 import Pagination from "@/components/ui/pagination";
 import DateFilter from "./date-filter";
 import AccountFilters from "./account-filter";
 
 interface AccountDataTableProps {
-  accounts: TwitterCreateLog[];
+  accounts: TwitterAccountInfo[];
   loading: boolean;
   onRefresh: () => void;
   title: string;
@@ -22,6 +22,9 @@ interface AccountDataTableProps {
   onDateFilterClear: () => void;
   searchTerm: string;
   onSearchTermChange: (term: string) => void;
+  sortField?: string;
+  sortDirection?: string;
+  onSort?: (field: string) => void;
 }
 
 export default function AccountDataTable({
@@ -42,6 +45,9 @@ export default function AccountDataTable({
   onDateFilterClear,
   searchTerm,
   onSearchTermChange,
+  sortField = "",
+  sortDirection = "",
+  onSort,
 }: AccountDataTableProps) {
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
@@ -92,7 +98,12 @@ export default function AccountDataTable({
                 更新
               </button>
             </div>
-            <AccountTable accounts={accounts} />
+            <AccountTable 
+              accounts={accounts}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={onSort}
+            />
 
             {/* ページネーション */}
             {totalPages > 1 && (

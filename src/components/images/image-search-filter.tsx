@@ -154,57 +154,63 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
     return [
       {
         label: "今日",
-        onClick: () => {
-          const todayStr = formatDate(today);
-          onQuickDateSelect?.(todayStr, todayStr);
-        },
+        start: formatDate(today),
+        end: formatDate(today),
       },
       {
         label: "昨日",
-        onClick: () => {
+        start: (() => {
           const yesterday = new Date(today);
           yesterday.setDate(today.getDate() - 1);
-          const yesterdayStr = formatDate(yesterday);
-          onQuickDateSelect?.(yesterdayStr, yesterdayStr);
-        },
+          return formatDate(yesterday);
+        })(),
+        end: (() => {
+          const yesterday = new Date(today);
+          yesterday.setDate(today.getDate() - 1);
+          return formatDate(yesterday);
+        })(),
       },
       {
         label: "過去3日間",
-        onClick: () => {
+        start: (() => {
           const threeDaysAgo = new Date(today);
           threeDaysAgo.setDate(today.getDate() - 2);
-          onQuickDateSelect?.(formatDate(threeDaysAgo), formatDate(today));
-        },
+          return formatDate(threeDaysAgo);
+        })(),
+        end: formatDate(today),
       },
       {
         label: "過去7日間",
-        onClick: () => {
+        start: (() => {
           const sevenDaysAgo = new Date(today);
           sevenDaysAgo.setDate(today.getDate() - 6);
-          onQuickDateSelect?.(formatDate(sevenDaysAgo), formatDate(today));
-        },
+          return formatDate(sevenDaysAgo);
+        })(),
+        end: formatDate(today),
       },
       {
         label: "過去30日間",
-        onClick: () => {
+        start: (() => {
           const thirtyDaysAgo = new Date(today);
           thirtyDaysAgo.setDate(today.getDate() - 29);
-          onQuickDateSelect?.(formatDate(thirtyDaysAgo), formatDate(today));
-        },
+          return formatDate(thirtyDaysAgo);
+        })(),
+        end: formatDate(today),
       },
       {
         label: "今月",
-        onClick: () => {
+        start: (() => {
           const thisMonthStart = new Date(
             today.getFullYear(),
             today.getMonth(),
             1
           );
-          onQuickDateSelect?.(formatDate(thisMonthStart), formatDate(today));
-        },
+          return formatDate(thisMonthStart);
+        })(),
+        end: formatDate(today),
       },
     ];
-  }, [onQuickDateSelect]);
+  }, []);
 
   return (
     <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
@@ -226,24 +232,6 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
         </div>
         <div className="text-sm text-gray-600">
           {filteredImages.length} / {images.length} 件
-        </div>
-      </div>
-
-      {/* クイック日付選択 */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          クイック日付選択
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {quickDateOptions.map((option, index) => (
-            <button
-              key={index}
-              onClick={option.onClick}
-              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-            >
-              {option.label}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -310,7 +298,10 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
             </select>
           </div>
         </div>
+      </div>
 
+      {/* 日付フィルター */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 my-4">
         {/* 開始日フィルター */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -341,6 +332,30 @@ const ImageSearchFilter = memo(function ImageSearchFilter({
               className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
+        </div>
+
+        {/* クイック日付選択 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            クイック日付選択
+          </label>
+          <select
+            onChange={(e) => {
+              const selectedOption = quickDateOptions.find(opt => opt.label === e.target.value);
+              if (selectedOption && onQuickDateSelect) {
+                onQuickDateSelect(selectedOption.start, selectedOption.end);
+              }
+            }}
+            defaultValue=""
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          >
+            <option value="" disabled>期間を選択...</option>
+            {quickDateOptions.map((option) => (
+              <option key={option.label} value={option.label}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

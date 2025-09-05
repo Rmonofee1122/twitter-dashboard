@@ -61,7 +61,7 @@ export default function AccountCreationHistory() {
     }
   }, []);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString("ja-JP", {
       year: "numeric",
       month: "2-digit",
@@ -69,7 +69,11 @@ export default function AccountCreationHistory() {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
+  }, []);
+
+  const isSuspended = useCallback((status: string | null) => {
+    return status === "suspend" || status === "suspended";
+  }, []);
 
   if (loading) {
     return (
@@ -156,15 +160,22 @@ export default function AccountCreationHistory() {
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {getStatusIcon(account.status)}
-                        <span
-                          className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
-                            status
-                          )}`}
-                        >
-                          {getStatusText(status)}
-                        </span>
+                      <div className="flex flex-col">
+                        <div className="flex items-center">
+                          {getStatusIcon(account.status)}
+                          <span
+                            className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
+                              status
+                            )}`}
+                          >
+                            {getStatusText(status)}
+                          </span>
+                        </div>
+                        {isSuspended(account.status) && account.shadowban_check_at && (
+                          <div className="text-xs text-gray-500 mt-1 ml-6">
+                            凍結判定: {formatDate(account.shadowban_check_at)}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">

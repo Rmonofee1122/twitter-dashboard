@@ -56,4 +56,5 @@ export interface TwitterAccountInfo {
   log_created_at: string;
   device_base64: string | null;
   app_login: string | null;
+  shadowban_check_at: string;
 }

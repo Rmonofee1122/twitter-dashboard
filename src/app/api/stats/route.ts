@@ -447,7 +447,7 @@ export async function fetchActiveAccounts(
     const to = from + limit - 1;
 
     let query = supabase
-      .from("twitter_account_v2")
+      .from("twitter_account_v3")
       .select("*", { count: "exact" })
       .or('status.eq.active,status.eq."active"');
 
@@ -541,7 +541,7 @@ export async function fetchBannedAccounts(
     const to = from + limit - 1;
 
     let query = supabase
-      .from("twitter_account_v2")
+      .from("twitter_account_v3")
       .select("*", { count: "exact" })
       .or("status.eq.suspend,status.eq.suspended");
 
@@ -576,6 +576,55 @@ export async function fetchBannedAccounts(
   }
 }
 
+export async function fetchShadowbanAccounts(
+  page: number = 1,
+  limit: number = 10,
+  startDate?: string,
+  endDate?: string,
+  searchTerm?: string
+): Promise<{ data: any[]; totalCount: number }> {
+  try {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase
+      .from("twitter_account_v3")
+      .select("*", { count: "exact" })
+      .or(
+        "status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"
+      );
+
+    if (startDate) {
+      query = query.gte("created_at", startDate + "T00:00:00");
+    }
+    if (endDate) {
+      query = query.lte("created_at", endDate + "T23:59:59");
+    }
+    if (searchTerm) {
+      query = query.or(
+        `twitter_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,create_ip.ilike.%${searchTerm}%`
+      );
+    }
+
+    const { data, error, count } = await query
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error("Shadowbanned accounts fetch error:", error);
+      return { data: [], totalCount: 0 };
+    }
+
+    return {
+      data: data || [],
+      totalCount: count || 0,
+    };
+  } catch (error) {
+    console.error("Shadowbanned accounts fetch error:", error);
+    return { data: [], totalCount: 0 };
+  }
+}
+
 export async function fetchNotfoundAccounts(
   page: number = 1,
   limit: number = 10,
@@ -588,7 +637,7 @@ export async function fetchNotfoundAccounts(
     const to = from + limit - 1;
 
     let query = supabase
-      .from("twitter_account_v2")
+      .from("twitter_account_v3")
       .select("*", { count: "exact" })
       .or("status.eq.not_found");
 

@@ -26,6 +26,8 @@ import {
   Image,
   FileText,
   EyeOff,
+  AlertTriangleIcon,
+  CheckCircle,
 } from "lucide-react";
 
 const navigation = [
@@ -46,15 +48,20 @@ const navigation = [
     href: "/accounts",
     icon: Users,
     submenu: [
-      { name: "アカウント一覧", href: "/accounts", icon: Users },
+      { name: "全ステータス", href: "/accounts", icon: Users },
       {
-        name: "アクティブアカウント",
+        name: "アクティブ",
         href: "/accounts/active",
-        icon: UserCheck,
+        icon: CheckCircle,
       },
-      { name: "保留中アカウント", href: "/accounts/pending", icon: Clock },
-      { name: "凍結アカウント", href: "/accounts/banned", icon: UserX },
-      { name: "未発見アカウント", href: "/accounts/notfound", icon: EyeOff },
+      {
+        name: "シャドBAN",
+        href: "/accounts/shadowban",
+        icon: AlertTriangleIcon,
+      },
+      { name: "保留中", href: "/accounts/pending", icon: Clock },
+      { name: "凍結", href: "/accounts/banned", icon: UserX },
+      { name: "未発見", href: "/accounts/notfound", icon: EyeOff },
     ],
   },
   {

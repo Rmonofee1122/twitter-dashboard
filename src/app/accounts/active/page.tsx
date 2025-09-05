@@ -39,6 +39,8 @@ export default function ActiveAccountsPage() {
     }
   };
 
+  const totalCountStr = totalCount.toLocaleString();
+
   const handleDateFilterClear = () => {
     setStartDate("");
     setEndDate("");
@@ -53,8 +55,8 @@ export default function ActiveAccountsPage() {
   return (
     <div className="space-y-6">
       <AccountPageHeader
-        title="アクティブアカウント"
-        description="ログイン済みのアクティブなTwitterアカウント一覧"
+        title={`アクティブアカウント`}
+        description={`ログイン済みのアクティブなTwitterアカウント一覧 ${totalCountStr}件`}
         onRefresh={loadActiveAccounts}
         refreshButtonColor="bg-green-100 text-green-700 hover:bg-green-200"
       />

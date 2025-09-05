@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TwitterCreateLog } from "@/types/database";
-import { fetchNotfoundAccounts } from "@/app/api/stats/route";
+import { TwitterAccountInfo } from "@/types/database";
+import { fetchShadowbanAccounts } from "@/app/api/stats/route";
 import AccountPageHeader from "@/components/accounts/account-page-header";
 import AccountDataTable from "@/components/accounts/account-data-table";
 
-export default function NotfoundAccountsPage() {
-  const [accounts, setAccounts] = useState<TwitterCreateLog[]>([]);
+export default function ActiveAccountsPage() {
+  const [accounts, setAccounts] = useState<TwitterAccountInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -17,13 +17,13 @@ export default function NotfoundAccountsPage() {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    loadNotfoundAccounts();
+    loadShadowbanAccounts();
   }, [currentPage, startDate, endDate, searchTerm]);
 
-  const loadNotfoundAccounts = async () => {
+  const loadShadowbanAccounts = async () => {
     try {
       setLoading(true);
-      const result = await fetchNotfoundAccounts(
+      const result = await fetchShadowbanAccounts(
         currentPage,
         itemsPerPage,
         startDate,
@@ -33,11 +33,13 @@ export default function NotfoundAccountsPage() {
       setAccounts(result.data);
       setTotalCount(result.totalCount);
     } catch (error) {
-      console.error("Error fetching Notfound accounts:", error);
+      console.error("Error fetching Shadowban accounts:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  const totalCountStr = totalCount.toLocaleString();
 
   const handleDateFilterClear = () => {
     setStartDate("");
@@ -53,18 +55,18 @@ export default function NotfoundAccountsPage() {
   return (
     <div className="space-y-6">
       <AccountPageHeader
-        title={`未発見アカウント (${totalCount}件)`}
-        description="システムから未発見のアカウント一覧"
-        onRefresh={loadNotfoundAccounts}
-        refreshButtonColor="bg-gray-100 text-gray-700 hover:bg-gray-200"
+        title={`シャドBANアカウント`}
+        description={`検索制限や検索サジェスト制限があるTwitterアカウント一覧 ${totalCountStr}件`}
+        onRefresh={loadShadowbanAccounts}
+        refreshButtonColor="bg-orange-100 text-orange-700 hover:bg-orange-200"
       />
       <AccountDataTable
         accounts={accounts}
         loading={loading}
-        onRefresh={loadNotfoundAccounts}
-        title="未発見アカウント"
-        emptyMessage="未発見アカウントがありません"
-        refreshButtonColor="bg-gray-100 text-gray-700 hover:bg-gray-200"
+        onRefresh={loadShadowbanAccounts}
+        title="シャドBANアカウント"
+        emptyMessage="シャドBANアカウントがありません"
+        refreshButtonColor="bg-orange-100 text-orange-700 hover:bg-orange-200"
         currentPage={currentPage}
         totalCount={totalCount}
         itemsPerPage={itemsPerPage}

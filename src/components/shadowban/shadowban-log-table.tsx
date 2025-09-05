@@ -30,6 +30,10 @@ interface ShadowbanLogTableProps {
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  itemsPerPage?: number;
+  onItemsPerPageChange?: (itemsPerPage: number) => void;
+  currentPage?: number;
+  totalLogs?: number;
 }
 
 interface ActionButtonProps {
@@ -61,6 +65,10 @@ const ShadowbanLogTable = memo(function ShadowbanLogTable({
   loading,
   error,
   onRetry,
+  itemsPerPage = 20,
+  onItemsPerPageChange,
+  currentPage = 1,
+  totalLogs,
 }: ShadowbanLogTableProps) {
   const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString("ja-JP", {
@@ -127,6 +135,32 @@ const ShadowbanLogTable = memo(function ShadowbanLogTable({
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      {/* 表示件数セレクター */}
+      {onItemsPerPageChange && (
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <span className="text-sm text-gray-600">表示件数:</span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => onItemsPerPageChange(parseInt(e.target.value))}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              <option value={10}>10件</option>
+              <option value={20}>20件</option>
+              <option value={50}>50件</option>
+              <option value={100}>100件</option>
+            </select>
+          </div>
+          <div className="text-sm text-gray-500">
+            {totalLogs ? (() => {
+              const startIndex = (currentPage - 1) * itemsPerPage + 1;
+              const endIndex = Math.min(currentPage * itemsPerPage, totalLogs);
+              return `${startIndex}-${endIndex}件目 / 全${totalLogs.toLocaleString()}件`;
+            })() : `全${logs.length}件`}
+          </div>
+        </div>
+      )}
+      
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">

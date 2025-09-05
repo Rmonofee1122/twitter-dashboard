@@ -15,29 +15,9 @@ export async function GET(request: Request) {
     }
 
     // 指定されたtwitter_idのシャドバンログを取得（最新順）
-    const { data, error } = await supabase
-      .from("shadowban_account_log")
-      .select(
-        `
-        log_id,
-        logged_at,
-        status,
-        not_found,
-        suspend,
-        protect,
-        no_tweet,
-        search_ban,
-        search_suggestion_ban,
-        no_reply,
-        ghost_ban,
-        reply_deboosting,
-        created_at,
-        updated_at
-      `
-      )
-      .eq("twitter_id", twitterId)
-      .order("logged_at", { ascending: false })
-      .limit(limit);
+    const { data, error } = await supabase.rpc("get_status_changes", {
+      p_twitter_id: twitterId,
+    });
 
     if (error) {
       console.error("Shadowban logs取得エラー:", error);

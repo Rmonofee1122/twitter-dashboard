@@ -1,7 +1,10 @@
 "use client";
 
 import { Eye, AlertTriangle, type LucideIcon } from "lucide-react";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState } from "react";
+import ShadowbanLogDetailModal from "./shadowban-log-detail-modal";
+import { TwitterAccountInfo } from "@/types/database";
+import { fetchAccountDetails } from "@/app/api/stats/route";
 
 export interface ShadowbanLogEntry {
   log_id: number;
@@ -70,6 +73,9 @@ const ShadowbanLogTable = memo(function ShadowbanLogTable({
   currentPage = 1,
   totalLogs,
 }: ShadowbanLogTableProps) {
+  const [selectedAccount, setSelectedAccount] = useState<TwitterAccountInfo | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoadingAccount, setIsLoadingAccount] = useState(false);
   const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString("ja-JP", {
       year: "numeric",
@@ -100,6 +106,26 @@ const ShadowbanLogTable = memo(function ShadowbanLogTable({
       return "アカウント未発見";
     }
     return "正常";
+  }, []);
+
+  const handleViewAccountDetails = useCallback(async (twitterId: string) => {
+    setIsLoadingAccount(true);
+    try {
+      const accountDetails = await fetchAccountDetails(twitterId);
+      if (accountDetails) {
+        setSelectedAccount(accountDetails);
+        setIsModalOpen(true);
+      }
+    } catch (error) {
+      console.error("アカウント詳細取得失敗:", error);
+    } finally {
+      setIsLoadingAccount(false);
+    }
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    setSelectedAccount(null);
   }, []);
 
   if (loading) {
@@ -152,15 +178,20 @@ const ShadowbanLogTable = memo(function ShadowbanLogTable({
             </select>
           </div>
           <div className="text-sm text-gray-500">
-            {totalLogs ? (() => {
-              const startIndex = (currentPage - 1) * itemsPerPage + 1;
-              const endIndex = Math.min(currentPage * itemsPerPage, totalLogs);
-              return `${startIndex}-${endIndex}件目 / 全${totalLogs.toLocaleString()}件`;
-            })() : `全${logs.length}件`}
+            {totalLogs
+              ? (() => {
+                  const startIndex = (currentPage - 1) * itemsPerPage + 1;
+                  const endIndex = Math.min(
+                    currentPage * itemsPerPage,
+                    totalLogs
+                  );
+                  return `${startIndex}-${endIndex}件目 / 全${totalLogs.toLocaleString()}件`;
+                })()
+              : `全${logs.length}件`}
           </div>
         </div>
       )}
-      
+
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
@@ -275,7 +306,7 @@ const ShadowbanLogTable = memo(function ShadowbanLogTable({
                     <ActionButton
                       icon={Eye}
                       color="text-blue-600 hover:text-blue-700"
-                      // onClick={}
+                      onClick={() => handleViewAccountDetails(log.twitter_id)}
                       aria-label="アカウント詳細を表示"
                     />
                   </div>
@@ -285,6 +316,14 @@ const ShadowbanLogTable = memo(function ShadowbanLogTable({
           </tbody>
         </table>
       </div>
+
+      <ShadowbanLogDetailModal
+        account={selectedAccount}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onAccountUpdate={() => {}} // ログページでは更新不要
+        onAccountRefresh={fetchAccountDetails}
+      />
     </div>
   );
 });

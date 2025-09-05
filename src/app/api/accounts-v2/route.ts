@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const to = from + limit - 1;
 
     // 必要な列のみを取得してパフォーマンス向上
-    let query = supabase.from("twitter_account_v2").select(
+    let query = supabase.from("twitter_account_v3").select(
       `
         id,
         twitter_id,
@@ -33,7 +33,8 @@ export async function GET(request: Request) {
         search_ban,
         search_suggestion_ban,
         no_reply,
-        ghost_ban
+        ghost_ban,
+        shadowban_check_at
       `,
       { count: "exact" }
     );

@@ -306,100 +306,100 @@ const AccountTable = memo(function AccountTable({
     return status === "suspend" || status === "suspended";
   }, []);
 
-  const fetchSuspendDate = useCallback(
-    async (twitterId: string) => {
-      // 既に取得中または取得済みの場合はスキップ
-      if (fetchingDates.has(twitterId) || suspendDates[twitterId]) {
-        return;
-      }
+  // const fetchSuspendDate = useCallback(
+  //   async (twitterId: string) => {
+  //     // 既に取得中または取得済みの場合はスキップ
+  //     if (fetchingDates.has(twitterId) || suspendDates[twitterId]) {
+  //       return;
+  //     }
 
-      setFetchingDates((prev) => new Set(prev).add(twitterId));
+  //     setFetchingDates((prev) => new Set(prev).add(twitterId));
 
-      try {
-        const response = await fetch(
-          `/api/shadowban-log?twitter_id=${encodeURIComponent(twitterId)}`
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
+  //     try {
+  //       const response = await fetch(
+  //         `/api/shadowban-log?twitter_id=${encodeURIComponent(twitterId)}`
+  //       );
+  //       if (!response.ok) {
+  //         throw new Error(`HTTP ${response.status}`);
+  //       }
 
-        const result = await response.json();
-        if (result.data && result.data.updated_at) {
-          setSuspendDates((prev) => ({
-            ...prev,
-            [twitterId]: result.data.updated_at,
-          }));
-        }
-      } catch (error) {
-        console.error(`凍結判定日取得エラー (${twitterId}):`, error);
-      } finally {
-        setFetchingDates((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(twitterId);
-          return newSet;
-        });
-      }
-    },
-    [fetchingDates, suspendDates]
-  );
+  //       const result = await response.json();
+  //       if (result.data && result.data.updated_at) {
+  //         setSuspendDates((prev) => ({
+  //           ...prev,
+  //           [twitterId]: result.data.updated_at,
+  //         }));
+  //       }
+  //     } catch (error) {
+  //       console.error(`凍結判定日取得エラー (${twitterId}):`, error);
+  //     } finally {
+  //       setFetchingDates((prev) => {
+  //         const newSet = new Set(prev);
+  //         newSet.delete(twitterId);
+  //         return newSet;
+  //       });
+  //     }
+  //   },
+  //   [fetchingDates, suspendDates]
+  // );
 
-  // 凍結ステータスのアカウントの凍結判定日を取得（遅延読み込みで最適化）
-  const fetchSuspendDatesForAccounts = useCallback(async () => {
-    const suspendedAccounts = accounts.filter(
-      (account) =>
-        isSuspended(account.status) &&
-        account.twitter_id &&
-        !suspendDates[account.twitter_id] &&
-        !fetchingDates.has(account.twitter_id)
-    );
+  // // 凍結ステータスのアカウントの凍結判定日を取得（遅延読み込みで最適化）
+  // const fetchSuspendDatesForAccounts = useCallback(async () => {
+  //   const suspendedAccounts = accounts.filter(
+  //     (account) =>
+  //       isSuspended(account.status) &&
+  //       account.twitter_id &&
+  //       !suspendDates[account.twitter_id] &&
+  //       !fetchingDates.has(account.twitter_id)
+  //   );
 
-    if (suspendedAccounts.length === 0) return;
+  //   if (suspendedAccounts.length === 0) return;
 
-    // 現在表示されているページの凍結アカウントのみ優先取得
-    const visibleAccounts = suspendedAccounts.slice(0, 5); // 最初の5件のみ即座に取得
-    const remainingAccounts = suspendedAccounts.slice(5);
+  //   // 現在表示されているページの凍結アカウントのみ優先取得
+  //   const visibleAccounts = suspendedAccounts.slice(0, 5); // 最初の5件のみ即座に取得
+  //   const remainingAccounts = suspendedAccounts.slice(5);
 
-    // 優先アカウントを並列取得
-    if (visibleAccounts.length > 0) {
-      await Promise.allSettled(
-        visibleAccounts.map((account) =>
-          account.twitter_id
-            ? fetchSuspendDate(account.twitter_id)
-            : Promise.resolve()
-        )
-      );
-    }
+  //   // 優先アカウントを並列取得
+  //   if (visibleAccounts.length > 0) {
+  //     await Promise.allSettled(
+  //       visibleAccounts.map((account) =>
+  //         account.twitter_id
+  //           ? fetchSuspendDate(account.twitter_id)
+  //           : Promise.resolve()
+  //       )
+  //     );
+  //   }
 
-    // 残りのアカウントは遅延取得（バックグラウンドで実行）
-    if (remainingAccounts.length > 0) {
-      setTimeout(async () => {
-        const batchSize = 2; // バッチサイズを削減
-        for (let i = 0; i < remainingAccounts.length; i += batchSize) {
-          const batch = remainingAccounts.slice(i, i + batchSize);
-          await Promise.allSettled(
-            batch.map((account) =>
-              account.twitter_id
-                ? fetchSuspendDate(account.twitter_id)
-                : Promise.resolve()
-            )
-          );
-          // より長い間隔で実行（UX への影響を最小化）
-          if (i + batchSize < remainingAccounts.length) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-          }
-        }
-      }, 100);
-    }
-  }, [accounts, isSuspended, suspendDates, fetchSuspendDate, fetchingDates]);
+  //   // 残りのアカウントは遅延取得（バックグラウンドで実行）
+  //   if (remainingAccounts.length > 0) {
+  //     setTimeout(async () => {
+  //       const batchSize = 2; // バッチサイズを削減
+  //       for (let i = 0; i < remainingAccounts.length; i += batchSize) {
+  //         const batch = remainingAccounts.slice(i, i + batchSize);
+  //         await Promise.allSettled(
+  //           batch.map((account) =>
+  //             account.twitter_id
+  //               ? fetchSuspendDate(account.twitter_id)
+  //               : Promise.resolve()
+  //           )
+  //         );
+  //         // より長い間隔で実行（UX への影響を最小化）
+  //         if (i + batchSize < remainingAccounts.length) {
+  //           await new Promise((resolve) => setTimeout(resolve, 500));
+  //         }
+  //       }
+  //     }, 100);
+  //   }
+  // }, [accounts, isSuspended, suspendDates, fetchSuspendDate, fetchingDates]);
 
-  // アカウントリストが変更されたときに凍結判定日を取得（デバウンス）
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchSuspendDatesForAccounts();
-    }, 100); // 100ms のデバウンス
+  // // アカウントリストが変更されたときに凍結判定日を取得（デバウンス）
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     fetchSuspendDatesForAccounts();
+  //   }, 100); // 100ms のデバウンス
 
-    return () => clearTimeout(timer);
-  }, [accounts.length]); // accounts.length のみを監視
+  //   return () => clearTimeout(timer);
+  // }, [accounts.length]); // accounts.length のみを監視
 
   const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString("ja-JP", {
@@ -510,9 +510,9 @@ const AccountTable = memo(function AccountTable({
                 </div>
               )}
             </div>
-            {isSuspendedStatus && account.twitter_id && suspendDate && (
+            {isSuspendedStatus && account.twitter_id && (
               <div className="text-xs text-gray-500 mt-1 ml-6">
-                凍結判定: {formatDate(suspendDate)}
+                凍結判定: {formatDate(account.shadowban_check_at)}
               </div>
             )}
           </div>

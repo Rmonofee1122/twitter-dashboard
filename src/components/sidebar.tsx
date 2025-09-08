@@ -29,6 +29,7 @@ import {
   AlertTriangleIcon,
   CheckCircle,
   CircleX,
+  Clock3,
 } from "lucide-react";
 
 const navigation = [
@@ -61,6 +62,7 @@ const navigation = [
         icon: AlertTriangleIcon,
       },
       { name: "審査中", href: "/accounts/pending", icon: Clock },
+      { name: "一時制限", href: "/accounts/temp-locked", icon: Clock3 },
       { name: "凍結", href: "/accounts/banned", icon: CircleX },
       { name: "未発見", href: "/accounts/notfound", icon: EyeOff },
     ],

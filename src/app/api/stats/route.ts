@@ -931,6 +931,99 @@ export async function fetchNotfoundAccounts(
   }
 }
 
+// 一時制限アカウントを取得
+export async function fetchTempLockedAccounts(
+  page: number = 1,
+  limit: number = 10,
+  startDate?: string,
+  endDate?: string,
+  searchTerm?: string,
+  sortField?: string,
+  sortDirection?: string
+): Promise<{ data: any[]; totalCount: number }> {
+  try {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase
+      .from("twitter_account_v3")
+      .select("*", { count: "exact" })
+      .eq("status", "temp_locked");
+
+    // 検索フィルター
+    if (searchTerm) {
+      query = query.or(
+        `twitter_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`
+      );
+    }
+
+    // 日付フィルター
+    if (startDate) {
+      query = query.gte("log_created_at", startDate);
+    }
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      query = query.lte("log_created_at", endDateTime.toISOString());
+    }
+
+    // ソート処理
+    if (sortField && sortDirection && (sortDirection === "asc" || sortDirection === "desc")) {
+      const ascending = sortDirection === "asc";
+      
+      switch (sortField) {
+        case "created_at":
+          query = query.order("log_created_at", { ascending });
+          break;
+        case "id":
+          query = query.order("id", { ascending });
+          break;
+        case "status":
+          query = query.order("status", { ascending });
+          break;
+        case "updated_at":
+          query = query.order("updated_at", { ascending });
+          break;
+        case "twitter_id":
+          query = query.order("twitter_id", { ascending });
+          break;
+        case "follower_count":
+          query = query.order("follower_count", { ascending, nullsFirst: false });
+          break;
+        case "following_count":
+          query = query.order("following_count", { ascending, nullsFirst: false });
+          break;
+        case "posts_count":
+          query = query.order("posts_count", { ascending, nullsFirst: false });
+          break;
+        default:
+          query = query.order("log_created_at", { ascending: false });
+          break;
+      }
+    } else {
+      query = query.order("log_created_at", { ascending: false });
+    }
+
+    // ページネーション
+    query = query.range(from, to);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error("Error fetching temp locked accounts:", error);
+      throw error;
+    }
+
+    return {
+      data: data || [],
+      totalCount: count || 0,
+    };
+  } catch (error) {
+    console.error("Error in fetchTempLockedAccounts:", error);
+    return { data: [], totalCount: 0 };
+  }
+}
+
 function getNextMonth(currentMonth: string): string {
   const [year, month] = currentMonth.split("-").map(Number);
   if (month === 12) {

@@ -6,7 +6,8 @@ export type StatusType =
   | "stopped"
   | "examination"
   | "not_found"
-  | "suspended";
+  | "suspended"
+  | "temp_locked";
 
 export function getAccountStatus(
   status: string | null
@@ -42,6 +43,11 @@ export function getAccountStatus(
   // 未発見: not_found
   if (statusValue === "not_found") {
     return "not_found";
+  }
+
+  // 一時制限: temp_locked
+  if (statusValue === "temp_locked") {
+    return "temp_locked";
   }
 
   // 凍結: suspend または suspended
@@ -86,6 +92,11 @@ export function getStatusText(status: string | null): string {
     return "未発見";
   }
 
+  // 一時制限: temp_locked
+  if (statusValue === "temp_locked") {
+    return "一時制限";
+  }
+
   // 凍結: suspend または suspended
   if (statusValue === "suspend" || statusValue === "suspended") {
     return "凍結";
@@ -128,6 +139,11 @@ export function getStatusBadgeColor(status: string | null): string {
     return "bg-gray-100 text-gray-800";
   }
 
+  // 一時制限: temp_locked
+  if (statusValue === "temp_locked") {
+    return "bg-yellow-100 text-yellow-800";
+  }
+
   // 凍結: suspend または suspended
   if (statusValue === "suspend" || statusValue === "suspended") {
     return "bg-red-100 text-red-800";
@@ -168,6 +184,11 @@ export function getStatusIcon(status: string | null): string {
   // 未発見: not_found
   if (statusValue === "not_found") {
     return "EyeOff";
+  }
+
+  // 一時制限: temp_locked
+  if (statusValue === "temp_locked") {
+    return "Clock3";
   }
 
   // 凍結: suspend または suspended

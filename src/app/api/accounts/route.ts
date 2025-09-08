@@ -181,6 +181,7 @@ export async function GET(request: Request) {
             stopped: 0,
             examination: 0,
             suspended: 0,
+            temp_locked: 0,
           };
 
           statusData.forEach((record) => {
@@ -196,6 +197,8 @@ export async function GET(request: Request) {
             ) {
               counts.shadowban += plus_counts;
             } else if (status === "stop") {
+              counts.stopped = +plus_counts;
+            } else if (status === "temp_locked") {
               counts.stopped = +plus_counts;
             } else if (status === "examination") {
               counts.examination += plus_counts;

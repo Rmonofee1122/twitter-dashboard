@@ -7,6 +7,7 @@ import DomainPageHeader from "@/components/stats/domain/domain-page-header";
 import DomainSummaryCards from "@/components/stats/domain/domain-summary-cards";
 import DomainFiltersSection from "@/components/stats/domain/domain-filters-section";
 import DomainRankingChart from "@/components/stats/domain/domain-ranking-chart";
+import DomainStatusTable from "@/components/stats/domain/domain-status-table";
 
 interface DomainStatsData {
   domainRanking: DomainData[];
@@ -148,6 +149,8 @@ export default function DomainStatsPage() {
       <DomainRankingChart 
         domainRanking={domainStatsData?.domainRanking || []} 
       />
+
+      <DomainStatusTable />
     </div>
   );
 }

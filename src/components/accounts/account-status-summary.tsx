@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Pause,
   LucideIcon,
+  Clock3,
 } from "lucide-react";
 import { memo, useMemo } from "react";
 
@@ -52,9 +53,9 @@ const AccountStatusSummary = memo(function AccountStatusSummary({
         bgColor: "bg-orange-50",
       },
       {
-        label: "一時停止",
+        label: "一時制限",
         count: statusCounts.stopped,
-        icon: Pause,
+        icon: Clock3,
         color: "text-blue-600",
         bgColor: "bg-blue-50",
       },

@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { fetchDomainRanking, type DomainData } from "@/app/api/stats/route";
+import { type DomainData } from "@/app/api/stats/route";
 import DomainCreationTrendsChart from "@/components/stats/domain-creation-trends-chart";
 import DomainPageHeader from "@/components/stats/domain/domain-page-header";
 import DomainSummaryCards from "@/components/stats/domain/domain-summary-cards";
 import DomainFiltersSection from "@/components/stats/domain/domain-filters-section";
-import DomainRankingChart from "@/components/stats/domain/domain-ranking-chart";
-import DomainStatusTable from "@/components/stats/domain/domain-status-table";
 
 interface DomainStatsData {
   domainRanking: DomainData[];
@@ -125,8 +123,8 @@ export default function DomainStatsPage() {
     <div className="space-y-6">
       {/* ドメインページヘッダー */}
       <DomainPageHeader
-        title="ドメイン別統計"
-        description="メールドメインごとのアカウント作成数の詳細統計"
+        title="ドメイン別アカウント作成推移"
+        description="メールドメインごとのアカウント作成数の推移"
       />
 
       {/* ドメインフィルター */}
@@ -152,14 +150,6 @@ export default function DomainStatsPage() {
       {domainStatsData?.trendData && (
         <DomainCreationTrendsChart trendData={domainStatsData.trendData} />
       )}
-
-      {/* ドメインランキング */}
-      <DomainRankingChart
-        domainRanking={domainStatsData?.domainRanking || []}
-      />
-
-      {/* ドメインステータステーブル */}
-      <DomainStatusTable />
     </div>
   );
 }

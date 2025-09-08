@@ -16,7 +16,8 @@ export async function GET(request: Request) {
     // domain_view02から必要なデータを取得
     let query = supabase
       .from("domain_view02")
-      .select("*", { count: "exact" });
+      .select("*", { count: "exact" })
+      .order("active_count", { ascending: false, nullsFirst: false });
 
     // 検索フィルター
     if (search) {
@@ -24,9 +25,13 @@ export async function GET(request: Request) {
     }
 
     // ソート処理
-    if (sortField && sortDirection && (sortDirection === "asc" || sortDirection === "desc")) {
+    if (
+      sortField &&
+      sortDirection &&
+      (sortDirection === "asc" || sortDirection === "desc")
+    ) {
       const ascending = sortDirection === "asc";
-      
+
       switch (sortField) {
         case "domain":
           query = query.order("domain", { ascending });
@@ -35,10 +40,16 @@ export async function GET(request: Request) {
           query = query.order("active_count", { ascending, nullsFirst: false });
           break;
         case "suspended_count":
-          query = query.order("suspended_count", { ascending, nullsFirst: false });
+          query = query.order("suspended_count", {
+            ascending,
+            nullsFirst: false,
+          });
           break;
         case "temp_locked_count":
-          query = query.order("temp_locked_count", { ascending, nullsFirst: false });
+          query = query.order("temp_locked_count", {
+            ascending,
+            nullsFirst: false,
+          });
           break;
         case "total_count":
           // 総数でソート（計算フィールド）
@@ -66,10 +77,14 @@ export async function GET(request: Request) {
     }
 
     // 総数計算を追加
-    const enrichedData = data?.map(item => ({
-      ...item,
-      total_count: (item.active_count || 0) + (item.suspended_count || 0) + (item.temp_locked_count || 0)
-    })) || [];
+    const enrichedData =
+      data?.map((item) => ({
+        ...item,
+        total_count:
+          (item.active_count || 0) +
+          (item.suspended_count || 0) +
+          (item.temp_locked_count || 0),
+      })) || [];
 
     // レスポンスにキャッシュヘッダーを追加
     const response = NextResponse.json({
@@ -79,9 +94,9 @@ export async function GET(request: Request) {
       limit,
       totalPages: Math.ceil((count || 0) / limit),
     });
-    
-    response.headers.set('Cache-Control', 'public, max-age=120, s-maxage=120');
-    
+
+    response.headers.set("Cache-Control", "public, max-age=120, s-maxage=120");
+
     return response;
   } catch (error) {
     console.error("API エラー:", error);

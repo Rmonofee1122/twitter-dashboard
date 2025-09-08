@@ -1,13 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { fetchDomainRanking, type DomainData } from "@/app/api/stats/route";
-import DomainCreationTrendsChart from "@/components/stats/domain-creation-trends-chart";
+import { type DomainData } from "@/app/api/stats/route";
 import DomainPageHeader from "@/components/stats/domain/domain-page-header";
 import DomainSummaryCards from "@/components/stats/domain/domain-summary-cards";
-import DomainFiltersSection from "@/components/stats/domain/domain-filters-section";
 import DomainRankingChart from "@/components/stats/domain/domain-ranking-chart";
-import DomainStatusTable from "@/components/stats/domain/domain-status-table";
 
 interface DomainStatsData {
   domainRanking: DomainData[];
@@ -69,50 +66,6 @@ export default function DomainStatsPage() {
     fetchDomainStats();
   }, [fetchDomainStats]);
 
-  const handleStartDateChange = useCallback(
-    (date: string) => {
-      setStartDate(date);
-      fetchDomainStats(date, endDate, selectedDomains);
-    },
-    [endDate, selectedDomains, fetchDomainStats]
-  );
-
-  const handleEndDateChange = useCallback(
-    (date: string) => {
-      setEndDate(date);
-      fetchDomainStats(startDate, date, selectedDomains);
-    },
-    [startDate, selectedDomains, fetchDomainStats]
-  );
-
-  const handleQuickSelect = useCallback(
-    (start: string, end: string) => {
-      setStartDate(start);
-      setEndDate(end);
-      fetchDomainStats(start, end, selectedDomains);
-    },
-    [selectedDomains, fetchDomainStats]
-  );
-
-  const handleClearFilter = useCallback(() => {
-    setStartDate("");
-    setEndDate("");
-    fetchDomainStats("", "", selectedDomains);
-  }, [selectedDomains, fetchDomainStats]);
-
-  const handleDomainChange = useCallback(
-    (domains: string[]) => {
-      setSelectedDomains(domains);
-      fetchDomainStats(startDate, endDate, domains);
-    },
-    [startDate, endDate, fetchDomainStats]
-  );
-
-  const handleClearDomainFilter = useCallback(() => {
-    setSelectedDomains([]);
-    fetchDomainStats(startDate, endDate, []);
-  }, [startDate, endDate, fetchDomainStats]);
-
   if (loading) {
     return (
       <div className="p-6">
@@ -125,22 +78,8 @@ export default function DomainStatsPage() {
     <div className="space-y-6">
       {/* ドメインページヘッダー */}
       <DomainPageHeader
-        title="ドメイン別統計"
-        description="メールドメインごとのアカウント作成数の詳細統計"
-      />
-
-      {/* ドメインフィルター */}
-      <DomainFiltersSection
-        startDate={startDate}
-        endDate={endDate}
-        selectedDomains={selectedDomains}
-        availableDomains={domainStatsData?.allDomains || []}
-        onStartDateChange={handleStartDateChange}
-        onEndDateChange={handleEndDateChange}
-        onQuickSelect={handleQuickSelect}
-        onClearDateFilter={handleClearFilter}
-        onDomainChange={handleDomainChange}
-        onClearDomainFilter={handleClearDomainFilter}
+        title="ドメイン別作成数ランキング"
+        description="メールドメインごとのアカウント作成数のランキング"
       />
 
       {/* ドメインサマリー */}
@@ -148,18 +87,10 @@ export default function DomainStatsPage() {
         <DomainSummaryCards summary={domainStatsData.summary} />
       )}
 
-      {/* ドメイン作成推移 */}
-      {domainStatsData?.trendData && (
-        <DomainCreationTrendsChart trendData={domainStatsData.trendData} />
-      )}
-
       {/* ドメインランキング */}
       <DomainRankingChart
         domainRanking={domainStatsData?.domainRanking || []}
       />
-
-      {/* ドメインステータステーブル */}
-      <DomainStatusTable />
     </div>
   );
 }

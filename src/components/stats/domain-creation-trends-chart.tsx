@@ -25,6 +25,8 @@ interface ChartDataPoint {
 
 interface DomainCreationTrendsChartProps {
   trendData?: ChartDataPoint[];
+  startDate?: string;
+  endDate?: string;
 }
 
 const DOMAIN_COLORS = [
@@ -40,7 +42,11 @@ const DOMAIN_COLORS = [
   "#6B7280", // Gray
 ];
 
-export default function DomainCreationTrendsChart({ trendData }: DomainCreationTrendsChartProps) {
+export default function DomainCreationTrendsChart({
+  trendData,
+  startDate,
+  endDate,
+}: DomainCreationTrendsChartProps) {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [domains, setDomains] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,9 +54,11 @@ export default function DomainCreationTrendsChart({ trendData }: DomainCreationT
   useEffect(() => {
     if (trendData && trendData.length > 0) {
       setChartData(trendData);
-      
+
       // ドメイン名を抽出（date以外のキー）
-      const domainKeys = Object.keys(trendData[0]).filter(key => key !== 'date');
+      const domainKeys = Object.keys(trendData[0]).filter(
+        (key) => key !== "date"
+      );
       setDomains(domainKeys);
       setLoading(false);
     } else {
@@ -67,7 +75,7 @@ export default function DomainCreationTrendsChart({ trendData }: DomainCreationT
       }
 
       const data: DomainTrendData[] = await response.json();
-      
+
       // 過去30日分のデータを処理
       const processedData = processChartData(data);
       setChartData(processedData.chartData);
@@ -83,28 +91,28 @@ export default function DomainCreationTrendsChart({ trendData }: DomainCreationT
     // 過去30日の日付を生成
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const dates: string[] = [];
     for (let i = 0; i < 30; i++) {
       const date = new Date(thirtyDaysAgo);
       date.setDate(date.getDate() + i);
-      dates.push(date.toISOString().split('T')[0]);
+      dates.push(date.toISOString().split("T")[0]);
     }
 
     // ドメインの一覧を取得
-    const uniqueDomains = [...new Set(data.map(item => item.domain))];
+    const uniqueDomains = [...new Set(data.map((item) => item.domain))];
 
     // 日付ごとのデータを構築
-    const chartData: ChartDataPoint[] = dates.map(date => {
+    const chartData: ChartDataPoint[] = dates.map((date) => {
       const dayData: ChartDataPoint = { date };
-      
-      uniqueDomains.forEach(domain => {
-        const found = data.find(item => 
-          item.created_date === date && item.domain === domain
+
+      uniqueDomains.forEach((domain) => {
+        const found = data.find(
+          (item) => item.created_date === date && item.domain === domain
         );
         dayData[domain] = found ? found.count : 0;
       });
-      
+
       return dayData;
     });
 
@@ -138,7 +146,9 @@ export default function DomainCreationTrendsChart({ trendData }: DomainCreationT
         <h3 className="text-lg font-semibold text-gray-900">
           ドメイン別アカウント作成推移
         </h3>
-        <span className="text-sm text-gray-500">過去30日間</span>
+        <span className="text-sm text-gray-500">
+          {startDate ? startDate : "過去30日前"} ～ {endDate ? endDate : "今日"}
+        </span>
       </div>
 
       <div className="h-80">
@@ -154,10 +164,7 @@ export default function DomainCreationTrendsChart({ trendData }: DomainCreationT
             <YAxis stroke="#6b7280" fontSize={12} />
             <Tooltip
               labelFormatter={(value) => `日付: ${formatDate(value as string)}`}
-              formatter={(value: number, name: string) => [
-                `${value}件`,
-                name,
-              ]}
+              formatter={(value: number, name: string) => [`${value}件`, name]}
             />
             <Legend />
             {domains.map((domain, index) => (

@@ -46,12 +46,12 @@ const navigation = [
         icon: Globe,
         submenu: [
           { name: "作成推移", href: "/stats/domain/trends", icon: TrendingUp },
-          { name: "ランキング", href: "/stats/domain/ranking", icon: BarChart },
           {
             name: "ステータス別一覧",
             href: "/stats/domain/status",
             icon: Activity,
           },
+          // { name: "ランキング", href: "/stats/domain/ranking", icon: BarChart },
         ],
       },
       { name: "IP別統計", href: "/stats/ip", icon: MapPin },
@@ -203,21 +203,29 @@ export default function Sidebar() {
                           <ul className="mt-2 ml-6 space-y-1">
                             {item.submenu.map((subItem) => {
                               const isSubActive = pathname === subItem.href;
-                              const isSubExpanded = expandedMenus.includes(subItem.name);
-                              const hasSubSubmenu = subItem.submenu && subItem.submenu.length > 0;
+                              const isSubExpanded = expandedMenus.includes(
+                                subItem.name
+                              );
+                              const hasSubSubmenu =
+                                subItem.submenu && subItem.submenu.length > 0;
 
                               return (
                                 <li key={subItem.name}>
                                   {hasSubSubmenu ? (
                                     <div>
                                       <button
-                                        onClick={() => toggleSubmenu(subItem.name)}
+                                        onClick={() =>
+                                          toggleSubmenu(subItem.name)
+                                        }
                                         className={`
                                           w-full flex items-center justify-between px-4 py-2 rounded-lg text-sm
                                           transition-colors duration-200
                                           ${
                                             isSubActive ||
-                                            subItem.submenu?.some((nestedSub) => pathname === nestedSub.href)
+                                            subItem.submenu?.some(
+                                              (nestedSub) =>
+                                                pathname === nestedSub.href
+                                            )
                                               ? "bg-blue-100 text-blue-700"
                                               : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                                           }
@@ -228,7 +236,8 @@ export default function Sidebar() {
                                             className={`mr-3 h-4 w-4 ${
                                               isSubActive ||
                                               subItem.submenu?.some(
-                                                (nestedSub) => pathname === nestedSub.href
+                                                (nestedSub) =>
+                                                  pathname === nestedSub.href
                                               )
                                                 ? "text-blue-700"
                                                 : "text-gray-400"
@@ -245,14 +254,18 @@ export default function Sidebar() {
 
                                       {isSubExpanded && (
                                         <ul className="mt-1 ml-6 space-y-1">
-                                          {subItem.submenu.map((nestedSubItem) => {
-                                            const isNestedActive = pathname === nestedSubItem.href;
-                                            return (
-                                              <li key={nestedSubItem.name}>
-                                                <Link
-                                                  href={nestedSubItem.href}
-                                                  onClick={() => setIsOpen(false)}
-                                                  className={`
+                                          {subItem.submenu.map(
+                                            (nestedSubItem) => {
+                                              const isNestedActive =
+                                                pathname === nestedSubItem.href;
+                                              return (
+                                                <li key={nestedSubItem.name}>
+                                                  <Link
+                                                    href={nestedSubItem.href}
+                                                    onClick={() =>
+                                                      setIsOpen(false)
+                                                    }
+                                                    className={`
                                                     flex items-center px-3 py-2 rounded-lg text-sm
                                                     transition-colors duration-200
                                                     ${
@@ -261,19 +274,20 @@ export default function Sidebar() {
                                                         : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
                                                     }
                                                   `}
-                                                >
-                                                  <nestedSubItem.icon
-                                                    className={`mr-2 h-3 w-3 ${
-                                                      isNestedActive
-                                                        ? "text-blue-800"
-                                                        : "text-gray-400"
-                                                    }`}
-                                                  />
-                                                  {nestedSubItem.name}
-                                                </Link>
-                                              </li>
-                                            );
-                                          })}
+                                                  >
+                                                    <nestedSubItem.icon
+                                                      className={`mr-2 h-3 w-3 ${
+                                                        isNestedActive
+                                                          ? "text-blue-800"
+                                                          : "text-gray-400"
+                                                      }`}
+                                                    />
+                                                    {nestedSubItem.name}
+                                                  </Link>
+                                                </li>
+                                              );
+                                            }
+                                          )}
                                         </ul>
                                       )}
                                     </div>

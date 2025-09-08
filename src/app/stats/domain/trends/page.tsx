@@ -148,7 +148,11 @@ export default function DomainStatsPage() {
 
       {/* ドメイン作成推移 */}
       {domainStatsData?.trendData && (
-        <DomainCreationTrendsChart trendData={domainStatsData.trendData} />
+        <DomainCreationTrendsChart
+          trendData={domainStatsData.trendData}
+          startDate={startDate}
+          endDate={endDate}
+        />
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
-import { memo, useState, useCallback, useRef } from "react";
-import { Sparkles, Send, Loader, Upload, FileText } from "lucide-react";
+import { memo, useState, useCallback, useRef, useEffect } from "react";
+import { Sparkles, Send, Loader, Upload, FileText, Clock, Play, Pause, RefreshCw } from "lucide-react";
 
 interface GeminiImageGeneratorProps {
   onImageGenerated?: (imageUrl: string, prompt: string) => void;
@@ -16,8 +16,19 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
   const [isBulkGenerating, setIsBulkGenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [currentBulkPrompt, setCurrentBulkPrompt] = useState("");
-  const [activeTab, setActiveTab] = useState<"single" | "bulk">("single");
+  const [activeTab, setActiveTab] = useState<"single" | "bulk" | "scheduler">("single");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // スケジューラー関連の状態
+  const [schedulerFile, setSchedulerFile] = useState<File | null>(null);
+  const [isSchedulerRunning, setIsSchedulerRunning] = useState(false);
+  const [schedulerInterval, setSchedulerInterval] = useState(10); // 分
+  const [schedulerProgress, setSchedulerProgress] = useState({ current: 0, total: 0 });
+  const [nextExecutionTime, setNextExecutionTime] = useState<Date | null>(null);
+  const [currentSchedulerPrompt, setCurrentSchedulerPrompt] = useState("");
+  const [schedulerStatus, setSchedulerStatus] = useState<"idle" | "running" | "waiting">("idle");
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const schedulerFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
@@ -187,6 +198,177 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
     }
   }, [selectedFile, onImageGenerated]);
 
+  // スケジューラー用のファイル選択
+  const handleSchedulerFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file && file.type === "text/plain") {
+        setSchedulerFile(file);
+      } else {
+        alert("テキストファイル(.txt)を選択してください");
+        if (schedulerFileInputRef.current) {
+          schedulerFileInputRef.current.value = "";
+        }
+      }
+    },
+    []
+  );
+
+  // 単一プロンプトの処理（スケジューラー用）
+  const processSchedulerPrompt = useCallback(async (prompt: string) => {
+    try {
+      const response = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.imageUrl) {
+          // R2にアップロード
+          try {
+            const imageResponse = await fetch(result.imageUrl);
+            const imageBlob = await imageResponse.blob();
+            
+            const reader = new FileReader();
+            const base64Promise = new Promise((resolve) => {
+              reader.onloadend = () => resolve(reader.result);
+              reader.readAsDataURL(imageBlob);
+            });
+            const imageBase64 = await base64Promise as string;
+            
+            const uploadResponse = await fetch("/api/upload-generated-image", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                imageBase64,
+                prompt,
+              }),
+            });
+            
+            if (uploadResponse.ok) {
+              const uploadResult = await uploadResponse.json();
+              console.log(`スケジューラー: 画像をR2に保存: ${uploadResult.key}`);
+              onImageGenerated?.(uploadResult.url, prompt);
+              return true;
+            } else {
+              console.error(`スケジューラー: R2アップロード失敗 "${prompt}"`);
+              onImageGenerated?.(result.imageUrl, prompt);
+              return true;
+            }
+          } catch (uploadError) {
+            console.error(`スケジューラー: R2アップロードエラー "${prompt}":`, uploadError);
+            onImageGenerated?.(result.imageUrl, prompt);
+            return true;
+          }
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error(`スケジューラー: プロンプト "${prompt}" の生成エラー:`, error);
+      return false;
+    }
+  }, [onImageGenerated]);
+
+  // スケジューラーの実行
+  const executeSchedulerBatch = useCallback(async () => {
+    if (!schedulerFile) return;
+
+    setSchedulerStatus("running");
+    
+    try {
+      const text = await schedulerFile.text();
+      const prompts = text
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+
+      if (prompts.length === 0) {
+        console.log("スケジューラー: 有効なプロンプトが見つかりませんでした");
+        return;
+      }
+
+      setSchedulerProgress({ current: 0, total: prompts.length });
+
+      for (let i = 0; i < prompts.length; i++) {
+        if (!isSchedulerRunning) break; // スケジューラーが停止されたら中断
+        
+        const currentPrompt = prompts[i];
+        setCurrentSchedulerPrompt(currentPrompt);
+        setSchedulerProgress({ current: i + 1, total: prompts.length });
+
+        await processSchedulerPrompt(currentPrompt);
+
+        // 次の生成まで少し待機
+        if (i < prompts.length - 1 && isSchedulerRunning) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      }
+
+      console.log(`スケジューラー: ${prompts.length}個の画像生成が完了しました`);
+    } catch (error) {
+      console.error("スケジューラー: バッチ実行エラー:", error);
+    } finally {
+      setSchedulerStatus("waiting");
+      setCurrentSchedulerPrompt("");
+      setSchedulerProgress({ current: 0, total: 0 });
+    }
+  }, [schedulerFile, isSchedulerRunning, processSchedulerPrompt]);
+
+  // スケジューラーの開始
+  const startScheduler = useCallback(() => {
+    if (!schedulerFile) {
+      alert("テキストファイルを選択してください");
+      return;
+    }
+
+    setIsSchedulerRunning(true);
+    setSchedulerStatus("waiting");
+    
+    const now = new Date();
+    const nextTime = new Date(now.getTime() + schedulerInterval * 60 * 1000);
+    setNextExecutionTime(nextTime);
+
+    // 最初の実行
+    executeSchedulerBatch();
+
+    // 定期実行を設定
+    intervalRef.current = setInterval(() => {
+      const nextTime = new Date(Date.now() + schedulerInterval * 60 * 1000);
+      setNextExecutionTime(nextTime);
+      executeSchedulerBatch();
+    }, schedulerInterval * 60 * 1000);
+
+  }, [schedulerFile, schedulerInterval, executeSchedulerBatch]);
+
+  // スケジューラーの停止
+  const stopScheduler = useCallback(() => {
+    setIsSchedulerRunning(false);
+    setSchedulerStatus("idle");
+    setNextExecutionTime(null);
+    setCurrentSchedulerPrompt("");
+    setSchedulerProgress({ current: 0, total: 0 });
+    
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  // コンポーネントのアンマウント時にクリーンアップ
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
       <div className="flex items-center space-x-2 mb-4">
@@ -219,6 +401,17 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
         >
           <FileText className="h-4 w-4 mr-2" />
           複数を生成保存
+        </button>
+        <button
+          onClick={() => setActiveTab("scheduler")}
+          className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === "scheduler"
+              ? "bg-white text-green-600 shadow-sm"
+              : "text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          <Clock className="h-4 w-4 mr-2" />
+          定期実行
         </button>
       </div>
 
@@ -324,7 +517,117 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
           </div>
         )}
 
-        {isGenerating && !isBulkGenerating && (
+        {/* スケジューラータブ */}
+        {activeTab === "scheduler" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  プロンプトテキストファイル
+                </label>
+                <input
+                  ref={schedulerFileInputRef}
+                  type="file"
+                  accept=".txt"
+                  onChange={handleSchedulerFileSelect}
+                  disabled={isSchedulerRunning}
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100 disabled:opacity-50"
+                />
+                {schedulerFile && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    選択済み: {schedulerFile.name}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  実行間隔（分）
+                </label>
+                <input
+                  type="number"
+                  value={schedulerInterval}
+                  onChange={(e) => setSchedulerInterval(Math.max(1, parseInt(e.target.value) || 10))}
+                  disabled={isSchedulerRunning}
+                  min="1"
+                  max="1440"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:opacity-50"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  1〜1440分（24時間）まで設定可能
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={startScheduler}
+                disabled={!schedulerFile || isSchedulerRunning}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                開始
+              </button>
+              <button
+                onClick={stopScheduler}
+                disabled={!isSchedulerRunning}
+                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Pause className="h-4 w-4 mr-2" />
+                停止
+              </button>
+              <div className="flex items-center space-x-2">
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    schedulerStatus === "idle"
+                      ? "bg-gray-400"
+                      : schedulerStatus === "running"
+                      ? "bg-orange-500"
+                      : "bg-green-500"
+                  }`}
+                ></div>
+                <span className="text-sm text-gray-600">
+                  {schedulerStatus === "idle"
+                    ? "停止中"
+                    : schedulerStatus === "running"
+                    ? "実行中"
+                    : "待機中"}
+                </span>
+              </div>
+            </div>
+
+            {nextExecutionTime && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <RefreshCw className="h-5 w-5 text-green-600 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-green-900">
+                      次回実行予定時刻
+                    </p>
+                    <p className="text-xs text-green-700">
+                      {nextExecutionTime.toLocaleString('ja-JP')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h5 className="text-sm font-medium text-green-900 mb-2">
+                スケジューラーの使用方法
+              </h5>
+              <ul className="text-xs text-green-700 space-y-1">
+                <li>• テキストファイル（.txt）に1行1プロンプトで記載してください</li>
+                <li>• 実行間隔を設定して「開始」をクリックしてください</li>
+                <li>• 指定した間隔でファイル内の全プロンプトが順次実行されます</li>
+                <li>• 生成された画像は自動でR2に保存されます</li>
+                <li>• 「停止」をクリックするまで定期実行が継続されます</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {isGenerating && !isBulkGenerating && schedulerStatus === "idle" && (
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
             <div className="flex items-center">
               <Loader className="h-5 w-5 text-purple-600 animate-spin mr-3" />
@@ -364,6 +667,51 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
                     }}
                   ></div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* スケジューラーの実行状況表示 */}
+        {schedulerStatus === "running" && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <Loader className="h-5 w-5 text-green-600 animate-spin mr-3" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-900">
+                  スケジューラー実行中... ({schedulerProgress.current}/{schedulerProgress.total})
+                </p>
+                <p className="text-xs text-green-700 mt-1">
+                  現在のプロンプト: "{currentSchedulerPrompt}"
+                </p>
+                <div className="w-full bg-green-200 rounded-full h-2 mt-2">
+                  <div
+                    className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${
+                        schedulerProgress.total > 0
+                          ? (schedulerProgress.current / schedulerProgress.total) * 100
+                          : 0
+                      }%`,
+                    }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {schedulerStatus === "waiting" && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <Clock className="h-5 w-5 text-blue-600 mr-3" />
+              <div>
+                <p className="text-sm font-medium text-blue-900">
+                  次回実行を待機中
+                </p>
+                <p className="text-xs text-blue-700">
+                  {schedulerInterval}分間隔で自動実行されています
+                </p>
               </div>
             </div>
           </div>

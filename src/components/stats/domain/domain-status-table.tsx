@@ -1,7 +1,16 @@
 "use client";
 
 import { memo, useState, useEffect, useCallback, useMemo } from "react";
-import { Search, AlertTriangle, CheckCircle, XCircle, Clock3, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import {
+  Search,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Clock3,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+} from "lucide-react";
 import Pagination from "@/components/ui/pagination";
 
 interface DomainStatusData {
@@ -67,7 +76,7 @@ const DomainStatusTable = memo(function DomainStatusTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalDomains, setTotalDomains] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<string>("domain");
   const [sortDirection, setSortDirection] = useState<string>("asc");
@@ -96,7 +105,9 @@ const DomainStatusTable = memo(function DomainStatusTable() {
       setTotalDomains(result.total);
     } catch (error) {
       console.error("ドメイン・ステータス別データ取得エラー:", error);
-      setError(error instanceof Error ? error.message : "データの取得に失敗しました");
+      setError(
+        error instanceof Error ? error.message : "データの取得に失敗しました"
+      );
       setData([]);
     } finally {
       setLoading(false);
@@ -107,22 +118,25 @@ const DomainStatusTable = memo(function DomainStatusTable() {
     fetchDomainStatusData();
   }, [fetchDomainStatusData]);
 
-  const handleSort = useCallback((field: string) => {
-    if (sortField === field) {
-      if (sortDirection === "asc") {
-        setSortDirection("desc");
-      } else if (sortDirection === "desc") {
-        setSortField("");
-        setSortDirection("");
+  const handleSort = useCallback(
+    (field: string) => {
+      if (sortField === field) {
+        if (sortDirection === "asc") {
+          setSortDirection("desc");
+        } else if (sortDirection === "desc") {
+          setSortField("");
+          setSortDirection("");
+        } else {
+          setSortDirection("asc");
+        }
       } else {
+        setSortField(field);
         setSortDirection("asc");
       }
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
-    }
-    setCurrentPage(1);
-  }, [sortField, sortDirection]);
+      setCurrentPage(1);
+    },
+    [sortField, sortDirection]
+  );
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
@@ -302,25 +316,39 @@ const DomainStatusTable = memo(function DomainStatusTable() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex space-x-1">
-                    <div 
+                    <div
                       className="h-2 bg-green-500 rounded"
-                      style={{ 
-                        width: item.total_count > 0 ? `${(item.active_count / item.total_count) * 100}%` : '0%',
-                        minWidth: '2px'
+                      style={{
+                        width:
+                          item.total_count > 0
+                            ? `${(item.active_count / item.total_count) * 100}%`
+                            : "0%",
+                        minWidth: "2px",
                       }}
                     />
-                    <div 
+                    <div
                       className="h-2 bg-yellow-500 rounded"
-                      style={{ 
-                        width: item.total_count > 0 ? `${(item.temp_locked_count / item.total_count) * 100}%` : '0%',
-                        minWidth: '2px'
+                      style={{
+                        width:
+                          item.total_count > 0
+                            ? `${
+                                (item.temp_locked_count / item.total_count) *
+                                100
+                              }%`
+                            : "0%",
+                        minWidth: "2px",
                       }}
                     />
-                    <div 
+                    <div
                       className="h-2 bg-red-500 rounded"
-                      style={{ 
-                        width: item.total_count > 0 ? `${(item.suspended_count / item.total_count) * 100}%` : '0%',
-                        minWidth: '2px'
+                      style={{
+                        width:
+                          item.total_count > 0
+                            ? `${
+                                (item.suspended_count / item.total_count) * 100
+                              }%`
+                            : "0%",
+                        minWidth: "2px",
                       }}
                     />
                   </div>

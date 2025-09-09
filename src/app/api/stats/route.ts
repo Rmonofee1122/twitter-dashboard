@@ -21,6 +21,14 @@ export interface DomainData {
   count: number;
 }
 
+export interface FilteredDomainData {
+  domain: string;
+  active_count: number;
+  suspended_count: number;
+  temp_locked_count: number;
+  total_count: number;
+}
+
 export interface IpData {
   ip: string;
   count: number;
@@ -741,6 +749,74 @@ export async function fetchDomainRanking(): Promise<DomainData[]> {
     return data || [];
   } catch (error) {
     console.error("Domain ranking fetch error:", error);
+    return [];
+  }
+}
+
+// 日付フィルター付きのドメインランキングを取得する関数
+export async function fetchFilteredDomainRanking(
+  startDate?: string,
+  endDate?: string
+): Promise<FilteredDomainData[]> {
+  try {
+    let query = supabase
+      .from("domain_per_day_view02")
+      .select("created_date, domain, active_count, suspended_count, temp_locked_count, total_count");
+
+    // 日付フィルター適用
+    if (startDate) {
+      query = query.gte("created_date", startDate);
+    }
+    if (endDate) {
+      query = query.lte("created_date", endDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Filtered domain ranking fetch error:", error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // ドメインごとに集計
+    const domainMap = new Map<string, {
+      active_count: number;
+      suspended_count: number;
+      temp_locked_count: number;
+      total_count: number;
+    }>();
+
+    data.forEach((item) => {
+      const existing = domainMap.get(item.domain) || {
+        active_count: 0,
+        suspended_count: 0,
+        temp_locked_count: 0,
+        total_count: 0,
+      };
+
+      domainMap.set(item.domain, {
+        active_count: existing.active_count + (item.active_count || 0),
+        suspended_count: existing.suspended_count + (item.suspended_count || 0),
+        temp_locked_count: existing.temp_locked_count + (item.temp_locked_count || 0),
+        total_count: existing.total_count + (item.total_count || 0),
+      });
+    });
+
+    // 配列に変換してソート（total_count順）
+    const result = Array.from(domainMap.entries())
+      .map(([domain, counts]) => ({
+        domain,
+        ...counts,
+      }))
+      .sort((a, b) => b.total_count - a.total_count);
+
+    return result;
+  } catch (error) {
+    console.error("Filtered domain ranking fetch error:", error);
     return [];
   }
 }

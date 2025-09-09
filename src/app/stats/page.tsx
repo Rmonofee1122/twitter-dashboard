@@ -8,6 +8,7 @@ import StatusDistributionChart from "@/components/stats/status-distribution-char
 import DateFilter from "@/components/stats/date-filter";
 import FilteredCreationTrendsChart from "@/components/stats/filtered-creation-trends-chart";
 import FilteredStatusDistributionChart from "@/components/stats/filtered-status-distribution-chart";
+import FilteredDomainRankingList from "@/components/stats/filtered-domain-ranking-list";
 
 import DomainRankingList from "@/components/stats/domain-ranking-list";
 import IpRankingList from "@/components/stats/ip-ranking-list";
@@ -17,10 +18,12 @@ import {
   fetchCreationTrendsData,
   fetchCreationTrendsDataFiltered,
   fetchDomainRanking,
+  fetchFilteredDomainRanking,
   fetchIpRanking,
   type TotalStats,
   type ChartData,
   type DomainData,
+  type FilteredDomainData,
   type IpData,
 } from "@/app/api/stats/route";
 
@@ -63,6 +66,8 @@ export default function StatsPage() {
   const [filteredStatusDistribution, setFilteredStatusDistribution] = useState<
     Array<{ name: string; value: number; color: string }>
   >([]);
+
+  const [filteredDomainData, setFilteredDomainData] = useState<FilteredDomainData[]>([]);
 
   const [selectedPeriod, setSelectedPeriod] = useState<
     "daily" | "weekly" | "monthly"
@@ -129,12 +134,19 @@ export default function StatsPage() {
     async function loadFilteredData() {
       setIsFilteredDataLoading(true);
       try {
-        const filteredData = await fetchCreationTrendsDataFiltered(
-          dateFilter.startDate,
-          dateFilter.endDate
-        );
+        const [filteredData, filteredDomainData] = await Promise.all([
+          fetchCreationTrendsDataFiltered(
+            dateFilter.startDate,
+            dateFilter.endDate
+          ),
+          fetchFilteredDomainRanking(
+            dateFilter.startDate,
+            dateFilter.endDate
+          ),
+        ]);
         
         setFilteredChartData(filteredData);
+        setFilteredDomainData(filteredDomainData);
 
         // 期間内のステータス分布を計算
         const periodTotals = filteredData.dailyCreations.reduce(
@@ -230,28 +242,44 @@ export default function StatsPage() {
         </div>
 
         {/* フィルター付きグラフ */}
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 期間別アカウント作成推移 */}
-          <FilteredCreationTrendsChart
-            chartData={filteredChartData}
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={handlePeriodChange}
-            isLoading={isFilteredDataLoading}
-          />
-          {/* 期間別アカウント状態分布 */}
-          <FilteredStatusDistributionChart
-            statusDistribution={filteredStatusDistribution}
+        <div className="mt-6 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 期間別アカウント作成推移 */}
+            <FilteredCreationTrendsChart
+              chartData={filteredChartData}
+              selectedPeriod={selectedPeriod}
+              onPeriodChange={handlePeriodChange}
+              isLoading={isFilteredDataLoading}
+            />
+            {/* 期間別アカウント状態分布 */}
+            <FilteredStatusDistributionChart
+              statusDistribution={filteredStatusDistribution}
+              isLoading={isFilteredDataLoading}
+            />
+          </div>
+
+          {/* 期間別ドメインランキング */}
+          <FilteredDomainRankingList
+            domainData={filteredDomainData}
             isLoading={isFilteredDataLoading}
           />
         </div>
       
 
-      {/* ドメイン別作成数ランキング */}
-      <DomainRankingList domainData={statsData.domainData} />
-      {/* IP別作成数ランキング */}
-      <IpRankingList ipDistribution={statsData.ipDistribution} />
-      {/* パフォーマンスメトリクス */}
-      {/* <PerformanceMetrics totalStats={statsData.totalStats} /> */}
+      {/* 従来のランキング（参考用） */}
+      {/* <div className="bg-gray-50 p-6 rounded-lg border border-gray-200"> */}
+        {/* <h2 className="text-xl font-bold text-gray-900 mb-4">
+          📈 全期間統計（参考）
+        </h2> */}
+        {/* <p className="text-gray-700 mb-6">
+          全期間でのドメイン別・IP別作成数ランキングです
+        </p> */}
+
+        {/* ドメイン別作成数ランキング */}
+        {/* <DomainRankingList domainData={statsData.domainData} /> */}
+        {/* IP別作成数ランキング */}
+        {/* <IpRankingList ipDistribution={statsData.ipDistribution} /> */}
+      {/* </div> */}
     </div>
   );
 }

@@ -29,6 +29,7 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
   const [schedulerStatus, setSchedulerStatus] = useState<"idle" | "running" | "waiting">("idle");
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const schedulerFileInputRef = useRef<HTMLInputElement>(null);
+  const isSchedulerRunningRef = useRef(false);
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
@@ -369,54 +370,113 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
     }
   }, [onImageGenerated]);
 
-  // スケジューラーの実行
+  // 新しいスケジューラーの実行（データベースベース）
   const executeSchedulerBatch = useCallback(async () => {
-    if (!schedulerFile) {
-      console.log("❌ スケジューラー: ファイルが選択されていません");
-      return;
-    }
-
-    console.log("🔄 スケジューラー: バッチ実行開始");
+    console.log("🔄 スケジューラー: データベースベース バッチ実行開始");
     setSchedulerStatus("running");
     
+    const MAX_ITERATIONS = 10;
+    let successCount = 0;
+    
     try {
-      const text = await schedulerFile.text();
-      const prompts = text
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0);
+      setSchedulerProgress({ current: 0, total: MAX_ITERATIONS });
 
-      console.log(`📄 ファイルから ${prompts.length} 個のプロンプトを読み込みました`);
-
-      if (prompts.length === 0) {
-        console.log("❌ スケジューラー: 有効なプロンプトが見つかりませんでした");
-        return;
-      }
-
-      setSchedulerProgress({ current: 0, total: prompts.length });
-
-      for (let i = 0; i < prompts.length; i++) {
-        if (!isSchedulerRunning) {
+      for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
+        // Refを使って最新状態を確認
+        console.log(`🔄 [${iteration}] 実行状態確認: isSchedulerRunningRef.current = ${isSchedulerRunningRef.current}`);
+        
+        if (!isSchedulerRunningRef.current) {
           console.log("⏹️ スケジューラー: 停止が要求されました");
           break;
         }
-        
-        const currentPrompt = prompts[i];
-        console.log(`\n📋 [${i + 1}/${prompts.length}] 処理中: "${currentPrompt}"`);
-        setCurrentSchedulerPrompt(currentPrompt);
-        setSchedulerProgress({ current: i + 1, total: prompts.length });
 
-        const success = await processSchedulerPrompt(currentPrompt);
-        console.log(`${success ? "✅" : "❌"} プロンプト ${i + 1} 処理${success ? "成功" : "失敗"}`);
+        console.log(`\n🔄 [${iteration}/${MAX_ITERATIONS}] 次のプロンプトを取得中...`);
+        setSchedulerProgress({ current: iteration, total: MAX_ITERATIONS });
 
-        // 次の生成まで少し待機
-        if (i < prompts.length - 1 && isSchedulerRunning) {
-          console.log("⏳ 2秒待機中...");
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+        try {
+          // (2) データベースから次のプロンプトを取得
+          const promptResponse = await fetch("/api/get-next-prompt");
+          
+          if (!promptResponse.ok) {
+            const promptError = await promptResponse.text();
+            console.error(`❌ プロンプト取得失敗 (${promptResponse.status}): ${promptError}`);
+            
+            if (promptResponse.status === 404) {
+              console.log("📭 利用可能なプロンプトが見つかりません - 処理を終了");
+              break;
+            }
+            
+            console.log("⏳ 5秒待機してリトライ...");
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+            continue;
+          }
+
+          const promptData = await promptResponse.json();
+          const currentPrompt = promptData.prompt;
+          const promptId = promptData.id;
+          
+          console.log(`📝 取得したプロンプト: "${currentPrompt}" (ID: ${promptId})`);
+          setCurrentSchedulerPrompt(currentPrompt);
+
+          // (3) 画像生成を実行
+          const imageSuccess = await processSchedulerPrompt(currentPrompt);
+          
+          if (imageSuccess) {
+            // (4) 成功した場合: used_count と last_used_at を更新
+            console.log("📊 プロンプト使用状況を更新中...");
+            const updateResponse = await fetch("/api/update-prompt-usage", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ id: promptId }),
+            });
+
+            if (updateResponse.ok) {
+              console.log("✅ プロンプト使用状況更新成功");
+              successCount++;
+              console.log(`🎉 [${iteration}/${MAX_ITERATIONS}] 処理成功 (累計成功: ${successCount})`);
+            } else {
+              const updateError = await updateResponse.text();
+              console.error(`❌ プロンプト使用状況更新失敗 (${updateResponse.status}): ${updateError}`);
+              
+              // 1日制限に達した場合
+              if (updateResponse.status === 429) {
+                try {
+                  const errorData = JSON.parse(updateError);
+                  if (errorData.daily_limit_reached) {
+                    console.log(`🚫 1日の生成制限に達しました (${errorData.today_generated}/${errorData.limit}) - スケジューラーを停止します`);
+                    // スケジューラーを自動停止
+                    setIsSchedulerRunning(false);
+                    isSchedulerRunningRef.current = false;
+                    break;
+                  }
+                } catch (parseError) {
+                  console.error("❌ エラーレスポンス解析失敗:", parseError);
+                }
+              }
+              
+              successCount++;
+              console.log(`⚠️ [${iteration}/${MAX_ITERATIONS}] 画像生成成功したが更新失敗 (累計成功: ${successCount})`);
+            }
+          } else {
+            console.log(`❌ [${iteration}/${MAX_ITERATIONS}] 画像生成失敗 - 次のプロンプトに移行`);
+          }
+
+          // 次のイテレーションまで少し待機
+          if (iteration < MAX_ITERATIONS && isSchedulerRunningRef.current) {
+            console.log("⏳ 3秒待機中...");
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+          }
+
+        } catch (iterationError) {
+          console.error(`💥 イテレーション ${iteration} でエラー:`, iterationError);
+          console.log("⏳ 5秒待機してリトライ...");
+          await new Promise((resolve) => setTimeout(resolve, 5000));
         }
       }
 
-      console.log(`🎉 スケジューラー: ${prompts.length}個の画像生成バッチが完了しました`);
+      console.log(`🎉 スケジューラー: バッチ処理完了 (成功: ${successCount}/${MAX_ITERATIONS})`);
     } catch (error) {
       console.error("💥 スケジューラー: バッチ実行エラー:", error);
     } finally {
@@ -425,19 +485,16 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
       setCurrentSchedulerPrompt("");
       setSchedulerProgress({ current: 0, total: 0 });
     }
-  }, [schedulerFile, isSchedulerRunning, processSchedulerPrompt]);
+  }, [processSchedulerPrompt]);
 
-  // スケジューラーの開始
+  // スケジューラーの開始（データベースベース）
   const startScheduler = useCallback(() => {
-    if (!schedulerFile) {
-      alert("テキストファイルを選択してください");
-      return;
-    }
-
     console.log(`🟢 スケジューラー開始: ${schedulerInterval}分間隔で実行します`);
-    console.log(`📁 使用ファイル: ${schedulerFile.name}`);
+    console.log("📊 データベースからプロンプトを自動取得します");
 
+    // 状態の同期
     setIsSchedulerRunning(true);
+    isSchedulerRunningRef.current = true;
     setSchedulerStatus("waiting");
     
     const now = new Date();
@@ -459,13 +516,15 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
       executeSchedulerBatch();
     }, schedulerInterval * 60 * 1000);
 
-  }, [schedulerFile, schedulerInterval, executeSchedulerBatch]);
+  }, [schedulerInterval, executeSchedulerBatch]);
 
   // スケジューラーの停止
   const stopScheduler = useCallback(() => {
     console.log("🔴 スケジューラー停止が要求されました");
     
+    // 状態の同期
     setIsSchedulerRunning(false);
+    isSchedulerRunningRef.current = false;
     setSchedulerStatus("idle");
     setNextExecutionTime(null);
     setCurrentSchedulerPrompt("");
@@ -640,26 +699,23 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
         {/* スケジューラータブ */}
         {activeTab === "scheduler" && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  プロンプトテキストファイル
-                </label>
-                <input
-                  ref={schedulerFileInputRef}
-                  type="file"
-                  accept=".txt"
-                  onChange={handleSchedulerFileSelect}
-                  disabled={isSchedulerRunning}
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100 disabled:opacity-50"
-                />
-                {schedulerFile && (
-                  <p className="text-xs text-gray-600 mt-1">
-                    選択済み: {schedulerFile.name}
-                  </p>
-                )}
-              </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h5 className="text-sm font-medium text-blue-900 mb-2">
+                💡 データベース連動スケジューラー
+              </h5>
+              <p className="text-xs text-blue-700 mb-3">
+                プロンプトは自動的にデータベースから選択されます（ファイル不要）
+              </p>
+              <ul className="text-xs text-blue-700 space-y-1">
+                <li>• データベース「gemini_image_prompts」から自動選択</li>
+                <li>• used_count最小 → last_used_at最古の順で優先</li>
+                <li>• 1回の実行で最大10個の画像を生成</li>
+                <li>• 失敗時は自動的に次のプロンプトに移行</li>
+                <li>• 生成成功時にused_count+1、last_used_at更新</li>
+              </ul>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   実行間隔（分）
@@ -682,7 +738,7 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
             <div className="flex items-center space-x-3">
               <button
                 onClick={startScheduler}
-                disabled={!schedulerFile || isSchedulerRunning}
+                disabled={isSchedulerRunning}
                 className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Play className="h-4 w-4 mr-2" />
@@ -734,15 +790,15 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
 
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <h5 className="text-sm font-medium text-green-900 mb-2">
-                スケジューラーの使用方法
+                処理フロー
               </h5>
-              <ul className="text-xs text-green-700 space-y-1">
-                <li>• テキストファイル（.txt）に1行1プロンプトで記載してください</li>
-                <li>• 実行間隔を設定して「開始」をクリックしてください</li>
-                <li>• 指定した間隔でファイル内の全プロンプトが順次実行されます</li>
-                <li>• 生成された画像は自動でR2に保存されます</li>
-                <li>• 「停止」をクリックするまで定期実行が継続されます</li>
-              </ul>
+              <ol className="text-xs text-green-700 space-y-1 list-decimal list-inside">
+                <li>開始ボタン押下</li>
+                <li>データベースから最適なプロンプトを自動選択</li>
+                <li>選択したプロンプトで画像生成API呼び出し</li>
+                <li>成功時はR2保存、失敗時は次のプロンプトへ</li>
+                <li>10回処理完了でバッチ終了</li>
+              </ol>
             </div>
           </div>
         )}
@@ -799,7 +855,7 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
               <Loader className="h-5 w-5 text-green-600 animate-spin mr-3" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-green-900">
-                  スケジューラー実行中... ({schedulerProgress.current}/{schedulerProgress.total})
+                  データベーススケジューラー実行中... ({schedulerProgress.current}/{schedulerProgress.total})
                 </p>
                 <p className="text-xs text-green-700 mt-1">
                   現在のプロンプト: "{currentSchedulerPrompt}"
@@ -816,6 +872,9 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
                     }}
                   ></div>
                 </div>
+                <p className="text-xs text-green-600 mt-1">
+                  💾 データベースから最適なプロンプトを自動選択して処理中
+                </p>
               </div>
             </div>
           </div>
@@ -831,6 +890,9 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
                 </p>
                 <p className="text-xs text-blue-700">
                   {schedulerInterval}分間隔で自動実行されています
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  💾 データベースから最適なプロンプトを自動選択 (1日最大100個制限)
                 </p>
               </div>
             </div>

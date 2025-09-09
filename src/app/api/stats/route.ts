@@ -132,6 +132,77 @@ export async function fetchStatsData(): Promise<TotalStats> {
   }
 }
 
+// 日付フィルター付きのCreationTrendsData取得関数
+export async function fetchCreationTrendsDataFiltered(
+  startDate?: string,
+  endDate?: string
+): Promise<ChartData> {
+  try {
+    let query = supabase
+      .from("status_count_per_day03")
+      .select("created_date, active_count, suspended_count, temp_locked_count, other_count, total_count")
+      .order("created_date", { ascending: true });
+
+    // 日付フィルター適用
+    if (startDate) {
+      query = query.gte("created_date", startDate);
+    }
+    if (endDate) {
+      query = query.lte("created_date", endDate);
+    }
+
+    const { data: dailyData } = await query;
+
+    // デフォルトの期間設定（フィルターがない場合）
+    const today = new Date();
+    const defaultStartDate = new Date(today);
+    defaultStartDate.setDate(defaultStartDate.getDate() - 29);
+    defaultStartDate.setHours(0, 0, 0, 0);
+
+    const actualStartDate = startDate ? new Date(startDate) : defaultStartDate;
+    const actualEndDate = endDate ? new Date(endDate) : today;
+
+    // 日付範囲の日数を計算
+    const daysDiff = Math.ceil((actualEndDate.getTime() - actualStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+    // 日別データ
+    const dailyCreations = [];
+    for (let i = 0; i < daysDiff; i++) {
+      const date = new Date(actualStartDate);
+      date.setDate(date.getDate() + i);
+      const dateStr = date.toISOString().split("T")[0];
+
+      const dataItem = dailyData?.find((item) => item.created_date === dateStr);
+
+      dailyCreations.push({
+        date: dateStr,
+        active_count: dataItem?.active_count || 0,
+        suspended_count: dataItem?.suspended_count || 0,
+        temp_locked_count: dataItem?.temp_locked_count || 0,
+        other_count: dataItem?.other_count || 0,
+        total_count: dataItem?.total_count || 0,
+      });
+    }
+
+    // 週別・月別データも期間に応じて生成
+    const weeklyCreations = await generateWeeklyDataV2Filtered(dailyData || [], actualStartDate, actualEndDate);
+    const monthlyCreations = await generateMonthlyDataV2Filtered(dailyData || [], actualStartDate, actualEndDate);
+
+    return {
+      dailyCreations,
+      weeklyCreations,
+      monthlyCreations,
+    };
+  } catch (error) {
+    console.error("Filtered creation trends data fetch error:", error);
+    return {
+      dailyCreations: [],
+      weeklyCreations: [],
+      monthlyCreations: [],
+    };
+  }
+}
+
 export async function fetchCreationTrendsData(): Promise<ChartData> {
   try {
     // 日別データ（過去30日間）
@@ -465,6 +536,131 @@ async function generateMonthlyDataV2(
   }
 
   return monthlyData;
+}
+
+// フィルター対応の週別データ生成関数
+async function generateWeeklyDataV2Filtered(
+  dailyData: any[],
+  startDate: Date,
+  endDate: Date
+): Promise<Array<{ 
+  week: string; 
+  active_count: number;
+  suspended_count: number;
+  temp_locked_count: number;
+  other_count: number;
+  total_count: number;
+}>> {
+  const filteredData = dailyData.filter((item) => {
+    const date = new Date(item.created_date);
+    return date >= startDate && date <= endDate;
+  });
+
+  // 期間内の週を計算
+  const weeklyMap = new Map<string, {
+    active_count: number;
+    suspended_count: number;
+    temp_locked_count: number;
+    other_count: number;
+    total_count: number;
+  }>();
+
+  filteredData.forEach((item) => {
+    const date = new Date(item.created_date);
+    const weekStart = new Date(date);
+    weekStart.setDate(date.getDate() - date.getDay()); // 週の始まり（日曜日）
+    const weekKey = weekStart.toISOString().split("T")[0];
+
+    const existing = weeklyMap.get(weekKey) || {
+      active_count: 0,
+      suspended_count: 0,
+      temp_locked_count: 0,
+      other_count: 0,
+      total_count: 0,
+    };
+
+    weeklyMap.set(weekKey, {
+      active_count: existing.active_count + (item.active_count || 0),
+      suspended_count: existing.suspended_count + (item.suspended_count || 0),
+      temp_locked_count: existing.temp_locked_count + (item.temp_locked_count || 0),
+      other_count: existing.other_count + (item.other_count || 0),
+      total_count: existing.total_count + (item.total_count || 0),
+    });
+  });
+
+  // ソートして返す
+  const sortedWeeks = Array.from(weeklyMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([weekStart, counts], index) => ({
+      week: `第${index + 1}週`,
+      ...counts,
+    }));
+
+  return sortedWeeks;
+}
+
+// フィルター対応の月別データ生成関数
+async function generateMonthlyDataV2Filtered(
+  dailyData: any[],
+  startDate: Date,
+  endDate: Date
+): Promise<Array<{ 
+  month: string; 
+  active_count: number;
+  suspended_count: number;
+  temp_locked_count: number;
+  other_count: number;
+  total_count: number;
+}>> {
+  const filteredData = dailyData.filter((item) => {
+    const date = new Date(item.created_date);
+    return date >= startDate && date <= endDate;
+  });
+
+  // 月別データをカウント
+  const monthlyMap = new Map<string, {
+    active_count: number;
+    suspended_count: number;
+    temp_locked_count: number;
+    other_count: number;
+    total_count: number;
+  }>();
+
+  filteredData.forEach((item) => {
+    const date = new Date(item.created_date);
+    const monthKey = `${date.getFullYear()}-${String(
+      date.getMonth() + 1
+    ).padStart(2, "0")}`;
+
+    const existing = monthlyMap.get(monthKey) || {
+      active_count: 0,
+      suspended_count: 0,
+      temp_locked_count: 0,
+      other_count: 0,
+      total_count: 0,
+    };
+
+    monthlyMap.set(monthKey, {
+      active_count: existing.active_count + (item.active_count || 0),
+      suspended_count: existing.suspended_count + (item.suspended_count || 0),
+      temp_locked_count: existing.temp_locked_count + (item.temp_locked_count || 0),
+      other_count: existing.other_count + (item.other_count || 0),
+      total_count: existing.total_count + (item.total_count || 0),
+    });
+  });
+
+  // ソートして月名に変換
+  const sortedMonths = Array.from(monthlyMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([monthKey, counts]) => {
+      const [year, month] = monthKey.split("-");
+      return {
+        month: `${year}年${parseInt(month)}月`,
+        ...counts,
+      };
+    });
+
+  return sortedMonths;
 }
 
 function getWeekNumber(date: Date): number {

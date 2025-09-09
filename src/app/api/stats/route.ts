@@ -3,6 +3,8 @@ import { supabase } from "../../../lib/supabase";
 export interface TotalStats {
   totalAccounts: number;
   activeAccounts: number;
+  suspendedAccounts: number;
+  tempLockedAccounts: number;
   todayCreated: number;
   weekCreated: number;
   monthCreated: number;
@@ -64,11 +66,23 @@ export async function fetchStatsData(): Promise<TotalStats> {
       .from("twitter_account_v2")
       .select("*", { count: "exact", head: true });
 
-    // アクティブアカウント数（login_app = true）
+    // アクティブアカウント数（status = active）
     const { count: activeAccounts } = await supabase
       .from("twitter_account_v2")
       .select("*", { count: "exact", head: true })
       .eq("status", "active");
+    
+    // 凍結アカウント数（status = suspended）
+    const { count: suspendedAccounts } = await supabase
+      .from("twitter_account_v2")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "suspended");  
+    
+    // 一時制限アカウント数（status = temp_locked）
+    const { count: tempLockedAccounts } = await supabase
+      .from("twitter_account_v2")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "temp_locked");    
 
     // 今日の作成数
     const { count: todayCreated } = await supabase
@@ -98,6 +112,8 @@ export async function fetchStatsData(): Promise<TotalStats> {
     return {
       totalAccounts: totalAccounts || 0,
       activeAccounts: activeAccounts || 0,
+      suspendedAccounts: suspendedAccounts || 0,
+      tempLockedAccounts: tempLockedAccounts || 0,
       todayCreated: todayCreated || 0,
       weekCreated: weekCreated || 0,
       monthCreated: monthCreated || 0,
@@ -107,6 +123,8 @@ export async function fetchStatsData(): Promise<TotalStats> {
     return {
       totalAccounts: 0,
       activeAccounts: 0,
+      suspendedAccounts: 0,
+      tempLockedAccounts: 0,
       todayCreated: 0,
       weekCreated: 0,
       monthCreated: 0,

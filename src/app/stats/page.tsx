@@ -41,6 +41,8 @@ export default function StatsPage() {
     totalStats: {
       totalAccounts: 0,
       activeAccounts: 0,
+      suspendedAccounts: 0,
+      tempLockedAccounts: 0,
       todayCreated: 0,
       weekCreated: 0,
       monthCreated: 0,
@@ -69,11 +71,20 @@ export default function StatsPage() {
             color: "#10B981",
           },
           {
-            name: "非アクティブ",
-            value: realStats.totalAccounts - realStats.activeAccounts,
+            name: "凍結",
+            value: realStats.suspendedAccounts,
+            color: "#EF4444",
+          },
+          {
+            name: "一時制限",
+            value: realStats.tempLockedAccounts,  
             color: "#F59E0B",
           },
-          { name: "停止中", value: 0, color: "#EF4444" },
+          {
+            name: "その他",
+            value: realStats.totalAccounts - realStats.activeAccounts - realStats.suspendedAccounts - realStats.tempLockedAccounts,
+            color: "#6B7280",
+          },
         ],
         domainData: domainData,
         ipDistribution: ipData.data,

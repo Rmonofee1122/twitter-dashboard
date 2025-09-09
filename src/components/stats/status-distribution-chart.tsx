@@ -24,7 +24,7 @@ export default function StatusDistributionChart({ statusDistribution }: StatusDi
             cy="50%"
             outerRadius={80}
             dataKey="value"
-            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            label={({ name, percent }) => `${name} ${(percent ? percent * 100 : 0).toFixed(0)}%`}
           >
             {statusDistribution.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />

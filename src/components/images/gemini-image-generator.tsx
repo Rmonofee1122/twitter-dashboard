@@ -216,7 +216,11 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
 
   // 単一プロンプトの処理（スケジューラー用）
   const processSchedulerPrompt = useCallback(async (prompt: string) => {
+    console.log(`🚀 スケジューラー: プロンプト処理開始 - "${prompt}"`);
+    
     try {
+      // 1. 画像生成
+      console.log(`📷 画像生成APIを呼び出し中...`);
       const response = await fetch("/api/generate-image", {
         method: "POST",
         headers: {
@@ -225,60 +229,89 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
         body: JSON.stringify({ prompt }),
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.imageUrl) {
-          // R2にアップロード
-          try {
-            const imageResponse = await fetch(result.imageUrl);
-            const imageBlob = await imageResponse.blob();
-            
-            const reader = new FileReader();
-            const base64Promise = new Promise((resolve) => {
-              reader.onloadend = () => resolve(reader.result);
-              reader.readAsDataURL(imageBlob);
-            });
-            const imageBase64 = await base64Promise as string;
-            
-            const uploadResponse = await fetch("/api/upload-generated-image", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                imageBase64,
-                prompt,
-              }),
-            });
-            
-            if (uploadResponse.ok) {
-              const uploadResult = await uploadResponse.json();
-              console.log(`スケジューラー: 画像をR2に保存: ${uploadResult.key}`);
-              onImageGenerated?.(uploadResult.url, prompt);
-              return true;
-            } else {
-              console.error(`スケジューラー: R2アップロード失敗 "${prompt}"`);
-              onImageGenerated?.(result.imageUrl, prompt);
-              return true;
-            }
-          } catch (uploadError) {
-            console.error(`スケジューラー: R2アップロードエラー "${prompt}":`, uploadError);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ 画像生成API失敗 (${response.status}): ${errorText}`);
+        return false;
+      }
+
+      const result = await response.json();
+      console.log(`✅ 画像生成成功:`, result);
+
+      if (result.success && result.imageUrl) {
+        // 2. 画像ダウンロード
+        console.log(`📥 生成画像をダウンロード中: ${result.imageUrl}`);
+        try {
+          const imageResponse = await fetch(result.imageUrl);
+          if (!imageResponse.ok) {
+            console.error(`❌ 画像ダウンロード失敗 (${imageResponse.status})`);
+            return false;
+          }
+
+          const imageBlob = await imageResponse.blob();
+          console.log(`📦 画像サイズ: ${imageBlob.size} bytes`);
+          
+          // 3. Base64変換
+          console.log(`🔄 Base64変換中...`);
+          const reader = new FileReader();
+          const base64Promise = new Promise((resolve, reject) => {
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error("Base64変換失敗"));
+            reader.readAsDataURL(imageBlob);
+          });
+          const imageBase64 = await base64Promise as string;
+          console.log(`✅ Base64変換完了 (${imageBase64.length} 文字)`);
+          
+          // 4. R2アップロード
+          console.log(`☁️ R2アップロード開始...`);
+          const uploadResponse = await fetch("/api/upload-generated-image", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              imageBase64,
+              prompt,
+            }),
+          });
+          
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            console.log(`🎉 R2アップロード成功: ${uploadResult.key}`);
+            console.log(`🔗 保存URL: ${uploadResult.url}`);
+            onImageGenerated?.(uploadResult.url, prompt);
+            return true;
+          } else {
+            const uploadError = await uploadResponse.text();
+            console.error(`❌ R2アップロード失敗 (${uploadResponse.status}): ${uploadError}`);
+            // フォールバック: 元のURLでコールバック
             onImageGenerated?.(result.imageUrl, prompt);
             return true;
           }
+        } catch (uploadError) {
+          console.error(`❌ R2アップロード処理エラー:`, uploadError);
+          // フォールバック: 元のURLでコールバック
+          onImageGenerated?.(result.imageUrl, prompt);
+          return true;
         }
+      } else {
+        console.error(`❌ 画像生成結果が不正:`, result);
+        return false;
       }
-      return false;
     } catch (error) {
-      console.error(`スケジューラー: プロンプト "${prompt}" の生成エラー:`, error);
+      console.error(`💥 プロンプト処理エラー "${prompt}":`, error);
       return false;
     }
   }, [onImageGenerated]);
 
   // スケジューラーの実行
   const executeSchedulerBatch = useCallback(async () => {
-    if (!schedulerFile) return;
+    if (!schedulerFile) {
+      console.log("❌ スケジューラー: ファイルが選択されていません");
+      return;
+    }
 
+    console.log("🔄 スケジューラー: バッチ実行開始");
     setSchedulerStatus("running");
     
     try {
@@ -288,32 +321,41 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
         .map((line) => line.trim())
         .filter((line) => line.length > 0);
 
+      console.log(`📄 ファイルから ${prompts.length} 個のプロンプトを読み込みました`);
+
       if (prompts.length === 0) {
-        console.log("スケジューラー: 有効なプロンプトが見つかりませんでした");
+        console.log("❌ スケジューラー: 有効なプロンプトが見つかりませんでした");
         return;
       }
 
       setSchedulerProgress({ current: 0, total: prompts.length });
 
       for (let i = 0; i < prompts.length; i++) {
-        if (!isSchedulerRunning) break; // スケジューラーが停止されたら中断
+        if (!isSchedulerRunning) {
+          console.log("⏹️ スケジューラー: 停止が要求されました");
+          break;
+        }
         
         const currentPrompt = prompts[i];
+        console.log(`\n📋 [${i + 1}/${prompts.length}] 処理中: "${currentPrompt}"`);
         setCurrentSchedulerPrompt(currentPrompt);
         setSchedulerProgress({ current: i + 1, total: prompts.length });
 
-        await processSchedulerPrompt(currentPrompt);
+        const success = await processSchedulerPrompt(currentPrompt);
+        console.log(`${success ? "✅" : "❌"} プロンプト ${i + 1} 処理${success ? "成功" : "失敗"}`);
 
         // 次の生成まで少し待機
         if (i < prompts.length - 1 && isSchedulerRunning) {
+          console.log("⏳ 2秒待機中...");
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
       }
 
-      console.log(`スケジューラー: ${prompts.length}個の画像生成が完了しました`);
+      console.log(`🎉 スケジューラー: ${prompts.length}個の画像生成バッチが完了しました`);
     } catch (error) {
-      console.error("スケジューラー: バッチ実行エラー:", error);
+      console.error("💥 スケジューラー: バッチ実行エラー:", error);
     } finally {
+      console.log("🏁 スケジューラー: バッチ実行終了 - 待機状態に移行");
       setSchedulerStatus("waiting");
       setCurrentSchedulerPrompt("");
       setSchedulerProgress({ current: 0, total: 0 });
@@ -327,6 +369,9 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
       return;
     }
 
+    console.log(`🟢 スケジューラー開始: ${schedulerInterval}分間隔で実行します`);
+    console.log(`📁 使用ファイル: ${schedulerFile.name}`);
+
     setIsSchedulerRunning(true);
     setSchedulerStatus("waiting");
     
@@ -334,13 +379,18 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
     const nextTime = new Date(now.getTime() + schedulerInterval * 60 * 1000);
     setNextExecutionTime(nextTime);
 
+    console.log(`⏰ 次回実行予定: ${nextTime.toLocaleString('ja-JP')}`);
+
     // 最初の実行
+    console.log("🚀 初回バッチ実行を開始します...");
     executeSchedulerBatch();
 
     // 定期実行を設定
+    console.log(`⏱️ ${schedulerInterval}分間隔の定期実行タイマーを設定しました`);
     intervalRef.current = setInterval(() => {
       const nextTime = new Date(Date.now() + schedulerInterval * 60 * 1000);
       setNextExecutionTime(nextTime);
+      console.log(`🔄 定期実行トリガー: 次回予定 ${nextTime.toLocaleString('ja-JP')}`);
       executeSchedulerBatch();
     }, schedulerInterval * 60 * 1000);
 
@@ -348,6 +398,8 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
 
   // スケジューラーの停止
   const stopScheduler = useCallback(() => {
+    console.log("🔴 スケジューラー停止が要求されました");
+    
     setIsSchedulerRunning(false);
     setSchedulerStatus("idle");
     setNextExecutionTime(null);
@@ -357,7 +409,10 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+      console.log("⏱️ 定期実行タイマーをクリアしました");
     }
+    
+    console.log("✅ スケジューラーが正常に停止されました");
   }, []);
 
   // コンポーネントのアンマウント時にクリーンアップ

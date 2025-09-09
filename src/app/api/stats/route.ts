@@ -25,9 +25,30 @@ export interface IpData {
 }
 
 export interface ChartData {
-  dailyCreations: Array<{ date: string; count: number }>;
-  weeklyCreations: Array<{ week: string; count: number }>;
-  monthlyCreations: Array<{ month: string; count: number }>;
+  dailyCreations: Array<{ 
+    date: string; 
+    active_count: number;
+    suspended_count: number;
+    temp_locked_count: number;
+    other_count: number;
+    total_count: number;
+  }>;
+  weeklyCreations: Array<{ 
+    week: string; 
+    active_count: number;
+    suspended_count: number;
+    temp_locked_count: number;
+    other_count: number;
+    total_count: number;
+  }>;
+  monthlyCreations: Array<{ 
+    month: string; 
+    active_count: number;
+    suspended_count: number;
+    temp_locked_count: number;
+    other_count: number;
+    total_count: number;
+  }>;
 }
 
 export async function fetchStatsData(): Promise<TotalStats> {
@@ -97,24 +118,15 @@ export async function fetchCreationTrendsData(): Promise<ChartData> {
   try {
     // 日別データ（過去30日間）
     const { data: dailyData } = await supabase
-      .from("create_count_per_day")
-      .select("created_date, total_count")
+      .from("status_count_per_day03")
+      .select("created_date, active_count, suspended_count, temp_locked_count, other_count, total_count")
       .order("created_date", { ascending: true });
 
     // 今日から過去30日間の開始日を計算（今日を含む）
     const today = new Date();
     const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - 30);
+    startDate.setDate(startDate.getDate() - 29);
     startDate.setHours(0, 0, 0, 0);
-
-    // 日付ごとにグルーピング（1回のループで効率的に処理）
-    const dateCountMap = new Map<string, number>();
-
-    // データを日付別にカウント
-    dailyData?.forEach((item) => {
-      const dateStr = new Date(item.created_date).toISOString().split("T")[0];
-      dateCountMap.set(dateStr, (dateCountMap.get(dateStr) || 0) + 1);
-    });
 
     // 日別データ（過去30日間）
     const dailyCreations = [];
@@ -125,21 +137,23 @@ export async function fetchCreationTrendsData(): Promise<ChartData> {
       date.setDate(date.getDate() + i);
       const dateStr = date.toISOString().split("T")[0];
 
-      const count =
-        dailyData?.find((item) => item.created_date === dateStr)?.total_count ||
-        0;
+      const dataItem = dailyData?.find((item) => item.created_date === dateStr);
 
       dailyCreations.push({
         date: dateStr,
-        count,
+        active_count: dataItem?.active_count || 0,
+        suspended_count: dataItem?.suspended_count || 0,
+        temp_locked_count: dataItem?.temp_locked_count || 0,
+        other_count: dataItem?.other_count || 0,
+        total_count: dataItem?.total_count || 0,
       });
     }
 
     // 週別データ（過去12週間）
-    const weeklyCreations = await generateWeeklyData(dailyData || []);
+    const weeklyCreations = await generateWeeklyDataV2(dailyData || []);
 
     // 月別データ（過去12ヶ月）
-    const monthlyCreations = await generateMonthlyData(dailyData || []);
+    const monthlyCreations = await generateMonthlyDataV2(dailyData || []);
 
     return {
       dailyCreations,
@@ -255,6 +269,180 @@ async function generateMonthlyData(
     monthlyData.push({
       month: `${month}月`,
       count: count,
+    });
+  }
+
+  return monthlyData;
+}
+
+// 新しいステータス別週別データ生成関数
+async function generateWeeklyDataV2(
+  dailyData: any[]
+): Promise<Array<{ 
+  week: string; 
+  active_count: number;
+  suspended_count: number;
+  temp_locked_count: number;
+  other_count: number;
+  total_count: number;
+}>> {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+
+  // 今月の最初の日と最後の日を取得
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+  const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+
+  // 今月のデータのみをフィルタリング
+  const currentMonthData = dailyData.filter((item) => {
+    const date = new Date(item.created_date);
+    return date >= firstDayOfMonth && date <= lastDayOfMonth;
+  });
+
+  // 今月の各週のデータを生成
+  const weeklyData: Array<{ 
+    week: string; 
+    active_count: number;
+    suspended_count: number;
+    temp_locked_count: number;
+    other_count: number;
+    total_count: number;
+  }> = [];
+
+  // 今月の第1週から第4週（または第5週）まで
+  let currentWeekStart = new Date(firstDayOfMonth);
+
+  // 月の最初の日が何曜日かを確認し、その週の月曜日を取得
+  const firstDayWeekday = firstDayOfMonth.getDay();
+  const daysToMonday = firstDayWeekday === 0 ? 6 : firstDayWeekday - 1;
+  currentWeekStart.setDate(currentWeekStart.getDate() - daysToMonday);
+
+  let weekNumber = 1;
+
+  while (currentWeekStart <= lastDayOfMonth && weekNumber <= 4) {
+    const weekEnd = new Date(currentWeekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    // この週に含まれる今月のデータを集計
+    const weekData = currentMonthData.filter((item) => {
+      const date = new Date(item.created_date);
+      return date >= currentWeekStart && date <= weekEnd;
+    });
+
+    const weekCounts = weekData.reduce((acc, item) => ({
+      active_count: acc.active_count + (item.active_count || 0),
+      suspended_count: acc.suspended_count + (item.suspended_count || 0),
+      temp_locked_count: acc.temp_locked_count + (item.temp_locked_count || 0),
+      other_count: acc.other_count + (item.other_count || 0),
+      total_count: acc.total_count + (item.total_count || 0),
+    }), {
+      active_count: 0,
+      suspended_count: 0,
+      temp_locked_count: 0,
+      other_count: 0,
+      total_count: 0,
+    });
+
+    weeklyData.push({
+      week: `第${weekNumber}週`,
+      ...weekCounts,
+    });
+
+    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+    weekNumber++;
+  }
+
+  // 4週に満たない場合は0で埋める
+  while (weeklyData.length < 4) {
+    weeklyData.push({
+      week: `第${weeklyData.length + 1}週`,
+      active_count: 0,
+      suspended_count: 0,
+      temp_locked_count: 0,
+      other_count: 0,
+      total_count: 0,
+    });
+  }
+
+  return weeklyData;
+}
+
+// 新しいステータス別月別データ生成関数
+async function generateMonthlyDataV2(
+  dailyData: any[]
+): Promise<Array<{ 
+  month: string; 
+  active_count: number;
+  suspended_count: number;
+  temp_locked_count: number;
+  other_count: number;
+  total_count: number;
+}>> {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+
+  // 今年のデータのみをフィルタリング
+  const currentYearData = dailyData.filter((item) => {
+    const date = new Date(item.created_date);
+    return date.getFullYear() === currentYear;
+  });
+
+  // 月別データをカウント
+  const monthlyMap = new Map<string, {
+    active_count: number;
+    suspended_count: number;
+    temp_locked_count: number;
+    other_count: number;
+    total_count: number;
+  }>();
+
+  currentYearData.forEach((item) => {
+    const date = new Date(item.created_date);
+    const monthKey = `${date.getFullYear()}-${String(
+      date.getMonth() + 1
+    ).padStart(2, "0")}`;
+
+    const existing = monthlyMap.get(monthKey) || {
+      active_count: 0,
+      suspended_count: 0,
+      temp_locked_count: 0,
+      other_count: 0,
+      total_count: 0,
+    };
+
+    monthlyMap.set(monthKey, {
+      active_count: existing.active_count + (item.active_count || 0),
+      suspended_count: existing.suspended_count + (item.suspended_count || 0),
+      temp_locked_count: existing.temp_locked_count + (item.temp_locked_count || 0),
+      other_count: existing.other_count + (item.other_count || 0),
+      total_count: existing.total_count + (item.total_count || 0),
+    });
+  });
+
+  // 今年の1月から12月まで全てのデータを生成（データがない月は0で埋める）
+  const monthlyData: Array<{ 
+    month: string; 
+    active_count: number;
+    suspended_count: number;
+    temp_locked_count: number;
+    other_count: number;
+    total_count: number;
+  }> = [];
+
+  for (let month = 1; month <= 12; month++) {
+    const monthKey = `${currentYear}-${String(month).padStart(2, "0")}`;
+    const counts = monthlyMap.get(monthKey) || {
+      active_count: 0,
+      suspended_count: 0,
+      temp_locked_count: 0,
+      other_count: 0,
+      total_count: 0,
+    };
+
+    monthlyData.push({
+      month: `${month}月`,
+      ...counts,
     });
   }
 

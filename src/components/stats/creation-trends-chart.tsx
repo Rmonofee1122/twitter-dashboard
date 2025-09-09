@@ -6,6 +6,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
 import type { ChartData } from "@/app/api/stats/route";
 
@@ -42,11 +43,31 @@ export default function CreationTrendsChart({
     }
   };
 
+  // カスタムツールチップ
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const total = payload.reduce((sum: number, entry: any) => sum + entry.value, 0);
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-medium text-gray-900 mb-2">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {entry.name}: {entry.value}件
+            </p>
+          ))}
+          <hr className="my-1" />
+          <p className="text-sm font-medium text-gray-900">合計: {total}件</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900">
-          アカウント作成推移
+          アカウント作成推移（ステータス別）
         </h3>
         <div className="flex space-x-2">
           {["daily", "weekly", "monthly"].map((period) => (
@@ -68,13 +89,38 @@ export default function CreationTrendsChart({
           ))}
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={getChartData()}>
+      
+      <ResponsiveContainer width="100%" height={400}>
+        <BarChart data={getChartData()} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey={getXAxisKey()} />
           <YAxis />
-          <Tooltip />
-          <Bar dataKey="count" fill="#3B82F6" />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend />
+          <Bar 
+            dataKey="active_count" 
+            stackId="status" 
+            name="アクティブ" 
+            fill="#10B981" 
+          />
+          <Bar 
+            dataKey="suspended_count" 
+            stackId="status" 
+            name="凍結" 
+            fill="#EF4444" 
+          />
+          <Bar 
+            dataKey="temp_locked_count" 
+            stackId="status" 
+            name="一時制限" 
+            fill="#F59E0B" 
+          />
+          <Bar 
+            dataKey="other_count" 
+            stackId="status" 
+            name="その他" 
+            fill="#6B7280" 
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

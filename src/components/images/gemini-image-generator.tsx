@@ -36,29 +36,94 @@ const GeminiImageGenerator = memo(function GeminiImageGenerator({
       return;
     }
 
+    const trimmedPrompt = prompt.trim();
+    console.log(`🚀 単体生成開始: "${trimmedPrompt}"`);
+
     setIsGenerating(true);
     try {
+      // 1. 画像生成
+      console.log("📷 画像生成APIを呼び出し中...");
       const response = await fetch("/api/generate-image", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt: prompt.trim() }),
+        body: JSON.stringify({ prompt: trimmedPrompt }),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ 画像生成API失敗 (${response.status}): ${errorText}`);
         throw new Error("画像生成に失敗しました");
       }
 
       const result = await response.json();
+      console.log("✅ 画像生成成功:", result);
 
       if (result.success && result.imageUrl) {
-        onImageGenerated?.(result.imageUrl, prompt);
+        // 2. R2にアップロード
+        try {
+          console.log(`📥 生成画像をダウンロード中: ${result.imageUrl}`);
+          const imageResponse = await fetch(result.imageUrl);
+          
+          if (!imageResponse.ok) {
+            console.error(`❌ 画像ダウンロード失敗 (${imageResponse.status})`);
+            // ダウンロードに失敗した場合は元のURLでコールバック
+            onImageGenerated?.(result.imageUrl, trimmedPrompt);
+            return;
+          }
+
+          const imageBlob = await imageResponse.blob();
+          console.log(`📦 画像サイズ: ${imageBlob.size} bytes`);
+          
+          // 3. Base64変換
+          console.log("🔄 Base64変換中...");
+          const reader = new FileReader();
+          const base64Promise = new Promise((resolve, reject) => {
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error("Base64変換失敗"));
+            reader.readAsDataURL(imageBlob);
+          });
+          const imageBase64 = await base64Promise as string;
+          console.log(`✅ Base64変換完了 (${imageBase64.length} 文字)`);
+          
+          // 4. R2アップロード
+          console.log("☁️ R2アップロード開始...");
+          const uploadResponse = await fetch("/api/upload-generated-image", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              imageBase64,
+              prompt: trimmedPrompt,
+            }),
+          });
+          
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            console.log(`🎉 R2アップロード成功: ${uploadResult.key}`);
+            console.log(`🔗 保存URL: ${uploadResult.url}`);
+            onImageGenerated?.(uploadResult.url, trimmedPrompt);
+          } else {
+            const uploadError = await uploadResponse.text();
+            console.error(`❌ R2アップロード失敗 (${uploadResponse.status}): ${uploadError}`);
+            // R2アップロードに失敗した場合は元のURLでコールバック
+            alert("R2への保存に失敗しましたが、画像生成は成功しました");
+            onImageGenerated?.(result.imageUrl, trimmedPrompt);
+          }
+        } catch (uploadError) {
+          console.error("❌ R2アップロード処理エラー:", uploadError);
+          alert("R2への保存に失敗しましたが、画像生成は成功しました");
+          // アップロード処理に失敗した場合は元のURLでコールバック
+          onImageGenerated?.(result.imageUrl, trimmedPrompt);
+        }
       } else {
+        console.error("❌ 画像生成結果が不正:", result);
         throw new Error("画像URLの取得に失敗しました");
       }
     } catch (error) {
-      console.error("画像生成エラー:", error);
+      console.error("💥 単体生成エラー:", error);
       alert("画像生成に失敗しました");
     } finally {
       setIsGenerating(false);

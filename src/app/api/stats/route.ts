@@ -694,11 +694,11 @@ export async function fetchPerformanceMetrics(): Promise<PerformanceMetrics> {
       .from("twitter_create_logs")
       .select("*", { count: "exact", head: true });
 
-    // アクティブアカウント数（app_login = true）
+    // アクティブアカウント数（status = active）
     const { count: activeAccounts } = await supabase
-      .from("twitter_create_logs")
+      .from("twitter_account_v2")
       .select("*", { count: "exact", head: true })
-      .eq("app_login", true);
+      .eq("status", "active");
 
     // 今月の作成数
     const { count: monthlyTotal } = await supabase

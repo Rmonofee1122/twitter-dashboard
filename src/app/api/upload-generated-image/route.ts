@@ -12,7 +12,7 @@ function makeGeneratedImageKey(prompt: string) {
   const rand = Math.random().toString(36).slice(2, 8);
   // promptの最初の20文字をファイル名に含める（安全な文字のみ）
   const safeName = prompt.substring(0, 20).replace(/[^a-zA-Z0-9]/g, "-");
-  return `twitterdashboard/generated/${ts}-${rand}-${safeName}.png`;
+  return `generated/${ts}-${rand}-${safeName}.png`;
 }
 
 export async function POST(request: NextRequest) {
@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
         Key: key,
         Body: buffer,
         ContentType: "image/png",
+        CacheControl: "public, max-age=31536000", // 1年間キャッシュ
         Metadata: {
           "prompt": prompt,
           "generation-type": "gemini",
@@ -50,11 +51,11 @@ export async function POST(request: NextRequest) {
     console.log(`Generated image uploaded to R2: ${key}`);
     console.log(`Prompt metadata: "${prompt}"`);
 
-    // 署名付きURLを生成（10分有効）
+    // 署名付きURLを生成（24時間有効）
     const viewUrl = await getSignedUrl(
       r2,
       new GetObjectCommand({ Bucket: BUCKET, Key: key }),
-      { expiresIn: 600 }
+      { expiresIn: 86400 }
     );
 
     return NextResponse.json({

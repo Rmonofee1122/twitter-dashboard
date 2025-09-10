@@ -6,22 +6,24 @@ interface ProxyPageHeaderProps {
   totalProxies: number;
   loading: boolean;
   onRefresh: () => void;
+  title: string;
 }
 
 export default function ProxyPageHeader({ 
   totalProxies, 
   loading, 
-  onRefresh 
+  onRefresh,
+  title
 }: ProxyPageHeaderProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            プロキシ管理
+            {title}プロキシ管理
           </h1>
           <p className="text-gray-600">
-            登録済みのプロキシサーバー {totalProxies.toLocaleString()} 件
+            登録済みの{title}プロキシサーバー {totalProxies.toLocaleString()} 件
           </p>
         </div>
         <button

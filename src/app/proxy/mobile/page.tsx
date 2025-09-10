@@ -5,7 +5,7 @@ import ProxyPageHeader from "@/components/proxy/proxy-page-header";
 import ProxyStatsCards from "@/components/proxy/proxy-stats-cards";
 import ProxyTable from "@/components/proxy/proxy-table";
 import ProxyPagination from "@/components/proxy/proxy-pagination";
-import type { ProxyInfo } from "@/app/api/proxy/route";
+import type { ProxyInfo } from "@/app/api/mobile-proxy/route";
 
 interface ProxyResponse {
   proxies: ProxyInfo[];
@@ -21,7 +21,7 @@ export default function ProxyPage() {
   const [totalProxies, setTotalProxies] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortField, setSortField] = useState("used_count");
   const [sortDirection, setSortDirection] = useState("asc");
 
@@ -39,7 +39,7 @@ export default function ProxyPage() {
         sortDirection,
       });
 
-      const response = await fetch(`/api/proxy?${params}`);
+      const response = await fetch(`/api/mobile-proxy?${params}`);
       if (!response.ok) {
         throw new Error("プロキシデータの取得に失敗しました");
       }
@@ -81,6 +81,7 @@ export default function ProxyPage() {
         totalProxies={totalProxies}
         loading={loading}
         onRefresh={fetchProxies}
+        title="モバイル"
       />
 
       {/* 統計カード */}

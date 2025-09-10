@@ -67,3 +67,14 @@ export interface ProxyInfo {
   created_at: string;
   updated_at: string;
 }
+
+export interface GeminiPrompt {
+  id: number;
+  prompt: string;
+  tags: string[];
+  favorite: boolean;
+  used_count: number;
+  last_used_at: string | null;
+  created_at: string;
+  updated_at: string;
+}

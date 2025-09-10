@@ -97,7 +97,10 @@ const navigation = [
     ],
   },
   // { name: '画像一覧', href: '/images', icon: Image },
-  { name: "画像一覧（R2）", href: "/images-r2", icon: Image },
+  { name: "画像", href: "/images-r2", icon: Image, submenu: [
+    { name: "画像一覧", href: "/images-r2", icon: Image },
+    { name: "プロンプト一覧", href: "/images-r2/prompt", icon: FileText },
+  ] },
   // { name: "アカウント一覧v2", href: "/accounts-v2", icon: Users },
   { name: "シャドBAN履歴", href: "/shadowban-log", icon: FileText },
   { name: "プロキシ管理", href: "/proxy/dc", icon: Network, submenu: [

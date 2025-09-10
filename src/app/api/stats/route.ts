@@ -5,6 +5,7 @@ export interface TotalStats {
   activeAccounts: number;
   suspendedAccounts: number;
   tempLockedAccounts: number;
+  shadowbanAccounts: number;
   todayCreated: number;
   weekCreated: number;
   monthCreated: number;
@@ -86,6 +87,12 @@ export async function fetchStatsData(): Promise<TotalStats> {
       .select("*", { count: "exact", head: true })
       .eq("status", "suspended");  
     
+    // シャドBANアカウント数（status = shadowban）
+    const { count: shadowbanAccounts } = await supabase
+      .from("twitter_account_v3")
+      .select("*", { count: "exact", head: true })
+      .or("status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban");
+    
     // 一時制限アカウント数（status = temp_locked）
     const { count: tempLockedAccounts } = await supabase
       .from("twitter_account_v3")
@@ -122,6 +129,7 @@ export async function fetchStatsData(): Promise<TotalStats> {
       activeAccounts: activeAccounts || 0,
       suspendedAccounts: suspendedAccounts || 0,
       tempLockedAccounts: tempLockedAccounts || 0,
+      shadowbanAccounts: shadowbanAccounts || 0,
       todayCreated: todayCreated || 0,
       weekCreated: weekCreated || 0,
       monthCreated: monthCreated || 0,
@@ -133,6 +141,7 @@ export async function fetchStatsData(): Promise<TotalStats> {
       activeAccounts: 0,
       suspendedAccounts: 0,
       tempLockedAccounts: 0,
+      shadowbanAccounts: 0,
       todayCreated: 0,
       weekCreated: 0,
       monthCreated: 0,

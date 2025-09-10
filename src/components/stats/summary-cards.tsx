@@ -1,4 +1,4 @@
-import { Calendar, Users, TrendingUp, Activity } from "lucide-react";
+import { Calendar, Users, TrendingUp, Activity, CheckCircle, XCircle } from "lucide-react";
 import type { TotalStats } from "@/app/api/stats/route";
 
 interface SummaryCardsProps {
@@ -7,7 +7,7 @@ interface SummaryCardsProps {
 
 export default function SummaryCards({ totalStats }: SummaryCardsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
         <div className="flex items-center justify-between">
           <div>
@@ -35,7 +35,23 @@ export default function SummaryCards({ totalStats }: SummaryCardsProps) {
             </p>
           </div>
           <div className="p-3 rounded-lg bg-green-50">
-            <Activity className="h-6 w-6 text-green-600" />
+            <CheckCircle className="h-6 w-6 text-green-600" />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600 mb-1">
+              凍結アカウント
+            </p>
+            <p className="text-3xl font-bold text-gray-900">
+              {totalStats.suspendedAccounts.toLocaleString()}
+            </p>
+          </div>
+          <div className="p-3 rounded-lg bg-red-50">
+            <XCircle className="h-6 w-6 text-red-600" />
           </div>
         </div>
       </div>

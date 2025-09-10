@@ -50,6 +50,7 @@ export default function StatsPage() {
       activeAccounts: 0,
       suspendedAccounts: 0,
       tempLockedAccounts: 0,
+      shadowbanAccounts: 0,
       todayCreated: 0,
       weekCreated: 0,
       monthCreated: 0,
@@ -105,6 +106,11 @@ export default function StatsPage() {
             color: "#10B981",
           },
           {
+            name: "シャドBAN",
+            value: realStats.shadowbanAccounts,
+            color: "#EF4444",
+          },
+          {
             name: "凍結",
             value: realStats.suspendedAccounts,
             color: "#EF4444",
@@ -116,7 +122,7 @@ export default function StatsPage() {
           },
           {
             name: "その他",
-            value: realStats.totalAccounts - realStats.activeAccounts - realStats.suspendedAccounts - realStats.tempLockedAccounts,
+            value: realStats.totalAccounts - realStats.activeAccounts - realStats.shadowbanAccounts - realStats.suspendedAccounts - realStats.tempLockedAccounts,
             color: "#6B7280",
           },
         ],

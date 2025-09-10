@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { formatDateLocal } from "@/utils/date-helpers";
 import { Edit, Trash2, Plus } from "lucide-react";
 import toast from "react-hot-toast";
-import type { ProxyInfo } from "@/app/api/proxy/route";
+import { ProxyInfo } from "@/types/database";
 import ProxyPagination from "@/components/proxy/proxy-pagination";
 import ProxyModal from "./proxy-modal";
 
@@ -21,6 +21,7 @@ interface ProxyTableProps {
   onPageChange: (page: number) => void;
   onItemsPerPageChange: (itemsPerPage: number) => void;
   onDataChange: () => void;
+  apiEndpoint: string;
 }
 
 export default function ProxyTable({
@@ -36,34 +37,35 @@ export default function ProxyTable({
   onPageChange,
   onItemsPerPageChange,
   onDataChange,
+  apiEndpoint,
 }: ProxyTableProps) {
   const [showModal, setShowModal] = useState(false);
   const [editingProxy, setEditingProxy] = useState<ProxyInfo | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
 
-  const getSortIcon = (field: string) => {
+  const getSortIcon = useCallback((field: string) => {
     if (sortField !== field) return null;
     return sortDirection === "asc" ? "↑" : "↓";
-  };
+  }, [sortField, sortDirection]);
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     setEditingProxy(null);
     setShowModal(true);
-  };
+  }, []);
 
-  const handleEdit = (proxy: ProxyInfo) => {
+  const handleEdit = useCallback((proxy: ProxyInfo) => {
     setEditingProxy(proxy);
     setShowModal(true);
-  };
+  }, []);
 
-  const handleDelete = async (proxy: ProxyInfo) => {
+  const handleDelete = useCallback(async (proxy: ProxyInfo) => {
     if (!confirm(`プロキシ "${proxy.ip}" を削除しますか？`)) {
       return;
     }
 
     try {
       console.log(`🗑️ プロキシを削除: ${proxy.ip}`);
-      const response = await fetch(`/api/proxy?id=${proxy.id}`, {
+      const response = await fetch(`${apiEndpoint}?id=${proxy.id}`, {
         method: "DELETE",
       });
 
@@ -77,26 +79,25 @@ export default function ProxyTable({
       toast.success(`プロキシ "${proxy.ip}" を削除しました`, {
         duration: 3000,
       });
-      onDataChange(); // データを再取得
+      onDataChange();
     } catch (error) {
       console.error("❌ プロキシ削除エラー:", error);
       toast.error("プロキシの削除に失敗しました", {
         duration: 3000,
       });
     }
-  };
+  }, [apiEndpoint, onDataChange]);
 
-  const handleSave = async (proxyData: Partial<ProxyInfo>) => {
+  const handleSave = useCallback(async (proxyData: Partial<ProxyInfo>) => {
     setModalLoading(true);
     
     try {
       const isEditing = !!editingProxy;
       const method = isEditing ? "PUT" : "POST";
-      const url = "/api/proxy";
 
       console.log(`💾 プロキシを${isEditing ? "更新" : "作成"}: ${proxyData.ip}`);
 
-      const response = await fetch(url, {
+      const response = await fetch(apiEndpoint, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -117,7 +118,7 @@ export default function ProxyTable({
       });
       setShowModal(false);
       setEditingProxy(null);
-      onDataChange(); // データを再取得
+      onDataChange();
     } catch (error) {
       console.error(`❌ プロキシ${editingProxy ? "更新" : "作成"}エラー:`, error);
       toast.error(error instanceof Error ? error.message : "操作に失敗しました", {
@@ -126,12 +127,21 @@ export default function ProxyTable({
     } finally {
       setModalLoading(false);
     }
-  };
+  }, [apiEndpoint, editingProxy, onDataChange]);
 
-  const handleModalClose = () => {
+  const handleModalClose = useCallback(() => {
     setShowModal(false);
     setEditingProxy(null);
-  };
+  }, []);
+
+  const paginationInfo = useMemo(() => {
+    if (totalProxies) {
+      const startIndex = (currentPage - 1) * itemsPerPage + 1;
+      const endIndex = Math.min(currentPage * itemsPerPage, totalProxies);
+      return `${startIndex}-${endIndex}件目 / 全${totalProxies.toLocaleString()}件`;
+    }
+    return `全${proxies.length}件`;
+  }, [currentPage, itemsPerPage, totalProxies, proxies.length]);
 
   if (loading) {
     return (
@@ -174,13 +184,7 @@ export default function ProxyTable({
             
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-500">
-                {totalProxies
-                  ? (() => {
-                      const startIndex = (currentPage - 1) * itemsPerPage + 1;
-                      const endIndex = Math.min(currentPage * itemsPerPage, totalProxies);
-                      return `${startIndex}-${endIndex}件目 / 全${totalProxies.toLocaleString()}件`;
-                    })()
-                    : `全${proxies.length}件`}
+                {paginationInfo}
               </div>
             </div>
           </div>
@@ -205,7 +209,7 @@ export default function ProxyTable({
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center space-x-1">
-                  <span>IPアドレス</span>
+                  <span>プロキシIP</span>
                   <span className="text-blue-600">{getSortIcon("ip")}</span>
                 </div>
               </th>
@@ -285,19 +289,6 @@ export default function ProxyTable({
                   }`}>
                     {formatDateLocal(proxy.last_used_at)}
                   </div>
-                  {proxy.last_used_at && (
-                    <div className="text-xs text-gray-500">
-                      {(() => {
-                        const lastUsed = new Date(proxy.last_used_at);
-                        const now = new Date();
-                        const diffHours = Math.floor((now.getTime() - lastUsed.getTime()) / (1000 * 60 * 60));
-                        if (diffHours < 1) return "1時間以内";
-                        if (diffHours < 24) return `${diffHours}時間前`;
-                        const diffDays = Math.floor(diffHours / 24);
-                        return `${diffDays}日前`;
-                      })()}
-                    </div>
-                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div>{formatDateLocal(proxy.created_at)}</div>

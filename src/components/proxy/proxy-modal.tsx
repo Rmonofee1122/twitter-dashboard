@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, Plus, Save } from "lucide-react";
-import type { ProxyInfo } from "@/app/api/proxy/route";
+import { ProxyInfo } from "@/types/database";
 
 interface ProxyModalProps {
   isOpen: boolean;
@@ -35,10 +35,10 @@ export default function ProxyModal({
   }, [isEditing, editingProxy, isOpen]);
 
   // Proxy IPのバリデーション
-  const validateIP = (ip: string): boolean => {
-    const ipRegex = /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    return ipRegex.test(ip.trim());
-  };
+  // const validateIP = (ip: string): boolean => {
+  //   const ipRegex = /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+  //   return ipRegex.test(ip.trim());
+  // };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,11 +47,11 @@ export default function ProxyModal({
     const newErrors: { ip?: string } = {};
 
     // バリデーション
-    if (!trimmedIp) {
-      newErrors.ip = "Proxy IPを入力してください";
-    } else if (!validateIP(trimmedIp)) {
-      newErrors.ip = "有効なProxy IPを入力してください（例: 192.168.1.1）";
-    }
+    // if (!trimmedIp) {
+    //   newErrors.ip = "Proxy IPを入力してください";
+    // } else if (!validateIP(trimmedIp)) {
+    //   newErrors.ip = "有効なProxy IPを入力してください（例: 192.168.1.1）";
+    // }
 
     setErrors(newErrors);
 

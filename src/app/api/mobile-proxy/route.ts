@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { ProxyInfo } from "@/types/database";
 
 export const runtime = "nodejs";
-
-export interface ProxyInfo {
-  id: number;
-  ip: string;
-  used_count: number;
-  last_used_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -95,18 +87,10 @@ export async function POST(request: NextRequest) {
   try {
     const { ip } = await request.json();
 
-    if (!ip) {
+    // 必須チェック
+    if (ip === null || ip === undefined || ip === "") {
       return NextResponse.json(
         { error: "Proxy IPが必要です" },
-        { status: 400 }
-      );
-    }
-
-    // Proxy IPのバリデーション
-    const ipRegex = /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    if (!ipRegex.test(ip.trim())) {
-      return NextResponse.json(
-        { error: "有効なProxy IPを入力してください" },
         { status: 400 }
       );
     }
@@ -175,18 +159,10 @@ export async function PUT(request: NextRequest) {
   try {
     const { id, ip } = await request.json();
 
-    if (!id || !ip) {
+    // 必須チェック
+    if (!id || ip === null || ip === undefined || ip === "") {
       return NextResponse.json(
         { error: "プロキシIDとProxy IPが必要です" },
-        { status: 400 }
-      );
-    }
-
-    // Proxy IPのバリデーション
-    const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    if (!ipRegex.test(ip.trim())) {
-      return NextResponse.json(
-        { error: "有効なProxy IPを入力してください" },
         { status: 400 }
       );
     }

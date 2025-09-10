@@ -31,6 +31,7 @@ import {
   CircleX,
   Clock3,
   Network,
+  Smartphone
 } from "lucide-react";
 
 const navigation = [
@@ -101,7 +102,7 @@ const navigation = [
   { name: "シャドBAN履歴", href: "/shadowban-log", icon: FileText },
   { name: "プロキシ管理", href: "/proxy/dc", icon: Network, submenu: [
     { name: "データセンター", href: "/proxy/dc", icon: Globe },
-    { name: "モバイル", href: "/proxy/mobile", icon: Globe },
+    { name: "モバイル", href: "/proxy/mobile", icon: Smartphone },
   ], },
   { name: "設定", href: "/settings", icon: Settings },
 ];

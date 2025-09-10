@@ -5,7 +5,7 @@ import ProxyPageHeader from "@/components/proxy/proxy-page-header";
 import ProxyStatsCards from "@/components/proxy/proxy-stats-cards";
 import ProxyTable from "@/components/proxy/proxy-table";
 import ProxyPagination from "@/components/proxy/proxy-pagination";
-import type { ProxyInfo } from "@/app/api/mobile-proxy/route";
+import type { ProxyInfo } from "@/types/database";
 
 interface ProxyResponse {
   proxies: ProxyInfo[];
@@ -104,6 +104,7 @@ export default function ProxyPage() {
         onPageChange={handlePageChange}
         onItemsPerPageChange={handleItemsPerPageChange}
         onDataChange={fetchProxies}
+        apiEndpoint="/api/mobile-proxy"
       />
     </div>
   );

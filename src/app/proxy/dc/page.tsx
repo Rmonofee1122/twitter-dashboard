@@ -5,7 +5,7 @@ import ProxyPageHeader from "@/components/proxy/proxy-page-header";
 import ProxyStatsCards from "@/components/proxy/proxy-stats-cards";
 import ProxyTable from "@/components/proxy/proxy-table";
 import ProxyPagination from "@/components/proxy/proxy-pagination";
-import type { ProxyInfo } from "@/app/api/proxy/route";
+import type { ProxyInfo } from "@/types/database";
 
 interface ProxyResponse {
   proxies: ProxyInfo[];
@@ -39,7 +39,7 @@ export default function ProxyPage() {
         sortDirection,
       });
 
-      const response = await fetch(`/api/proxy?${params}`);
+      const response = await fetch(`/api/dc-proxy?${params}`);
       if (!response.ok) {
         throw new Error("プロキシデータの取得に失敗しました");
       }
@@ -104,6 +104,7 @@ export default function ProxyPage() {
         onPageChange={handlePageChange}
         onItemsPerPageChange={handleItemsPerPageChange}
         onDataChange={fetchProxies}
+        apiEndpoint="/api/dc-proxy"
       />
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { Network, Activity, Clock } from "lucide-react";
-import type { ProxyInfo } from "@/app/api/proxy/route";
+import type { ProxyInfo } from "@/app/api/dc-proxy/route";
 
 interface ProxyStatsCardsProps {
   proxies: ProxyInfo[];

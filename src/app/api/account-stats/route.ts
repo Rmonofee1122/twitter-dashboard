@@ -9,37 +9,37 @@ export async function GET() {
     const statusQueries = [
       // アクティブ
       supabase
-        .from("twitter_account_v3")
+        .from("twitter_create_with_account_v1")
         .select("*", { count: "exact", head: true })
         .eq("status", "active"),
       
       // シャドバン系
       supabase
-        .from("twitter_account_v3") 
+        .from("twitter_create_with_account_v1") 
         .select("*", { count: "exact", head: true })
         .or("status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"),
       
       // 一時制限（stop）
       supabase
-        .from("twitter_account_v3")
+        .from("twitter_create_with_account_v1")
         .select("*", { count: "exact", head: true })
         .eq("status", "stop"),
       
       // 一時制限（temp_locked）  
       supabase
-        .from("twitter_account_v3")
+        .from("twitter_create_with_account_v1")
         .select("*", { count: "exact", head: true })
         .eq("status", "temp_locked"),
       
       // 審査中
       supabase
-        .from("twitter_account_v3")
+        .from("twitter_create_with_account_v1")
         .select("*", { count: "exact", head: true })
         .eq("status", "examination"),
       
       // 凍結
       supabase
-        .from("twitter_account_v3")
+        .from("twitter_create_with_account_v1")
         .select("*", { count: "exact", head: true })
         .or("status.eq.suspend,status.eq.suspended"),
     ];

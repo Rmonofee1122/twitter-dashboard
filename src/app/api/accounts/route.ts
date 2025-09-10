@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const to = from + limit - 1;
 
     // 必要な列のみを取得してパフォーマンス向上
-    let query = supabase.from("twitter_account_v3").select(
+    let query = supabase.from("twitter_create_with_account_v1").select(
       `
         id,
         twitter_id,
@@ -33,8 +33,7 @@ export async function GET(request: Request) {
         search_ban,
         search_suggestion_ban,
         no_reply,
-        ghost_ban,
-        shadowban_check_at
+        ghost_ban
       `,
       { count: "exact" }
     );
@@ -153,12 +152,12 @@ export async function GET(request: Request) {
         if (!search && !startDate && !endDate) {
           // フィルターが無い場合は高速集計
           const statusQueries = [
-            supabase.from("twitter_account_v3").select("*", { count: "exact", head: true }).eq("status", "active"),
-            supabase.from("twitter_account_v3").select("*", { count: "exact", head: true }).or("status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"),
-            supabase.from("twitter_account_v3").select("*", { count: "exact", head: true }).eq("status", "stop"),
-            supabase.from("twitter_account_v3").select("*", { count: "exact", head: true }).eq("status", "temp_locked"),
-            supabase.from("twitter_account_v3").select("*", { count: "exact", head: true }).eq("status", "examination"),
-            supabase.from("twitter_account_v3").select("*", { count: "exact", head: true }).or("status.eq.suspend,status.eq.suspended"),
+            supabase.from("twitter_create_with_account_v1").select("*", { count: "exact", head: true }).eq("status", "active"),
+            supabase.from("twitter_create_with_account_v1").select("*", { count: "exact", head: true }).or("status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"),
+            supabase.from("twitter_create_with_account_v1").select("*", { count: "exact", head: true }).eq("status", "stop"),
+            supabase.from("twitter_create_with_account_v1").select("*", { count: "exact", head: true }).eq("status", "temp_locked"),
+            supabase.from("twitter_create_with_account_v1").select("*", { count: "exact", head: true }).eq("status", "examination"),
+            supabase.from("twitter_create_with_account_v1").select("*", { count: "exact", head: true }).or("status.eq.suspend,status.eq.suspended"),
           ];
 
           const results = await Promise.allSettled(statusQueries);

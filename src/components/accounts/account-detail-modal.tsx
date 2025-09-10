@@ -259,7 +259,7 @@ export default function AccountDetailModal({
           <p className="text-lg font-bold text-yellow-900">
             {currentAccount.posts_count !== null
               ? currentAccount.posts_count.toLocaleString()
-              : "未設定"}
+              : "0"}
           </p>
         </div>
         <div className="bg-purple-50 rounded-md p-3 border border-purple-200">
@@ -289,7 +289,7 @@ export default function AccountDetailModal({
           <p className="text-lg font-bold text-pink-900">
             {currentAccount.favourites_count !== null
               ? currentAccount.favourites_count.toLocaleString()
-              : "未設定"}
+              : "0"}
           </p>
         </div>
       </div>

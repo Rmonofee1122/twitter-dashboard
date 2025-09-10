@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
         query = query.order("used_count", { ascending });
         break;
       case "last_used_at":
-        query = query.order("last_used_at", { ascending, nullsFirst: true });
+        query = query.order("last_used_at", { ascending });
         break;
       case "created_at":
         query = query.order("created_at", { ascending });

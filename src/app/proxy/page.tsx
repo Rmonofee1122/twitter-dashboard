@@ -84,10 +84,10 @@ export default function ProxyPage() {
       />
 
       {/* 統計カード */}
-      <ProxyStatsCards
+      {/* <ProxyStatsCards
         proxies={proxies}
         totalProxies={totalProxies}
-      />
+      /> */}
 
       {/* プロキシテーブル */}
       <ProxyTable
@@ -96,14 +96,10 @@ export default function ProxyPage() {
         sortField={sortField}
         sortDirection={sortDirection}
         onSort={handleSort}
-      />
-
-      {/* ページネーション */}
-      <ProxyPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalProxies={totalProxies}
         itemsPerPage={itemsPerPage}
+        currentPage={currentPage}
+        totalProxies={totalProxies}
+        totalPages={totalPages}
         onPageChange={handlePageChange}
         onItemsPerPageChange={handleItemsPerPageChange}
       />

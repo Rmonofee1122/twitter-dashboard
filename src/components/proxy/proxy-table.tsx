@@ -2,6 +2,7 @@
 
 import { formatDateLocal } from "@/utils/date-helpers";
 import type { ProxyInfo } from "@/app/api/proxy/route";
+import ProxyPagination from "@/components/proxy/proxy-pagination";
 
 interface ProxyTableProps {
   proxies: ProxyInfo[];
@@ -9,6 +10,12 @@ interface ProxyTableProps {
   sortField: string;
   sortDirection: string;
   onSort: (field: string) => void;
+  itemsPerPage: number;
+  currentPage: number;
+  totalProxies: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (itemsPerPage: number) => void;
 }
 
 export default function ProxyTable({
@@ -17,6 +24,12 @@ export default function ProxyTable({
   sortField,
   sortDirection,
   onSort,
+  itemsPerPage,
+  currentPage,
+  totalProxies,
+  totalPages,
+  onPageChange,
+  onItemsPerPageChange,
 }: ProxyTableProps) {
   const getSortIcon = (field: string) => {
     if (sortField !== field) return null;
@@ -36,12 +49,36 @@ export default function ProxyTable({
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">
-          プロキシ一覧
-        </h3>
+      <div>
+        {/* 表示件数セレクター */}
+        {onItemsPerPageChange && (
+          <div className="flex items-center justify-between my-4 ml-2 px-2">
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-gray-600">表示件数:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => onItemsPerPageChange(parseInt(e.target.value))}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value={10}>10件</option>
+                <option value={20}>20件</option>
+                <option value={50}>50件</option>
+                <option value={100}>100件</option>
+              </select>
+            </div>
+            <div className="text-sm text-gray-500">
+              {totalProxies
+                ? (() => {
+                    const startIndex = (currentPage - 1) * itemsPerPage + 1;
+                    const endIndex = Math.min(currentPage * itemsPerPage, totalProxies);
+                    return `${startIndex}-${endIndex}件目 / 全${totalProxies.toLocaleString()}件`;
+                  })()
+                  : `全${proxies.length}件`}
+            </div>
+          </div>
+        )}
       </div>
-
+      
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -168,6 +205,17 @@ export default function ProxyTable({
             )}
           </tbody>
         </table>
+      </div>
+      <div>
+        {/* ページネーション */}
+      <ProxyPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalProxies={totalProxies}
+        itemsPerPage={itemsPerPage}
+        onPageChange={onPageChange}
+        onItemsPerPageChange={onItemsPerPageChange}
+      />
       </div>
     </div>
   );

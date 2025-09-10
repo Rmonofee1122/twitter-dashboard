@@ -75,23 +75,6 @@ export default function ProxyPagination({
             <span className="font-medium">{totalProxies.toLocaleString()}</span>
             件
           </div>
-
-          {/* 表示件数選択 */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm text-gray-600">
-              表示件数:
-            </label>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => onItemsPerPageChange(parseInt(e.target.value))}
-              className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value={10}>10件</option>
-              <option value={20}>20件</option>
-              <option value={50}>50件</option>
-              <option value={100}>100件</option>
-            </select>
-          </div>
         </div>
 
         {/* ページネーション */}

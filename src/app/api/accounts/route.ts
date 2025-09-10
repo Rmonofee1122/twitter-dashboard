@@ -143,82 +143,59 @@ export async function GET(request: Request) {
       );
     }
 
-    // ステータス別の件数も取得（直接集計版）
+    // ステータス別の件数も取得（簡略版 - タイムアウト対策）
     let statusCounts = null;
     if (page === 1) {
       try {
-        console.log("📊 ステータス別件数を取得中...");
+        console.log("📊 ステータス別件数を取得中（簡略版）...");
         
-        // 基本クエリを構築（フィルター条件を含む）
-        let baseQuery = supabase.from("twitter_account_v3").select("status", { count: "exact", head: true });
+        // フィルターなしで基本的なステータスカウントのみ取得（高速化）
+        if (!search && !startDate && !endDate) {
+          // フィルターが無い場合は高速集計
+          const statusQueries = [
+            supabase.from("twitter_account_v3").select("*", { count: "exact", head: true }).eq("status", "active"),
+            supabase.from("twitter_account_v3").select("*", { count: "exact", head: true }).or("status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"),
+            supabase.from("twitter_account_v3").select("*", { count: "exact", head: true }).eq("status", "stop"),
+            supabase.from("twitter_account_v3").select("*", { count: "exact", head: true }).eq("status", "temp_locked"),
+            supabase.from("twitter_account_v3").select("*", { count: "exact", head: true }).eq("status", "examination"),
+            supabase.from("twitter_account_v3").select("*", { count: "exact", head: true }).or("status.eq.suspend,status.eq.suspended"),
+          ];
 
-        // 検索フィルター適用
-        if (search) {
-          baseQuery = baseQuery.or(
-            `twitter_id.ilike.%${search}%,email.ilike.%${search}%,create_ip.ilike.%${search}%`
-          );
+          const results = await Promise.allSettled(statusQueries);
+          
+          statusCounts = {
+            active: results[0].status === 'fulfilled' ? (results[0].value.count || 0) : 0,
+            shadowban: results[1].status === 'fulfilled' ? (results[1].value.count || 0) : 0,
+            stopped: results[2].status === 'fulfilled' ? (results[2].value.count || 0) : 0,
+            temp_locked: results[3].status === 'fulfilled' ? (results[3].value.count || 0) : 0,
+            examination: results[4].status === 'fulfilled' ? (results[4].value.count || 0) : 0,
+            suspended: results[5].status === 'fulfilled' ? (results[5].value.count || 0) : 0,
+          };
+        } else {
+          // フィルターがある場合は統計を無効化（パフォーマンス重視）
+          console.log("⚠️ フィルター適用時は統計表示を無効化（パフォーマンス重視）");
+          statusCounts = {
+            active: 0,
+            shadowban: 0,
+            stopped: 0,
+            temp_locked: 0,
+            examination: 0,
+            suspended: 0,
+          };
         }
 
-        // 日付フィルター適用
-        if (startDate) {
-          baseQuery = baseQuery.gte("log_created_at", startDate);
-        }
-        if (endDate) {
-          const endDateTime = new Date(endDate);
-          endDateTime.setHours(23, 59, 59, 999);
-          baseQuery = baseQuery.lte("log_created_at", endDateTime.toISOString());
-        }
-
-        // 各ステータス別に並列でカウント取得
-        const [
-          { count: activeCount },
-          { count: shadowbanCount },
-          { count: stoppedCount },
-          { count: examinationCount },
-          { count: suspendedCount },
-        ] = await Promise.all([
-          // アクティブ
-          supabase.from("twitter_account_v3")
-            .select("*", { count: "exact", head: true })
-            .eq("status", "active")
-            .then(result => ({ count: result.count || 0 })),
-          
-          // シャドバン系
-          supabase.from("twitter_account_v3")
-            .select("*", { count: "exact", head: true })
-            .or("status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban")
-            .then(result => ({ count: result.count || 0 })),
-          
-          // 一時制限
-          supabase.from("twitter_account_v3")
-            .select("*", { count: "exact", head: true })
-            .or("status.eq.stop,status.eq.temp_locked")
-            .then(result => ({ count: result.count || 0 })),
-          
-          // 審査中
-          supabase.from("twitter_account_v3")
-            .select("*", { count: "exact", head: true })
-            .eq("status", "examination")
-            .then(result => ({ count: result.count || 0 })),
-          
-          // 凍結
-          supabase.from("twitter_account_v3")
-            .select("*", { count: "exact", head: true })
-            .or("status.eq.suspend,status.eq.suspended")
-            .then(result => ({ count: result.count || 0 })),
-        ]);
-
-        statusCounts = {
-          active: activeCount,
-          shadowban: shadowbanCount,
-          stopped: stoppedCount,
-          examination: examinationCount,
-          suspended: suspendedCount,
-        };
-
-        console.log("✅ ステータス別件数取得成功:", statusCounts);
+        console.log("✅ ステータス別件数取得完了:", statusCounts);
       } catch (statusError) {
         console.error("❌ ステータス別統計の取得エラー:", statusError);
+        // フォールバック: 空の件数を返す
+        statusCounts = {
+          active: 0,
+          shadowban: 0,
+          stopped: 0,
+          temp_locked: 0,
+          examination: 0,
+          suspended: 0,
+        };
       }
     }
 

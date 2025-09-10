@@ -21,6 +21,7 @@ interface AccountsResponse {
     stopped: number;
     examination: number;
     suspended: number;
+    temp_locked: number;
   };
 }
 
@@ -41,6 +42,7 @@ export default function AccountsPage() {
     stopped: 0,
     examination: 0,
     suspended: 0,
+    temp_locked: 0,
   });
   const [loading, setLoading] = useState(true);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -54,6 +56,10 @@ export default function AccountsPage() {
 
   useEffect(() => {
     fetchAccounts();
+    // 初回ロード時とフィルターなしの場合に統計を取得
+    if (currentPage === 1 && !searchTerm && !startDate && !endDate) {
+      fetchAccountStats();
+    }
   }, [
     currentPage,
     searchTerm,
@@ -64,6 +70,22 @@ export default function AccountsPage() {
     sortDirection,
     itemsPerPage,
   ]);
+
+  const fetchAccountStats = async () => {
+    try {
+      console.log("📊 専用APIでアカウント統計を取得中...");
+      const statsResponse = await fetch("/api/account-stats");
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        console.log("✅ アカウント統計取得成功:", statsData);
+        setStatusCounts(statsData);
+      } else {
+        console.error("❌ アカウント統計取得失敗:", statsResponse.status);
+      }
+    } catch (error) {
+      console.error("💥 アカウント統計取得エラー:", error);
+    }
+  };
 
   const fetchAccounts = async () => {
     try {

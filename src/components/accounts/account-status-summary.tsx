@@ -17,6 +17,7 @@ interface StatusCounts {
   stopped: number;
   examination: number;
   suspended: number;
+  temp_locked: number;
 }
 
 interface AccountStatusSummaryProps {
@@ -36,6 +37,9 @@ const AccountStatusSummary = memo(function AccountStatusSummary({
   totalAccounts,
   statusCounts,
 }: AccountStatusSummaryProps) {
+  // デバッグ用ログ
+  console.log("🔍 AccountStatusSummary props:", { totalAccounts, statusCounts });
+
   const statusItems: StatusItem[] = useMemo(
     () => [
       {
@@ -54,7 +58,7 @@ const AccountStatusSummary = memo(function AccountStatusSummary({
       },
       {
         label: "一時制限",
-        count: statusCounts.stopped,
+        count: (statusCounts.stopped || 0) + (statusCounts.temp_locked || 0),
         icon: Clock3,
         color: "text-blue-600",
         bgColor: "bg-blue-50",

@@ -420,7 +420,7 @@ const AccountTable = memo(function AccountTable({
             </div>
             {isSuspendedStatus && account.twitter_id && (
               <div className="text-xs text-gray-500 mt-1 ml-6">
-                凍結判定: {formatDateLocal(account.shadowban_check_at)}
+                凍結判定: {formatDateLocal(account.updated_at)}
               </div>
             )}
           </div>

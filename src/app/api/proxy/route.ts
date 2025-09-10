@@ -90,8 +90,215 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// プロキシの使用回数を更新するPOSTエンドポイント
+// プロキシの新規作成
 export async function POST(request: NextRequest) {
+  try {
+    const { ip } = await request.json();
+
+    if (!ip) {
+      return NextResponse.json(
+        { error: "Proxy IPが必要です" },
+        { status: 400 }
+      );
+    }
+
+    // Proxy IPのバリデーション
+    const ipRegex = /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    if (!ipRegex.test(ip.trim())) {
+      return NextResponse.json(
+        { error: "有効なProxy IPを入力してください" },
+        { status: 400 }
+      );
+    }
+
+    // 重複チェック
+    const { data: existingProxy, error: checkError } = await supabase
+      .from("dc_proxy_list")
+      .select("id")
+      .eq("ip", ip.trim())
+      .single();
+
+    if (checkError && checkError.code !== "PGRST116") { // PGRST116 = レコードが見つからない
+      console.error("❌ 重複チェックエラー:", checkError);
+      return NextResponse.json(
+        { error: "重複チェックに失敗しました" },
+        { status: 500 }
+      );
+    }
+
+    if (existingProxy) {
+      return NextResponse.json(
+        { error: "このProxy IPは既に登録されています" },
+        { status: 409 }
+      );
+    }
+
+    console.log(`➕ 新規プロキシを作成中: ${ip.trim()}`);
+
+    // プロキシを作成
+    const { data, error } = await supabase
+      .from("dc_proxy_list")
+      .insert({
+        ip: ip.trim(),
+        used_count: 0,
+        last_used_at: null,
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("❌ プロキシ作成エラー:", error);
+      return NextResponse.json(
+        { error: "プロキシの作成に失敗しました" },
+        { status: 500 }
+      );
+    }
+
+    console.log(`✅ プロキシ作成成功: ID=${data.id}, IP=${data.ip}`);
+
+    return NextResponse.json({
+      success: true,
+      proxy: data,
+      message: "プロキシを追加しました",
+    });
+  } catch (error) {
+    console.error("💥 プロキシ作成エラー:", error);
+    return NextResponse.json(
+      { error: "プロキシ作成処理でエラーが発生しました" },
+      { status: 500 }
+    );
+  }
+}
+
+// プロキシの更新
+export async function PUT(request: NextRequest) {
+  try {
+    const { id, ip } = await request.json();
+
+    if (!id || !ip) {
+      return NextResponse.json(
+        { error: "プロキシIDとProxy IPが必要です" },
+        { status: 400 }
+      );
+    }
+
+    // Proxy IPのバリデーション
+    const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    if (!ipRegex.test(ip.trim())) {
+      return NextResponse.json(
+        { error: "有効なProxy IPを入力してください" },
+        { status: 400 }
+      );
+    }
+
+    // 他のプロキシとの重複チェック（自分以外）
+    const { data: existingProxy, error: checkError } = await supabase
+      .from("dc_proxy_list")
+      .select("id")
+      .eq("ip", ip.trim())
+      .neq("id", id)
+      .single();
+
+    if (checkError && checkError.code !== "PGRST116") {
+      console.error("❌ 重複チェックエラー:", checkError);
+      return NextResponse.json(
+        { error: "重複チェックに失敗しました" },
+        { status: 500 }
+      );
+    }
+
+    if (existingProxy) {
+      return NextResponse.json(
+        { error: "このProxy IPは既に登録されています" },
+        { status: 409 }
+      );
+    }
+
+    console.log(`✏️ プロキシを更新中: ID=${id}, IP=${ip.trim()}`);
+
+    // プロキシを更新
+    const { data, error } = await supabase
+      .from("dc_proxy_list")
+      .update({
+        ip: ip.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("❌ プロキシ更新エラー:", error);
+      return NextResponse.json(
+        { error: "プロキシの更新に失敗しました" },
+        { status: 500 }
+      );
+    }
+
+    console.log(`✅ プロキシ更新成功: ID=${data.id}, IP=${data.ip}`);
+
+    return NextResponse.json({
+      success: true,
+      proxy: data,
+      message: "プロキシを更新しました",
+    });
+  } catch (error) {
+    console.error("💥 プロキシ更新エラー:", error);
+    return NextResponse.json(
+      { error: "プロキシ更新処理でエラーが発生しました" },
+      { status: 500 }
+    );
+  }
+}
+
+// プロキシの削除
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "プロキシIDが必要です" },
+        { status: 400 }
+      );
+    }
+
+    console.log(`🗑️ プロキシを削除中: ID=${id}`);
+
+    const { data, error } = await supabase
+      .from("dc_proxy_list")
+      .delete()
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("❌ プロキシ削除エラー:", error);
+      return NextResponse.json(
+        { error: "プロキシの削除に失敗しました" },
+        { status: 500 }
+      );
+    }
+
+    console.log(`✅ プロキシ削除成功: ID=${data.id}, IP=${data.ip}`);
+
+    return NextResponse.json({
+      success: true,
+      message: "プロキシを削除しました",
+      deleted_proxy: data,
+    });
+  } catch (error) {
+    console.error("💥 プロキシ削除エラー:", error);
+    return NextResponse.json(
+      { error: "プロキシ削除処理でエラーが発生しました" },
+      { status: 500 }
+    );
+  }
+}
+
+// プロキシの使用回数を更新するPATCHエンドポイント（元のPOST機能）
+export async function PATCH(request: NextRequest) {
   try {
     const { id } = await request.json();
 

@@ -1,8 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { formatDateLocal } from "@/utils/date-helpers";
+import { Edit, Trash2, Plus } from "lucide-react";
+import toast from "react-hot-toast";
 import type { ProxyInfo } from "@/app/api/proxy/route";
 import ProxyPagination from "@/components/proxy/proxy-pagination";
+import ProxyModal from "./proxy-modal";
 
 interface ProxyTableProps {
   proxies: ProxyInfo[];
@@ -16,6 +20,7 @@ interface ProxyTableProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   onItemsPerPageChange: (itemsPerPage: number) => void;
+  onDataChange: () => void;
 }
 
 export default function ProxyTable({
@@ -30,10 +35,102 @@ export default function ProxyTable({
   totalPages,
   onPageChange,
   onItemsPerPageChange,
+  onDataChange,
 }: ProxyTableProps) {
+  const [showModal, setShowModal] = useState(false);
+  const [editingProxy, setEditingProxy] = useState<ProxyInfo | null>(null);
+  const [modalLoading, setModalLoading] = useState(false);
+
   const getSortIcon = (field: string) => {
     if (sortField !== field) return null;
     return sortDirection === "asc" ? "↑" : "↓";
+  };
+
+  const handleCreate = () => {
+    setEditingProxy(null);
+    setShowModal(true);
+  };
+
+  const handleEdit = (proxy: ProxyInfo) => {
+    setEditingProxy(proxy);
+    setShowModal(true);
+  };
+
+  const handleDelete = async (proxy: ProxyInfo) => {
+    if (!confirm(`プロキシ "${proxy.ip}" を削除しますか？`)) {
+      return;
+    }
+
+    try {
+      console.log(`🗑️ プロキシを削除: ${proxy.ip}`);
+      const response = await fetch(`/api/proxy?id=${proxy.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`削除失敗: ${errorData}`);
+      }
+
+      const result = await response.json();
+      console.log("✅ プロキシ削除成功:", result);
+      toast.success(`プロキシ "${proxy.ip}" を削除しました`, {
+        duration: 3000,
+      });
+      onDataChange(); // データを再取得
+    } catch (error) {
+      console.error("❌ プロキシ削除エラー:", error);
+      toast.error("プロキシの削除に失敗しました", {
+        duration: 3000,
+      });
+    }
+  };
+
+  const handleSave = async (proxyData: Partial<ProxyInfo>) => {
+    setModalLoading(true);
+    
+    try {
+      const isEditing = !!editingProxy;
+      const method = isEditing ? "PUT" : "POST";
+      const url = "/api/proxy";
+
+      console.log(`💾 プロキシを${isEditing ? "更新" : "作成"}: ${proxyData.ip}`);
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(proxyData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "操作に失敗しました");
+      }
+
+      const result = await response.json();
+      console.log(`✅ プロキシ${isEditing ? "更新" : "作成"}成功:`, result);
+      
+      toast.success(result.message, {
+        duration: 3000,
+      });
+      setShowModal(false);
+      setEditingProxy(null);
+      onDataChange(); // データを再取得
+    } catch (error) {
+      console.error(`❌ プロキシ${editingProxy ? "更新" : "作成"}エラー:`, error);
+      toast.error(error instanceof Error ? error.message : "操作に失敗しました", {
+        duration: 3000,
+      });
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleModalClose = () => {
+    setShowModal(false);
+    setEditingProxy(null);
   };
 
   if (loading) {
@@ -65,15 +162,26 @@ export default function ProxyTable({
                 <option value={50}>50件</option>
                 <option value={100}>100件</option>
               </select>
+              <button
+                onClick={handleCreate}
+                disabled={loading}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                新規作成
+              </button>
             </div>
-            <div className="text-sm text-gray-500">
-              {totalProxies
-                ? (() => {
-                    const startIndex = (currentPage - 1) * itemsPerPage + 1;
-                    const endIndex = Math.min(currentPage * itemsPerPage, totalProxies);
-                    return `${startIndex}-${endIndex}件目 / 全${totalProxies.toLocaleString()}件`;
-                  })()
-                  : `全${proxies.length}件`}
+            
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-500">
+                {totalProxies
+                  ? (() => {
+                      const startIndex = (currentPage - 1) * itemsPerPage + 1;
+                      const endIndex = Math.min(currentPage * itemsPerPage, totalProxies);
+                      return `${startIndex}-${endIndex}件目 / 全${totalProxies.toLocaleString()}件`;
+                    })()
+                    : `全${proxies.length}件`}
+              </div>
             </div>
           </div>
         )}
@@ -137,6 +245,9 @@ export default function ProxyTable({
                   <span className="text-blue-600">{getSortIcon("updated_at")}</span>
                 </div>
               </th>
+              <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                操作
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -194,12 +305,38 @@ export default function ProxyTable({
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div>{formatDateLocal(proxy.updated_at)}</div>
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <div className="flex items-center justify-center space-x-2">
+                    <button
+                      onClick={() => handleEdit(proxy)}
+                      className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
+                      title="編集"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(proxy)}
+                      className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                      title="削除"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
             {proxies.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                   プロキシデータがありません
+                  <div className="mt-2">
+                    <button
+                      onClick={handleCreate}
+                      className="text-green-600 hover:text-green-700 text-sm underline"
+                    >
+                      最初のプロキシを追加
+                    </button>
+                  </div>
                 </td>
               </tr>
             )}
@@ -217,6 +354,15 @@ export default function ProxyTable({
         onItemsPerPageChange={onItemsPerPageChange}
       />
       </div>
+
+      {/* プロキシ追加・編集モーダル */}
+      <ProxyModal
+        isOpen={showModal}
+        onClose={handleModalClose}
+        onSave={handleSave}
+        editingProxy={editingProxy}
+        loading={modalLoading}
+      />
     </div>
   );
 }

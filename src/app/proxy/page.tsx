@@ -102,6 +102,7 @@ export default function ProxyPage() {
         totalPages={totalPages}
         onPageChange={handlePageChange}
         onItemsPerPageChange={handleItemsPerPageChange}
+        onDataChange={fetchProxies}
       />
     </div>
   );

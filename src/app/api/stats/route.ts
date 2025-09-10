@@ -71,24 +71,24 @@ export async function fetchStatsData(): Promise<TotalStats> {
   try {
     // 総アカウント数
     const { count: totalAccounts } = await supabase
-      .from("twitter_account_v2")
+      .from("twitter_account_v3")
       .select("*", { count: "exact", head: true });
 
     // アクティブアカウント数（status = active）
     const { count: activeAccounts } = await supabase
-      .from("twitter_account_v2")
+      .from("twitter_account_v3")
       .select("*", { count: "exact", head: true })
       .eq("status", "active");
     
     // 凍結アカウント数（status = suspended）
     const { count: suspendedAccounts } = await supabase
-      .from("twitter_account_v2")
+      .from("twitter_account_v3")
       .select("*", { count: "exact", head: true })
       .eq("status", "suspended");  
     
     // 一時制限アカウント数（status = temp_locked）
     const { count: tempLockedAccounts } = await supabase
-      .from("twitter_account_v2")
+      .from("twitter_account_v3")
       .select("*", { count: "exact", head: true })
       .eq("status", "temp_locked");    
 
@@ -696,7 +696,7 @@ export async function fetchPerformanceMetrics(): Promise<PerformanceMetrics> {
 
     // アクティブアカウント数（status = active）
     const { count: activeAccounts } = await supabase
-      .from("twitter_account_v2")
+      .from("twitter_account_v3")
       .select("*", { count: "exact", head: true })
       .eq("status", "active");
 
@@ -876,7 +876,7 @@ export async function fetchIpRankingTop5(): Promise<IpData[]> {
 export async function fetchAccountDetails(twitterId: string): Promise<any> {
   try {
     const { data, error } = await supabase
-      .from("twitter_account_v2")
+      .from("twitter_account_v3")
       .select("*")
       .eq("twitter_id", twitterId)
       .single();

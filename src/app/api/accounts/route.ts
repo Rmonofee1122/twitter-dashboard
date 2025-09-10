@@ -143,74 +143,82 @@ export async function GET(request: Request) {
       );
     }
 
-    // ステータス別の件数も取得（最適化版）
+    // ステータス別の件数も取得（直接集計版）
     let statusCounts = null;
     if (page === 1) {
       try {
-        // 効率的な統計取得：1回のクエリで全ステータスをカウント
-        let statsQuery = supabase.from("status_count_per_day02").select();
+        console.log("📊 ステータス別件数を取得中...");
+        
+        // 基本クエリを構築（フィルター条件を含む）
+        let baseQuery = supabase.from("twitter_account_v3").select("status", { count: "exact", head: true });
 
         // 検索フィルター適用
         if (search) {
-          statsQuery = statsQuery.or(
+          baseQuery = baseQuery.or(
             `twitter_id.ilike.%${search}%,email.ilike.%${search}%,create_ip.ilike.%${search}%`
           );
         }
 
         // 日付フィルター適用
         if (startDate) {
-          statsQuery = statsQuery.gte("log_created_at", startDate);
+          baseQuery = baseQuery.gte("log_created_at", startDate);
         }
         if (endDate) {
           const endDateTime = new Date(endDate);
           endDateTime.setHours(23, 59, 59, 999);
-          statsQuery = statsQuery.lte(
-            "log_created_at",
-            endDateTime.toISOString()
-          );
+          baseQuery = baseQuery.lte("log_created_at", endDateTime.toISOString());
         }
 
-        // ステータスデータを取得
-        const { data: statusData, error: statusError } = await statsQuery;
+        // 各ステータス別に並列でカウント取得
+        const [
+          { count: activeCount },
+          { count: shadowbanCount },
+          { count: stoppedCount },
+          { count: examinationCount },
+          { count: suspendedCount },
+        ] = await Promise.all([
+          // アクティブ
+          supabase.from("twitter_account_v3")
+            .select("*", { count: "exact", head: true })
+            .eq("status", "active")
+            .then(result => ({ count: result.count || 0 })),
+          
+          // シャドバン系
+          supabase.from("twitter_account_v3")
+            .select("*", { count: "exact", head: true })
+            .or("status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban")
+            .then(result => ({ count: result.count || 0 })),
+          
+          // 一時制限
+          supabase.from("twitter_account_v3")
+            .select("*", { count: "exact", head: true })
+            .or("status.eq.stop,status.eq.temp_locked")
+            .then(result => ({ count: result.count || 0 })),
+          
+          // 審査中
+          supabase.from("twitter_account_v3")
+            .select("*", { count: "exact", head: true })
+            .eq("status", "examination")
+            .then(result => ({ count: result.count || 0 })),
+          
+          // 凍結
+          supabase.from("twitter_account_v3")
+            .select("*", { count: "exact", head: true })
+            .or("status.eq.suspend,status.eq.suspended")
+            .then(result => ({ count: result.count || 0 })),
+        ]);
 
-        if (!statusError && statusData) {
-          // JavaScript側で効率的にカウント
-          const counts = {
-            active: 0,
-            shadowban: 0,
-            stopped: 0,
-            examination: 0,
-            suspended: 0,
-            temp_locked: 0,
-          };
+        statusCounts = {
+          active: activeCount,
+          shadowban: shadowbanCount,
+          stopped: stoppedCount,
+          examination: examinationCount,
+          suspended: suspendedCount,
+        };
 
-          statusData.forEach((record) => {
-            const status = record.status?.toLowerCase();
-            const plus_counts = record.count;
-
-            if (status === "active") {
-              counts.active += plus_counts;
-            } else if (
-              status === "search_ban" ||
-              status === "search_suggestion_ban" ||
-              status === "ghost_ban"
-            ) {
-              counts.shadowban += plus_counts;
-            } else if (status === "stop") {
-              counts.stopped = +plus_counts;
-            } else if (status === "temp_locked") {
-              counts.stopped = +plus_counts;
-            } else if (status === "examination") {
-              counts.examination += plus_counts;
-            } else if (status === "suspend" || status === "suspended") {
-              counts.suspended += plus_counts;
-            }
-          });
-
-          statusCounts = counts;
-        }
+        console.log("✅ ステータス別件数取得成功:", statusCounts);
       } catch (statusError) {
-        console.error("ステータス別統計の取得エラー:", statusError);
+        console.error("❌ ステータス別統計の取得エラー:", statusError);
       }
     }
 

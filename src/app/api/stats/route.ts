@@ -40,6 +40,7 @@ export interface ChartData {
     date: string;
     active_count: number;
     suspended_count: number;
+    shadowban_count: number;
     temp_locked_count: number;
     other_count: number;
     total_count: number;
@@ -48,6 +49,7 @@ export interface ChartData {
     week: string;
     active_count: number;
     suspended_count: number;
+    shadowban_count: number;
     temp_locked_count: number;
     other_count: number;
     total_count: number;
@@ -56,6 +58,7 @@ export interface ChartData {
     month: string;
     active_count: number;
     suspended_count: number;
+    shadowban_count: number;
     temp_locked_count: number;
     other_count: number;
     total_count: number;
@@ -70,61 +73,69 @@ export async function fetchStatsData(): Promise<TotalStats> {
     today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0");
 
   try {
-    // 総アカウント数
-    const { count: totalAccounts } = await supabase
-      .from("twitter_account_v3")
-      .select("*", { count: "exact", head: true });
+    // status_count_per_day03
+    const { data: statusCountPerDay03 } = await supabase
+      .from("status_count_per_day03")
+      .select("*");
+
+    // 総アカウント数(statusCountPerDay03.total_countの合計を取得)
+    const totalAccounts = statusCountPerDay03?.reduce(
+      (acc, item) => acc + item.total_count,
+      0
+    );
 
     // アクティブアカウント数（status = active）
-    const { count: activeAccounts } = await supabase
-      .from("twitter_account_v3")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "active");
+    const activeAccounts = statusCountPerDay03?.reduce(
+      (acc, item) => acc + item.active_count,
+      0
+    );
 
     // 凍結アカウント数（status = suspended）
-    const { count: suspendedAccounts } = await supabase
-      .from("twitter_account_v3")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "suspended");
+    const suspendedAccounts = statusCountPerDay03?.reduce(
+      (acc, item) => acc + item.suspended_count,
+      0
+    );
 
     // シャドBANアカウント数（status = shadowban）
-    const { count: shadowbanAccounts } = await supabase
-      .from("twitter_account_v3")
-      .select("*", { count: "exact", head: true })
-      .or(
-        "status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"
-      );
+    const shadowbanAccounts = statusCountPerDay03?.reduce(
+      (acc, item) => acc + item.shadowban_count,
+      0
+    );
 
     // 一時制限アカウント数（status = temp_locked）
-    const { count: tempLockedAccounts } = await supabase
-      .from("twitter_account_v3")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "temp_locked");
+    const tempLockedAccounts = statusCountPerDay03?.reduce(
+      (acc, item) => acc + item.temp_locked_count,
+      0
+    );
 
-    // 今日の作成数
-    const { count: todayCreated } = await supabase
-      .from("twitter_create_logs")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", todayString + "T00:00:00")
-      .lt("created_at", todayString + "T23:59:59");
+    // 今日の作成数(statusCountPerDay03.created_dateが今日の場合のtotal_countの合計を取得)
+    const todayCreated = statusCountPerDay03?.reduce(
+      (acc, item) =>
+        item.created_date === todayString ? acc + item.total_count : acc,
+      0
+    );
 
-    // 今月の作成数
-    const { count: monthCreated } = await supabase
-      .from("twitter_create_logs")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", currentMonth + "-01T00:00:00")
-      .lt("created_at", getNextMonth(currentMonth) + "-01T00:00:00");
+    // 今月の作成数(statusCountPerDay03.created_dateが今月の場合のみのtotal_countの合計を取得)
+    const monthCreated = statusCountPerDay03?.reduce((acc, item) => {
+      const itemMonth = new Date(item.created_date).toISOString().slice(0, 7); // YYYY-MM形式
+      return itemMonth === currentMonth ? acc + item.total_count : acc;
+    }, 0);
 
     // 今週の作成数（過去7日間）
     const weekAgo = new Date(today);
     weekAgo.setDate(weekAgo.getDate() - 7);
     const weekAgoString = weekAgo.toISOString().split("T")[0];
+    const weekCreated = statusCountPerDay03?.reduce(
+      (acc, item) =>
+        item.created_date >= weekAgoString ? acc + item.total_count : acc,
+      0
+    );
 
-    const { count: weekCreated } = await supabase
-      .from("twitter_create_logs")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", weekAgoString + "T00:00:00")
-      .lt("created_at", todayString + "T23:59:59");
+    // 期間内作成数
+    const periodTotalAccounts = statusCountPerDay03?.reduce(
+      (acc, item) => acc + item.total_count,
+      0
+    );
 
     return {
       totalAccounts: totalAccounts || 0,
@@ -160,7 +171,7 @@ export async function fetchCreationTrendsDataFiltered(
     let query = supabase
       .from("status_count_per_day03")
       .select(
-        "created_date, active_count, suspended_count, temp_locked_count, other_count, total_count"
+        "created_date, active_count, suspended_count, shadowban_count, temp_locked_count, other_count, total_count"
       )
       .order("created_date", { ascending: true });
 
@@ -203,6 +214,7 @@ export async function fetchCreationTrendsDataFiltered(
         date: dateStr,
         active_count: dataItem?.active_count || 0,
         suspended_count: dataItem?.suspended_count || 0,
+        shadowban_count: dataItem?.shadowban_count || 0,
         temp_locked_count: dataItem?.temp_locked_count || 0,
         other_count: dataItem?.other_count || 0,
         total_count: dataItem?.total_count || 0,
@@ -242,7 +254,7 @@ export async function fetchCreationTrendsData(): Promise<ChartData> {
     const { data: dailyData } = await supabase
       .from("status_count_per_day03")
       .select(
-        "created_date, active_count, suspended_count, temp_locked_count, other_count, total_count"
+        "created_date, active_count, suspended_count, shadowban_count, temp_locked_count, other_count, total_count"
       )
       .order("created_date", { ascending: true });
 
@@ -267,6 +279,7 @@ export async function fetchCreationTrendsData(): Promise<ChartData> {
         date: dateStr,
         active_count: dataItem?.active_count || 0,
         suspended_count: dataItem?.suspended_count || 0,
+        shadowban_count: dataItem?.shadowban_count || 0,
         temp_locked_count: dataItem?.temp_locked_count || 0,
         other_count: dataItem?.other_count || 0,
         total_count: dataItem?.total_count || 0,
@@ -405,6 +418,7 @@ async function generateWeeklyDataV2(dailyData: any[]): Promise<
     week: string;
     active_count: number;
     suspended_count: number;
+    shadowban_count: number;
     temp_locked_count: number;
     other_count: number;
     total_count: number;
@@ -429,6 +443,7 @@ async function generateWeeklyDataV2(dailyData: any[]): Promise<
     week: string;
     active_count: number;
     suspended_count: number;
+    shadowban_count: number;
     temp_locked_count: number;
     other_count: number;
     total_count: number;
@@ -458,6 +473,7 @@ async function generateWeeklyDataV2(dailyData: any[]): Promise<
       (acc, item) => ({
         active_count: acc.active_count + (item.active_count || 0),
         suspended_count: acc.suspended_count + (item.suspended_count || 0),
+        shadowban_count: acc.shadowban_count + (item.shadowban_count || 0),
         temp_locked_count:
           acc.temp_locked_count + (item.temp_locked_count || 0),
         other_count: acc.other_count + (item.other_count || 0),
@@ -466,6 +482,7 @@ async function generateWeeklyDataV2(dailyData: any[]): Promise<
       {
         active_count: 0,
         suspended_count: 0,
+        shadowban_count: 0,
         temp_locked_count: 0,
         other_count: 0,
         total_count: 0,
@@ -487,6 +504,7 @@ async function generateWeeklyDataV2(dailyData: any[]): Promise<
       week: `第${weeklyData.length + 1}週`,
       active_count: 0,
       suspended_count: 0,
+      shadowban_count: 0,
       temp_locked_count: 0,
       other_count: 0,
       total_count: 0,
@@ -502,6 +520,7 @@ async function generateMonthlyDataV2(dailyData: any[]): Promise<
     month: string;
     active_count: number;
     suspended_count: number;
+    shadowban_count: number;
     temp_locked_count: number;
     other_count: number;
     total_count: number;
@@ -522,6 +541,7 @@ async function generateMonthlyDataV2(dailyData: any[]): Promise<
     {
       active_count: number;
       suspended_count: number;
+      shadowban_count: number;
       temp_locked_count: number;
       other_count: number;
       total_count: number;
@@ -537,6 +557,7 @@ async function generateMonthlyDataV2(dailyData: any[]): Promise<
     const existing = monthlyMap.get(monthKey) || {
       active_count: 0,
       suspended_count: 0,
+      shadowban_count: 0,
       temp_locked_count: 0,
       other_count: 0,
       total_count: 0,
@@ -545,6 +566,7 @@ async function generateMonthlyDataV2(dailyData: any[]): Promise<
     monthlyMap.set(monthKey, {
       active_count: existing.active_count + (item.active_count || 0),
       suspended_count: existing.suspended_count + (item.suspended_count || 0),
+      shadowban_count: existing.shadowban_count + (item.shadowban_count || 0),
       temp_locked_count:
         existing.temp_locked_count + (item.temp_locked_count || 0),
       other_count: existing.other_count + (item.other_count || 0),
@@ -557,6 +579,7 @@ async function generateMonthlyDataV2(dailyData: any[]): Promise<
     month: string;
     active_count: number;
     suspended_count: number;
+    shadowban_count: number;
     temp_locked_count: number;
     other_count: number;
     total_count: number;
@@ -567,6 +590,7 @@ async function generateMonthlyDataV2(dailyData: any[]): Promise<
     const counts = monthlyMap.get(monthKey) || {
       active_count: 0,
       suspended_count: 0,
+      shadowban_count: 0,
       temp_locked_count: 0,
       other_count: 0,
       total_count: 0,
@@ -591,6 +615,7 @@ async function generateWeeklyDataV2Filtered(
     week: string;
     active_count: number;
     suspended_count: number;
+    shadowban_count: number;
     temp_locked_count: number;
     other_count: number;
     total_count: number;
@@ -607,6 +632,7 @@ async function generateWeeklyDataV2Filtered(
     {
       active_count: number;
       suspended_count: number;
+      shadowban_count: number;
       temp_locked_count: number;
       other_count: number;
       total_count: number;
@@ -622,6 +648,7 @@ async function generateWeeklyDataV2Filtered(
     const existing = weeklyMap.get(weekKey) || {
       active_count: 0,
       suspended_count: 0,
+      shadowban_count: 0,
       temp_locked_count: 0,
       other_count: 0,
       total_count: 0,
@@ -630,6 +657,7 @@ async function generateWeeklyDataV2Filtered(
     weeklyMap.set(weekKey, {
       active_count: existing.active_count + (item.active_count || 0),
       suspended_count: existing.suspended_count + (item.suspended_count || 0),
+      shadowban_count: existing.shadowban_count + (item.shadowban_count || 0),
       temp_locked_count:
         existing.temp_locked_count + (item.temp_locked_count || 0),
       other_count: existing.other_count + (item.other_count || 0),
@@ -658,6 +686,7 @@ async function generateMonthlyDataV2Filtered(
     month: string;
     active_count: number;
     suspended_count: number;
+    shadowban_count: number;
     temp_locked_count: number;
     other_count: number;
     total_count: number;
@@ -674,6 +703,7 @@ async function generateMonthlyDataV2Filtered(
     {
       active_count: number;
       suspended_count: number;
+      shadowban_count: number;
       temp_locked_count: number;
       other_count: number;
       total_count: number;
@@ -689,6 +719,7 @@ async function generateMonthlyDataV2Filtered(
     const existing = monthlyMap.get(monthKey) || {
       active_count: 0,
       suspended_count: 0,
+      shadowban_count: 0,
       temp_locked_count: 0,
       other_count: 0,
       total_count: 0,
@@ -697,6 +728,7 @@ async function generateMonthlyDataV2Filtered(
     monthlyMap.set(monthKey, {
       active_count: existing.active_count + (item.active_count || 0),
       suspended_count: existing.suspended_count + (item.suspended_count || 0),
+      shadowban_count: existing.shadowban_count + (item.shadowban_count || 0),
       temp_locked_count:
         existing.temp_locked_count + (item.temp_locked_count || 0),
       other_count: existing.other_count + (item.other_count || 0),

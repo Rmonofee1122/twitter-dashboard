@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { formatDateLocal } from "@/utils/date-helpers";
-import { Edit, Trash2, Plus } from "lucide-react";
+import { Edit, Trash2, Plus, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 import { ProxyInfo } from "@/types/database";
 import ProxyPagination from "@/components/proxy/proxy-pagination";
@@ -42,6 +42,7 @@ export default function ProxyTable({
   const [showModal, setShowModal] = useState(false);
   const [editingProxy, setEditingProxy] = useState<ProxyInfo | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
+  const [csvImporting, setCsvImporting] = useState(false);
 
   const getSortIcon = useCallback((field: string) => {
     if (sortField !== field) return null;
@@ -134,6 +135,73 @@ export default function ProxyTable({
     setEditingProxy(null);
   }, []);
 
+  const handleCsvImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      toast.error('CSVファイルを選択してください', { duration: 3000 });
+      return;
+    }
+
+    setCsvImporting(true);
+    
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      const proxies: string[] = [];
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine) {
+          const ipPattern = /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g;
+          const matches = trimmedLine.match(ipPattern);
+          if (matches) {
+            proxies.push(...matches);
+          }
+        }
+      }
+
+      if (proxies.length === 0) {
+        toast.error('CSVファイルからプロキシIPが見つかりませんでした', { duration: 3000 });
+        return;
+      }
+
+      const uniqueProxies = [...new Set(proxies)];
+      console.log(`📊 CSVから${uniqueProxies.length}個のユニークなプロキシIPを検出`);
+
+      const response = await fetch(`${apiEndpoint}/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ proxies: uniqueProxies }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'バルクインサートに失敗しました');
+      }
+
+      const result = await response.json();
+      console.log('✅ プロキシバルクインサート成功:', result);
+      
+      toast.success(`${uniqueProxies.length}個のプロキシを一括登録しました`, {
+        duration: 5000,
+      });
+      
+      onDataChange();
+    } catch (error) {
+      console.error('❌ CSVインポートエラー:', error);
+      toast.error(error instanceof Error ? error.message : 'CSVインポートに失敗しました', {
+        duration: 3000,
+      });
+    } finally {
+      setCsvImporting(false);
+      event.target.value = '';
+    }
+  }, [apiEndpoint, onDataChange]);
+
   const paginationInfo = useMemo(() => {
     if (totalProxies) {
       const startIndex = (currentPage - 1) * itemsPerPage + 1;
@@ -180,6 +248,17 @@ export default function ProxyTable({
                 <Plus className="h-4 w-4 mr-1" />
                 新規作成
               </button>
+              <label className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50">
+                <Upload className="h-4 w-4 mr-1" />
+                {csvImporting ? 'インポート中...' : 'CSVインポート'}
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleCsvImport}
+                  disabled={csvImporting || loading}
+                  className="hidden"
+                />
+              </label>
             </div>
             
             <div className="flex items-center space-x-4">

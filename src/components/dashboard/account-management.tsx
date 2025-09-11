@@ -12,18 +12,20 @@ import {
 import StatCard from "@/components/ui/stat-card";
 
 interface AccountManagementStats {
-  active: number; // app_login = 'FarmUp'
-  shadowban: number; // app_login = 'true' または true
-  stopped: number; // app_login = 'false' または false
-  examination: number; // app_login = 'false' または false
-  suspended: number; // app_login = 'suspend' または 'email_ban'
+  total: number;
+  active: number;
+  shadowban: number;
+  temp_locked: number;
+  examination: number;
+  suspended: number;
 }
 
 export default function AccountManagement() {
   const [stats, setStats] = useState<AccountManagementStats>({
+    total: 0,
     active: 0,
     shadowban: 0,
-    stopped: 0,
+    temp_locked: 0,
     examination: 0,
     suspended: 0,
   });
@@ -48,9 +50,10 @@ export default function AccountManagement() {
       console.error("アカウント統計の取得に失敗しました:", error);
       // エラーの場合は仮のデータを設定
       setStats({
+        total: 0,
         active: 0,
         shadowban: 0,
-        stopped: 0,
+        temp_locked: 0,
         examination: 0,
         suspended: 0,
       });
@@ -77,9 +80,9 @@ export default function AccountManagement() {
       bgColor: "bg-orange-50",
     },
     {
-      title: "一時停止",
+      title: "一時制限",
       subtitle: "",
-      value: stats.stopped,
+      value: stats.temp_locked,
       icon: Pause,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
@@ -128,13 +131,6 @@ export default function AccountManagement() {
     );
   }
 
-  const totalAccounts =
-    stats.active +
-    stats.shadowban +
-    stats.stopped +
-    stats.examination +
-    stats.suspended;
-
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex items-center justify-between mb-6">
@@ -143,7 +139,7 @@ export default function AccountManagement() {
             アカウント管理
           </h3>
           <p className="text-sm text-gray-600">
-            ステータス別のアカウント数 (総計: {totalAccounts.toLocaleString()}
+            ステータス別のアカウント数 (総計: {stats.total.toLocaleString()}
             件)
           </p>
         </div>
@@ -177,45 +173,45 @@ export default function AccountManagement() {
         <div className="flex h-3 bg-gray-200 rounded-full overflow-hidden">
           <div
             className="bg-green-500"
-            style={{ width: `${(stats.active / totalAccounts) * 100}%` }}
+            style={{ width: `${(stats.active / stats.total) * 100}%` }}
             title={`アクティブ: ${stats.active}件`}
           />
           <div
             className="bg-orange-500"
-            style={{ width: `${(stats.shadowban / totalAccounts) * 100}%` }}
+            style={{ width: `${(stats.shadowban / stats.total) * 100}%` }}
             title={`シャドBAN: ${stats.shadowban}件`}
           />
           <div
             className="bg-blue-500"
-            style={{ width: `${(stats.examination / totalAccounts) * 100}%` }}
+            style={{ width: `${(stats.examination / stats.total) * 100}%` }}
             title={`一時停止: ${stats.examination}件`}
           />
           <div
             className="bg-yellow-500"
-            style={{ width: `${(stats.examination / totalAccounts) * 100}%` }}
+            style={{ width: `${(stats.examination / stats.total) * 100}%` }}
             title={`審査中: ${stats.examination}件`}
           />
           <div
             className="bg-red-500"
-            style={{ width: `${(stats.suspended / totalAccounts) * 100}%` }}
+            style={{ width: `${(stats.suspended / stats.total) * 100}%` }}
             title={`凍結: ${stats.suspended}件`}
           />
         </div>
         <div className="flex justify-between text-xs text-gray-500 mt-1">
           <span>
-            アクティブ ({((stats.active / totalAccounts) * 100).toFixed(1)}%)
+            アクティブ ({((stats.active / stats.total) * 100).toFixed(1)}%)
           </span>
           <span>
-            シャドバン ({((stats.shadowban / totalAccounts) * 100).toFixed(1)}%)
+            シャドバン ({((stats.shadowban / stats.total) * 100).toFixed(1)}%)
           </span>
           <span>
-            一時停止 ({((stats.stopped / totalAccounts) * 100).toFixed(1)}%)
+            一時制限 ({((stats.temp_locked / stats.total) * 100).toFixed(1)}%)
           </span>
           <span>
-            審査中 ({((stats.examination / totalAccounts) * 100).toFixed(1)}%)
+            審査中 ({((stats.examination / stats.total) * 100).toFixed(1)}%)
           </span>
           <span>
-            凍結 ({((stats.suspended / totalAccounts) * 100).toFixed(1)}%)
+            凍結 ({((stats.suspended / stats.total) * 100).toFixed(1)}%)
           </span>
         </div>
       </div>

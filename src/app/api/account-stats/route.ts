@@ -5,66 +5,55 @@ export async function GET() {
   try {
     console.log("📊 アカウントステータス統計を取得中...");
 
-    // 各ステータス別に直接カウント取得（高速・確実）
-    const statusQueries = [
-      // アクティブ
-      supabase
-        .from("twitter_create_with_account_v1")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "active"),
-      
-      // シャドバン系
-      supabase
-        .from("twitter_create_with_account_v1") 
-        .select("*", { count: "exact", head: true })
-        .or("status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"),
-      
-      // 一時制限（stop）
-      supabase
-        .from("twitter_create_with_account_v1")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "stop"),
-      
-      // 一時制限（temp_locked）  
-      supabase
-        .from("twitter_create_with_account_v1")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "temp_locked"),
-      
-      // 審査中
-      supabase
-        .from("twitter_create_with_account_v1")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "examination"),
-      
-      // 凍結
-      supabase
-        .from("twitter_create_with_account_v1")
-        .select("*", { count: "exact", head: true })
-        .or("status.eq.suspend,status.eq.suspended"),
-    ];
+    // status_count_per_day03
+    const { data: statusCountPerDay03 } = await supabase
+      .from("status_count_per_day03")
+      .select("*");
 
-    console.log("🔄 並列でステータス別件数を取得中...");
-    
-    // Promise.allSettledで部分的失敗にも対応
-    const results = await Promise.allSettled(statusQueries);
-    
+    // 総アカウント数(statusCountPerDay03.total_countの合計を取得)
+    const totalAccounts = statusCountPerDay03?.reduce(
+      (acc, item) => acc + item.total_count,
+      0
+    );
+
+    // アクティブアカウント数（status = active）
+    const activeAccounts = statusCountPerDay03?.reduce(
+      (acc, item) => acc + item.active_count,
+      0
+    );
+
+    // 凍結アカウント数（status = suspended）
+    const suspendedAccounts = statusCountPerDay03?.reduce(
+      (acc, item) => acc + item.suspended_count,
+      0
+    );
+
+    // シャドBANアカウント数（status = shadowban）
+    const shadowbanAccounts = statusCountPerDay03?.reduce(
+      (acc, item) => acc + item.shadowban_count,
+      0
+    );
+
+    // 一時制限アカウント数（status = temp_locked）
+    const tempLockedAccounts = statusCountPerDay03?.reduce(
+      (acc, item) => acc + item.temp_locked_count,
+      0
+    );
+
+    // 一時制限アカウント数（status = temp_locked）
+    const examinationAccounts = statusCountPerDay03?.reduce(
+      (acc, item) => acc + item.examination_count,
+      0
+    );
+
     const stats = {
-      active: results[0].status === 'fulfilled' ? (results[0].value.count || 0) : 0,
-      shadowban: results[1].status === 'fulfilled' ? (results[1].value.count || 0) : 0,
-      stopped: results[2].status === 'fulfilled' ? (results[2].value.count || 0) : 0,
-      temp_locked: results[3].status === 'fulfilled' ? (results[3].value.count || 0) : 0,
-      examination: results[4].status === 'fulfilled' ? (results[4].value.count || 0) : 0,
-      suspended: results[5].status === 'fulfilled' ? (results[5].value.count || 0) : 0,
+      total: totalAccounts || 0,
+      active: activeAccounts || 0,
+      shadowban: shadowbanAccounts || 0,
+      temp_locked: tempLockedAccounts || 0,
+      examination: examinationAccounts || 0,
+      suspended: suspendedAccounts || 0,
     };
-
-    // エラーが発生したクエリをログに出力
-    results.forEach((result, index) => {
-      if (result.status === 'rejected') {
-        const statusNames = ['active', 'shadowban', 'stopped', 'temp_locked', 'examination', 'suspended'];
-        console.error(`❌ ${statusNames[index]} カウント取得失敗:`, result.reason);
-      }
-    });
 
     console.log("✅ アカウント統計取得成功:", stats);
 
@@ -77,16 +66,16 @@ export async function GET() {
   } catch (error) {
     console.error("💥 アカウント統計取得エラー:", error);
     return NextResponse.json(
-      { 
+      {
         error: "アカウント統計の取得に失敗しました",
         statusCounts: {
+          total: 0,
           active: 0,
           shadowban: 0,
-          stopped: 0,
           temp_locked: 0,
           examination: 0,
           suspended: 0,
-        }
+        },
       },
       { status: 500 }
     );

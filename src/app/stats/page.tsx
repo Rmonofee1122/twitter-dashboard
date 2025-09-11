@@ -63,12 +63,14 @@ export default function StatsPage() {
     weeklyCreations: [],
     monthlyCreations: [],
   });
-  
+
   const [filteredStatusDistribution, setFilteredStatusDistribution] = useState<
     Array<{ name: string; value: number; color: string }>
   >([]);
 
-  const [filteredDomainData, setFilteredDomainData] = useState<FilteredDomainData[]>([]);
+  const [filteredDomainData, setFilteredDomainData] = useState<
+    FilteredDomainData[]
+  >([]);
 
   const [selectedPeriod, setSelectedPeriod] = useState<
     "daily" | "weekly" | "monthly"
@@ -86,6 +88,40 @@ export default function StatsPage() {
   });
 
   const [isFilteredDataLoading, setIsFilteredDataLoading] = useState(false);
+
+  // フィルタリングされた期間の統計データを計算
+  const filteredTotalStats = {
+    // フィルタリンゲされない総アカウント数
+    totalAccounts: filteredChartData.dailyCreations.reduce(
+      (acc, day) =>
+        acc +
+        day.active_count +
+        day.suspended_count +
+        day.temp_locked_count +
+        day.shadowban_count +
+        day.other_count,
+      0
+    ),
+    activeAccounts: filteredChartData.dailyCreations.reduce(
+      (acc, day) => acc + day.active_count,
+      0
+    ),
+    suspendedAccounts: filteredChartData.dailyCreations.reduce(
+      (acc, day) => acc + day.suspended_count,
+      0
+    ),
+    tempLockedAccounts: filteredChartData.dailyCreations.reduce(
+      (acc, day) => acc + day.temp_locked_count,
+      0
+    ),
+    shadowbanAccounts: filteredChartData.dailyCreations.reduce(
+      (acc, day) => acc + day.shadowban_count,
+      0
+    ),
+    todayCreated: 0, // フィルタリングされた期間では意味がないため0とする
+    weekCreated: 0, // フィルタリングされた期間では意味がないため0とする
+    monthCreated: 0, // フィルタリングされた期間では意味がないため0とする
+  };
 
   // 基本統計データの読み込み
   useEffect(() => {
@@ -117,12 +153,17 @@ export default function StatsPage() {
           },
           {
             name: "一時制限",
-            value: realStats.tempLockedAccounts,  
+            value: realStats.tempLockedAccounts,
             color: "#F59E0B",
           },
           {
             name: "その他",
-            value: realStats.totalAccounts - realStats.activeAccounts - realStats.shadowbanAccounts - realStats.suspendedAccounts - realStats.tempLockedAccounts,
+            value:
+              realStats.totalAccounts -
+              realStats.activeAccounts -
+              realStats.shadowbanAccounts -
+              realStats.suspendedAccounts -
+              realStats.tempLockedAccounts,
             color: "#6B7280",
           },
         ],
@@ -145,12 +186,9 @@ export default function StatsPage() {
             dateFilter.startDate,
             dateFilter.endDate
           ),
-          fetchFilteredDomainRanking(
-            dateFilter.startDate,
-            dateFilter.endDate
-          ),
+          fetchFilteredDomainRanking(dateFilter.startDate, dateFilter.endDate),
         ]);
-        
+
         setFilteredChartData(filteredData);
         setFilteredDomainData(filteredDomainData);
 
@@ -160,9 +198,10 @@ export default function StatsPage() {
             active: acc.active + day.active_count,
             suspended: acc.suspended + day.suspended_count,
             tempLocked: acc.tempLocked + day.temp_locked_count,
+            shadowban: acc.shadowban + day.shadowban_count,
             other: acc.other + day.other_count,
           }),
-          { active: 0, suspended: 0, tempLocked: 0, other: 0 }
+          { active: 0, suspended: 0, tempLocked: 0, shadowban: 0, other: 0 }
         );
 
         setFilteredStatusDistribution([
@@ -219,7 +258,7 @@ export default function StatsPage() {
     <div className="space-y-6">
       <StatsHeader />
       {/* 統計カード */}
-      <SummaryCards totalStats={statsData.totalStats} />
+      <SummaryCards totalStats={filteredTotalStats} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* アカウント作成推移 */}
@@ -236,7 +275,6 @@ export default function StatsPage() {
 
       {/* 日付フィルター付きの分析セクション */}
       <div>
-        
         {/* 日付フィルター */}
         <DateFilter
           startDate={dateFilter.startDate}
@@ -245,46 +283,45 @@ export default function StatsPage() {
           onReset={handleDateReset}
           isLoading={isFilteredDataLoading}
         />
-        </div>
+      </div>
 
-        {/* フィルター付きグラフ */}
-        <div className="mt-6 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 期間別アカウント作成推移 */}
-            <FilteredCreationTrendsChart
-              chartData={filteredChartData}
-              selectedPeriod={selectedPeriod}
-              onPeriodChange={handlePeriodChange}
-              isLoading={isFilteredDataLoading}
-            />
-            {/* 期間別アカウント状態分布 */}
-            <FilteredStatusDistributionChart
-              statusDistribution={filteredStatusDistribution}
-              isLoading={isFilteredDataLoading}
-            />
-          </div>
-
-          {/* 期間別ドメインランキング */}
-          <FilteredDomainRankingList
-            domainData={filteredDomainData}
+      {/* フィルター付きグラフ */}
+      <div className="mt-6 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 期間別アカウント作成推移 */}
+          <FilteredCreationTrendsChart
+            chartData={filteredChartData}
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={handlePeriodChange}
+            isLoading={isFilteredDataLoading}
+          />
+          {/* 期間別アカウント状態分布 */}
+          <FilteredStatusDistributionChart
+            statusDistribution={filteredStatusDistribution}
             isLoading={isFilteredDataLoading}
           />
         </div>
-      
+
+        {/* 期間別ドメインランキング */}
+        <FilteredDomainRankingList
+          domainData={filteredDomainData}
+          isLoading={isFilteredDataLoading}
+        />
+      </div>
 
       {/* 従来のランキング（参考用） */}
       {/* <div className="bg-gray-50 p-6 rounded-lg border border-gray-200"> */}
-        {/* <h2 className="text-xl font-bold text-gray-900 mb-4">
+      {/* <h2 className="text-xl font-bold text-gray-900 mb-4">
           📈 全期間統計（参考）
         </h2> */}
-        {/* <p className="text-gray-700 mb-6">
+      {/* <p className="text-gray-700 mb-6">
           全期間でのドメイン別・IP別作成数ランキングです
         </p> */}
 
-        {/* ドメイン別作成数ランキング */}
-        {/* <DomainRankingList domainData={statsData.domainData} /> */}
-        {/* IP別作成数ランキング */}
-        {/* <IpRankingList ipDistribution={statsData.ipDistribution} /> */}
+      {/* ドメイン別作成数ランキング */}
+      {/* <DomainRankingList domainData={statsData.domainData} /> */}
+      {/* IP別作成数ランキング */}
+      {/* <IpRankingList ipDistribution={statsData.ipDistribution} /> */}
       {/* </div> */}
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { formatDateLocal } from "@/utils/date-helpers";
-import { Edit, Trash2, Plus, Star, StarOff, Copy, Eye } from "lucide-react";
+import { Edit, Trash2, Plus, Star, StarOff, Copy, Eye, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 import { GeminiPrompt } from "@/types/database";
 import PromptPagination from "@/components/gemini/prompt-pagination";
@@ -40,6 +40,8 @@ export default function PromptTable({
   onCreatePrompt,
   onEditPrompt,
 }: PromptTableProps) {
+  const [csvImporting, setCsvImporting] = useState(false);
+  
   const getSortIcon = useCallback((field: string) => {
     if (sortField !== field) return null;
     return sortDirection === "asc" ? "↑" : "↓";
@@ -135,6 +137,80 @@ export default function PromptTable({
     }
   }, [onDataChange]);
 
+  const handleCsvImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      toast.error('CSVファイルを選択してください', { duration: 3000 });
+      return;
+    }
+
+    setCsvImporting(true);
+    
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      const prompts: { prompt: string; tags: string[] }[] = [];
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine) {
+          const columns = trimmedLine.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
+          
+          if (columns.length >= 1 && columns[0]) {
+            const promptText = columns[0];
+            const tags = columns.length > 1 && columns[1] 
+              ? columns[1].split('|').map(tag => tag.trim()).filter(tag => tag)
+              : ['インポート'];
+            
+            prompts.push({
+              prompt: promptText,
+              tags: tags.length > 0 ? tags : ['インポート']
+            });
+          }
+        }
+      }
+
+      if (prompts.length === 0) {
+        toast.error('CSVファイルからプロンプトが見つかりませんでした', { duration: 3000 });
+        return;
+      }
+
+      console.log(`📊 CSVから${prompts.length}個のプロンプトを検出`);
+
+      const response = await fetch('/api/gemini-prompts/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompts }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'バルクインサートに失敗しました');
+      }
+
+      const result = await response.json();
+      console.log('✅ プロンプトバルクインサート成功:', result);
+      
+      toast.success(`${prompts.length}個のプロンプトを一括登録しました`, {
+        duration: 5000,
+      });
+      
+      onDataChange();
+    } catch (error) {
+      console.error('❌ CSVインポートエラー:', error);
+      toast.error(error instanceof Error ? error.message : 'CSVインポートに失敗しました', {
+        duration: 3000,
+      });
+    } finally {
+      setCsvImporting(false);
+      event.target.value = '';
+    }
+  }, [onDataChange]);
+
   const paginationInfo = useMemo(() => {
     if (totalPrompts) {
       const startIndex = (currentPage - 1) * itemsPerPage + 1;
@@ -179,6 +255,17 @@ export default function PromptTable({
               <Plus className="h-4 w-4 mr-1" />
               新規作成
             </button>
+            <label className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50">
+              <Upload className="h-4 w-4 mr-1" />
+              {csvImporting ? 'インポート中...' : 'CSVインポート'}
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleCsvImport}
+                disabled={csvImporting || loading}
+                className="hidden"
+              />
+            </label>
           </div>
           
           <div className="flex items-center space-x-4">

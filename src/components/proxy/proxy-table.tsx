@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { formatDateLocal } from "@/utils/date-helpers";
-import { Edit, Trash2, Plus, Upload } from "lucide-react";
+import { Edit, Trash2, Plus, Upload, Download } from "lucide-react";
 import toast from "react-hot-toast";
 import { ProxyInfo } from "@/types/database";
 import ProxyPagination from "@/components/proxy/proxy-pagination";
@@ -43,11 +43,15 @@ export default function ProxyTable({
   const [editingProxy, setEditingProxy] = useState<ProxyInfo | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [csvImporting, setCsvImporting] = useState(false);
+  const [csvExporting, setCsvExporting] = useState(false);
 
-  const getSortIcon = useCallback((field: string) => {
-    if (sortField !== field) return null;
-    return sortDirection === "asc" ? "↑" : "↓";
-  }, [sortField, sortDirection]);
+  const getSortIcon = useCallback(
+    (field: string) => {
+      if (sortField !== field) return null;
+      return sortDirection === "asc" ? "↑" : "↓";
+    },
+    [sortField, sortDirection]
+  );
 
   const handleCreate = useCallback(() => {
     setEditingProxy(null);
@@ -59,148 +63,257 @@ export default function ProxyTable({
     setShowModal(true);
   }, []);
 
-  const handleDelete = useCallback(async (proxy: ProxyInfo) => {
-    if (!confirm(`プロキシ "${proxy.ip}" を削除しますか？`)) {
-      return;
-    }
-
-    try {
-      console.log(`🗑️ プロキシを削除: ${proxy.ip}`);
-      const response = await fetch(`${apiEndpoint}?id=${proxy.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`削除失敗: ${errorData}`);
+  const handleDelete = useCallback(
+    async (proxy: ProxyInfo) => {
+      if (!confirm(`プロキシ "${proxy.ip}" を削除しますか？`)) {
+        return;
       }
 
-      const result = await response.json();
-      console.log("✅ プロキシ削除成功:", result);
-      toast.success(`プロキシ "${proxy.ip}" を削除しました`, {
-        duration: 3000,
-      });
-      onDataChange();
-    } catch (error) {
-      console.error("❌ プロキシ削除エラー:", error);
-      toast.error("プロキシの削除に失敗しました", {
-        duration: 3000,
-      });
-    }
-  }, [apiEndpoint, onDataChange]);
+      try {
+        console.log(`🗑️ プロキシを削除: ${proxy.ip}`);
+        const response = await fetch(`${apiEndpoint}?id=${proxy.id}`, {
+          method: "DELETE",
+        });
 
-  const handleSave = useCallback(async (proxyData: Partial<ProxyInfo>) => {
-    setModalLoading(true);
-    
-    try {
-      const isEditing = !!editingProxy;
-      const method = isEditing ? "PUT" : "POST";
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(`削除失敗: ${errorData}`);
+        }
 
-      console.log(`💾 プロキシを${isEditing ? "更新" : "作成"}: ${proxyData.ip}`);
-
-      const response = await fetch(apiEndpoint, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(proxyData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "操作に失敗しました");
+        const result = await response.json();
+        console.log("✅ プロキシ削除成功:", result);
+        toast.success(`プロキシ "${proxy.ip}" を削除しました`, {
+          duration: 3000,
+        });
+        onDataChange();
+      } catch (error) {
+        console.error("❌ プロキシ削除エラー:", error);
+        toast.error("プロキシの削除に失敗しました", {
+          duration: 3000,
+        });
       }
+    },
+    [apiEndpoint, onDataChange]
+  );
 
-      const result = await response.json();
-      console.log(`✅ プロキシ${isEditing ? "更新" : "作成"}成功:`, result);
-      
-      toast.success(result.message, {
-        duration: 3000,
-      });
-      setShowModal(false);
-      setEditingProxy(null);
-      onDataChange();
-    } catch (error) {
-      console.error(`❌ プロキシ${editingProxy ? "更新" : "作成"}エラー:`, error);
-      toast.error(error instanceof Error ? error.message : "操作に失敗しました", {
-        duration: 3000,
-      });
-    } finally {
-      setModalLoading(false);
-    }
-  }, [apiEndpoint, editingProxy, onDataChange]);
+  const handleSave = useCallback(
+    async (proxyData: Partial<ProxyInfo>) => {
+      setModalLoading(true);
+
+      try {
+        const isEditing = !!editingProxy;
+        const method = isEditing ? "PUT" : "POST";
+
+        console.log(
+          `💾 プロキシを${isEditing ? "更新" : "作成"}: ${proxyData.ip}`
+        );
+
+        const response = await fetch(apiEndpoint, {
+          method,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(proxyData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "操作に失敗しました");
+        }
+
+        const result = await response.json();
+        console.log(`✅ プロキシ${isEditing ? "更新" : "作成"}成功:`, result);
+
+        toast.success(result.message, {
+          duration: 3000,
+        });
+        setShowModal(false);
+        setEditingProxy(null);
+        onDataChange();
+      } catch (error) {
+        console.error(
+          `❌ プロキシ${editingProxy ? "更新" : "作成"}エラー:`,
+          error
+        );
+        toast.error(
+          error instanceof Error ? error.message : "操作に失敗しました",
+          {
+            duration: 3000,
+          }
+        );
+      } finally {
+        setModalLoading(false);
+      }
+    },
+    [apiEndpoint, editingProxy, onDataChange]
+  );
 
   const handleModalClose = useCallback(() => {
     setShowModal(false);
     setEditingProxy(null);
   }, []);
 
-  const handleCsvImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleCsvImport = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      toast.error('CSVファイルを選択してください', { duration: 3000 });
-      return;
-    }
-
-    setCsvImporting(true);
-    
-    try {
-      const text = await file.text();
-      const lines = text.split('\n').filter(line => line.trim());
-      const proxies: string[] = [];
-
-      for (const line of lines) {
-        const trimmedLine = line.trim();
-        if (trimmedLine) {
-          const ipPattern = /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g;
-          const matches = trimmedLine.match(ipPattern);
-          if (matches) {
-            proxies.push(...matches);
-          }
-        }
-      }
-
-      if (proxies.length === 0) {
-        toast.error('CSVファイルからプロキシIPが見つかりませんでした', { duration: 3000 });
+      if (!file.name.toLowerCase().endsWith(".csv")) {
+        toast.error("CSVファイルを選択してください", { duration: 3000 });
         return;
       }
 
-      const uniqueProxies = [...new Set(proxies)];
-      console.log(`📊 CSVから${uniqueProxies.length}個のユニークなプロキシIPを検出`);
+      setCsvImporting(true);
 
-      const response = await fetch(`${apiEndpoint}/bulk`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ proxies: uniqueProxies }),
-      });
+      try {
+        const text = await file.text();
+        const lines = text.split("\n").filter((line) => line.trim());
+        const proxies: string[] = [];
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine) {
+            const ipPattern = /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g;
+            const matches = trimmedLine.match(ipPattern);
+            if (matches) {
+              proxies.push(...matches);
+            }
+          }
+        }
+
+        if (proxies.length === 0) {
+          toast.error("CSVファイルからプロキシIPが見つかりませんでした", {
+            duration: 3000,
+          });
+          return;
+        }
+
+        const uniqueProxies = [...new Set(proxies)];
+        console.log(
+          `📊 CSVから${uniqueProxies.length}個のユニークなプロキシIPを検出`
+        );
+
+        const response = await fetch(`${apiEndpoint}/bulk`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ proxies: uniqueProxies }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "バルクインサートに失敗しました");
+        }
+
+        const result = await response.json();
+        console.log("✅ プロキシバルクインサート成功:", result);
+
+        toast.success(`${uniqueProxies.length}個のプロキシを一括登録しました`, {
+          duration: 5000,
+        });
+
+        onDataChange();
+      } catch (error) {
+        console.error("❌ CSVインポートエラー:", error);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "CSVインポートに失敗しました",
+          {
+            duration: 3000,
+          }
+        );
+      } finally {
+        setCsvImporting(false);
+        event.target.value = "";
+      }
+    },
+    [apiEndpoint, onDataChange]
+  );
+
+  const handleCsvExport = useCallback(async () => {
+    setCsvExporting(true);
+
+    try {
+      console.log("📤 CSVエクスポート開始");
+
+      const response = await fetch(`${apiEndpoint}?limit=10000&page=1`);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'バルクインサートに失敗しました');
+        throw new Error("プロキシデータの取得に失敗しました");
       }
 
-      const result = await response.json();
-      console.log('✅ プロキシバルクインサート成功:', result);
-      
-      toast.success(`${uniqueProxies.length}個のプロキシを一括登録しました`, {
-        duration: 5000,
-      });
-      
-      onDataChange();
+      const data = await response.json();
+      const allProxies = data.proxies;
+
+      if (!allProxies || allProxies.length === 0) {
+        toast.error("エクスポートするプロキシデータがありません", {
+          duration: 3000,
+        });
+        return;
+      }
+
+      const csvHeaders = [
+        "ID",
+        "プロキシIP",
+        "使用回数",
+        "最終使用日時",
+        "登録日時",
+        "更新日時",
+      ];
+      const csvRows = allProxies.map((proxy: ProxyInfo) => [
+        proxy.id,
+        proxy.ip,
+        proxy.used_count,
+        proxy.last_used_at || "",
+        proxy.created_at,
+        proxy.updated_at,
+      ]);
+
+      const csvContent = [
+        csvHeaders.join(","),
+        ...csvRows.map((row: string[]) =>
+          row.map((field: string) => `"${field}"`).join(",")
+        ),
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `proxy_list_${new Date().toISOString().slice(0, 10)}.csv`
+      );
+      link.style.visibility = "hidden";
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      console.log(`✅ CSVエクスポート成功: ${allProxies.length}件`);
+      toast.success(
+        `${allProxies.length}件のプロキシデータをエクスポートしました`,
+        {
+          duration: 3000,
+        }
+      );
     } catch (error) {
-      console.error('❌ CSVインポートエラー:', error);
-      toast.error(error instanceof Error ? error.message : 'CSVインポートに失敗しました', {
-        duration: 3000,
-      });
+      console.error("❌ CSVエクスポートエラー:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "CSVエクスポートに失敗しました",
+        {
+          duration: 3000,
+        }
+      );
     } finally {
-      setCsvImporting(false);
-      event.target.value = '';
+      setCsvExporting(false);
     }
-  }, [apiEndpoint, onDataChange]);
+  }, [apiEndpoint]);
 
   const paginationInfo = useMemo(() => {
     if (totalProxies) {
@@ -250,7 +363,7 @@ export default function ProxyTable({
               </button>
               <label className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50">
                 <Upload className="h-4 w-4 mr-1" />
-                {csvImporting ? 'インポート中...' : 'CSVインポート'}
+                {csvImporting ? "インポート中..." : "CSVインポート"}
                 <input
                   type="file"
                   accept=".csv"
@@ -259,17 +372,23 @@ export default function ProxyTable({
                   className="hidden"
                 />
               </label>
+              <button
+                onClick={handleCsvExport}
+                disabled={csvExporting || loading}
+                className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                {csvExporting ? "エクスポート中..." : "CSVエクスポート"}
+              </button>
             </div>
-            
+
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-500">
-                {paginationInfo}
-              </div>
+              <div className="text-sm text-gray-500">{paginationInfo}</div>
             </div>
           </div>
         )}
       </div>
-      
+
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -298,7 +417,9 @@ export default function ProxyTable({
               >
                 <div className="flex items-center space-x-1">
                   <span>使用回数</span>
-                  <span className="text-blue-600">{getSortIcon("used_count")}</span>
+                  <span className="text-blue-600">
+                    {getSortIcon("used_count")}
+                  </span>
                 </div>
               </th>
               <th
@@ -307,7 +428,9 @@ export default function ProxyTable({
               >
                 <div className="flex items-center space-x-1">
                   <span>最終使用日時</span>
-                  <span className="text-blue-600">{getSortIcon("last_used_at")}</span>
+                  <span className="text-blue-600">
+                    {getSortIcon("last_used_at")}
+                  </span>
                 </div>
               </th>
               <th
@@ -316,7 +439,9 @@ export default function ProxyTable({
               >
                 <div className="flex items-center space-x-1">
                   <span>登録日時</span>
-                  <span className="text-blue-600">{getSortIcon("created_at")}</span>
+                  <span className="text-blue-600">
+                    {getSortIcon("created_at")}
+                  </span>
                 </div>
               </th>
               <th
@@ -325,7 +450,9 @@ export default function ProxyTable({
               >
                 <div className="flex items-center space-x-1">
                   <span>更新日時</span>
-                  <span className="text-blue-600">{getSortIcon("updated_at")}</span>
+                  <span className="text-blue-600">
+                    {getSortIcon("updated_at")}
+                  </span>
                 </div>
               </th>
               <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -346,26 +473,30 @@ export default function ProxyTable({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <div className="flex items-center">
-                    <span className={`text-lg font-bold ${
-                      proxy.used_count === 0 
-                        ? "text-gray-400" 
-                        : proxy.used_count < 10 
-                        ? "text-green-600"
-                        : proxy.used_count < 50
-                        ? "text-orange-600"
-                        : "text-red-600"
-                    }`}>
+                    <span
+                      className={`text-lg font-bold ${
+                        proxy.used_count === 0
+                          ? "text-gray-400"
+                          : proxy.used_count < 10
+                          ? "text-green-600"
+                          : proxy.used_count < 50
+                          ? "text-orange-600"
+                          : "text-red-600"
+                      }`}
+                    >
                       {proxy.used_count.toLocaleString()}
                     </span>
                     <span className="ml-2 text-xs text-gray-500">回</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <div className={`${
-                    proxy.last_used_at 
-                      ? "text-gray-900" 
-                      : "text-gray-400 italic"
-                  }`}>
+                  <div
+                    className={`${
+                      proxy.last_used_at
+                        ? "text-gray-900"
+                        : "text-gray-400 italic"
+                    }`}
+                  >
                     {formatDateLocal(proxy.last_used_at)}
                   </div>
                 </td>
@@ -415,14 +546,14 @@ export default function ProxyTable({
       </div>
       <div>
         {/* ページネーション */}
-      <ProxyPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalProxies={totalProxies}
-        itemsPerPage={itemsPerPage}
-        onPageChange={onPageChange}
-        onItemsPerPageChange={onItemsPerPageChange}
-      />
+        <ProxyPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalProxies={totalProxies}
+          itemsPerPage={itemsPerPage}
+          onPageChange={onPageChange}
+          onItemsPerPageChange={onItemsPerPageChange}
+        />
       </div>
 
       {/* プロキシ追加・編集モーダル */}

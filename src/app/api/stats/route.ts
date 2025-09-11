@@ -36,24 +36,24 @@ export interface IpData {
 }
 
 export interface ChartData {
-  dailyCreations: Array<{ 
-    date: string; 
+  dailyCreations: Array<{
+    date: string;
     active_count: number;
     suspended_count: number;
     temp_locked_count: number;
     other_count: number;
     total_count: number;
   }>;
-  weeklyCreations: Array<{ 
-    week: string; 
+  weeklyCreations: Array<{
+    week: string;
     active_count: number;
     suspended_count: number;
     temp_locked_count: number;
     other_count: number;
     total_count: number;
   }>;
-  monthlyCreations: Array<{ 
-    month: string; 
+  monthlyCreations: Array<{
+    month: string;
     active_count: number;
     suspended_count: number;
     temp_locked_count: number;
@@ -80,24 +80,26 @@ export async function fetchStatsData(): Promise<TotalStats> {
       .from("twitter_account_v3")
       .select("*", { count: "exact", head: true })
       .eq("status", "active");
-    
+
     // 凍結アカウント数（status = suspended）
     const { count: suspendedAccounts } = await supabase
       .from("twitter_account_v3")
       .select("*", { count: "exact", head: true })
-      .eq("status", "suspended");  
-    
+      .eq("status", "suspended");
+
     // シャドBANアカウント数（status = shadowban）
     const { count: shadowbanAccounts } = await supabase
       .from("twitter_account_v3")
       .select("*", { count: "exact", head: true })
-      .or("status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban");
-    
+      .or(
+        "status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"
+      );
+
     // 一時制限アカウント数（status = temp_locked）
     const { count: tempLockedAccounts } = await supabase
       .from("twitter_account_v3")
       .select("*", { count: "exact", head: true })
-      .eq("status", "temp_locked");    
+      .eq("status", "temp_locked");
 
     // 今日の作成数
     const { count: todayCreated } = await supabase
@@ -157,7 +159,9 @@ export async function fetchCreationTrendsDataFiltered(
   try {
     let query = supabase
       .from("status_count_per_day03")
-      .select("created_date, active_count, suspended_count, temp_locked_count, other_count, total_count")
+      .select(
+        "created_date, active_count, suspended_count, temp_locked_count, other_count, total_count"
+      )
       .order("created_date", { ascending: true });
 
     // 日付フィルター適用
@@ -180,7 +184,11 @@ export async function fetchCreationTrendsDataFiltered(
     const actualEndDate = endDate ? new Date(endDate) : today;
 
     // 日付範囲の日数を計算
-    const daysDiff = Math.ceil((actualEndDate.getTime() - actualStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const daysDiff =
+      Math.ceil(
+        (actualEndDate.getTime() - actualStartDate.getTime()) /
+          (1000 * 60 * 60 * 24)
+      ) + 1;
 
     // 日別データ
     const dailyCreations = [];
@@ -202,8 +210,16 @@ export async function fetchCreationTrendsDataFiltered(
     }
 
     // 週別・月別データも期間に応じて生成
-    const weeklyCreations = await generateWeeklyDataV2Filtered(dailyData || [], actualStartDate, actualEndDate);
-    const monthlyCreations = await generateMonthlyDataV2Filtered(dailyData || [], actualStartDate, actualEndDate);
+    const weeklyCreations = await generateWeeklyDataV2Filtered(
+      dailyData || [],
+      actualStartDate,
+      actualEndDate
+    );
+    const monthlyCreations = await generateMonthlyDataV2Filtered(
+      dailyData || [],
+      actualStartDate,
+      actualEndDate
+    );
 
     return {
       dailyCreations,
@@ -225,7 +241,9 @@ export async function fetchCreationTrendsData(): Promise<ChartData> {
     // 日別データ（過去30日間）
     const { data: dailyData } = await supabase
       .from("status_count_per_day03")
-      .select("created_date, active_count, suspended_count, temp_locked_count, other_count, total_count")
+      .select(
+        "created_date, active_count, suspended_count, temp_locked_count, other_count, total_count"
+      )
       .order("created_date", { ascending: true });
 
     // 今日から過去30日間の開始日を計算（今日を含む）
@@ -382,16 +400,16 @@ async function generateMonthlyData(
 }
 
 // 新しいステータス別週別データ生成関数
-async function generateWeeklyDataV2(
-  dailyData: any[]
-): Promise<Array<{ 
-  week: string; 
-  active_count: number;
-  suspended_count: number;
-  temp_locked_count: number;
-  other_count: number;
-  total_count: number;
-}>> {
+async function generateWeeklyDataV2(dailyData: any[]): Promise<
+  Array<{
+    week: string;
+    active_count: number;
+    suspended_count: number;
+    temp_locked_count: number;
+    other_count: number;
+    total_count: number;
+  }>
+> {
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth();
@@ -407,8 +425,8 @@ async function generateWeeklyDataV2(
   });
 
   // 今月の各週のデータを生成
-  const weeklyData: Array<{ 
-    week: string; 
+  const weeklyData: Array<{
+    week: string;
     active_count: number;
     suspended_count: number;
     temp_locked_count: number;
@@ -436,19 +454,23 @@ async function generateWeeklyDataV2(
       return date >= currentWeekStart && date <= weekEnd;
     });
 
-    const weekCounts = weekData.reduce((acc, item) => ({
-      active_count: acc.active_count + (item.active_count || 0),
-      suspended_count: acc.suspended_count + (item.suspended_count || 0),
-      temp_locked_count: acc.temp_locked_count + (item.temp_locked_count || 0),
-      other_count: acc.other_count + (item.other_count || 0),
-      total_count: acc.total_count + (item.total_count || 0),
-    }), {
-      active_count: 0,
-      suspended_count: 0,
-      temp_locked_count: 0,
-      other_count: 0,
-      total_count: 0,
-    });
+    const weekCounts = weekData.reduce(
+      (acc, item) => ({
+        active_count: acc.active_count + (item.active_count || 0),
+        suspended_count: acc.suspended_count + (item.suspended_count || 0),
+        temp_locked_count:
+          acc.temp_locked_count + (item.temp_locked_count || 0),
+        other_count: acc.other_count + (item.other_count || 0),
+        total_count: acc.total_count + (item.total_count || 0),
+      }),
+      {
+        active_count: 0,
+        suspended_count: 0,
+        temp_locked_count: 0,
+        other_count: 0,
+        total_count: 0,
+      }
+    );
 
     weeklyData.push({
       week: `第${weekNumber}週`,
@@ -475,16 +497,16 @@ async function generateWeeklyDataV2(
 }
 
 // 新しいステータス別月別データ生成関数
-async function generateMonthlyDataV2(
-  dailyData: any[]
-): Promise<Array<{ 
-  month: string; 
-  active_count: number;
-  suspended_count: number;
-  temp_locked_count: number;
-  other_count: number;
-  total_count: number;
-}>> {
+async function generateMonthlyDataV2(dailyData: any[]): Promise<
+  Array<{
+    month: string;
+    active_count: number;
+    suspended_count: number;
+    temp_locked_count: number;
+    other_count: number;
+    total_count: number;
+  }>
+> {
   const today = new Date();
   const currentYear = today.getFullYear();
 
@@ -495,13 +517,16 @@ async function generateMonthlyDataV2(
   });
 
   // 月別データをカウント
-  const monthlyMap = new Map<string, {
-    active_count: number;
-    suspended_count: number;
-    temp_locked_count: number;
-    other_count: number;
-    total_count: number;
-  }>();
+  const monthlyMap = new Map<
+    string,
+    {
+      active_count: number;
+      suspended_count: number;
+      temp_locked_count: number;
+      other_count: number;
+      total_count: number;
+    }
+  >();
 
   currentYearData.forEach((item) => {
     const date = new Date(item.created_date);
@@ -520,15 +545,16 @@ async function generateMonthlyDataV2(
     monthlyMap.set(monthKey, {
       active_count: existing.active_count + (item.active_count || 0),
       suspended_count: existing.suspended_count + (item.suspended_count || 0),
-      temp_locked_count: existing.temp_locked_count + (item.temp_locked_count || 0),
+      temp_locked_count:
+        existing.temp_locked_count + (item.temp_locked_count || 0),
       other_count: existing.other_count + (item.other_count || 0),
       total_count: existing.total_count + (item.total_count || 0),
     });
   });
 
   // 今年の1月から12月まで全てのデータを生成（データがない月は0で埋める）
-  const monthlyData: Array<{ 
-    month: string; 
+  const monthlyData: Array<{
+    month: string;
     active_count: number;
     suspended_count: number;
     temp_locked_count: number;
@@ -560,27 +586,32 @@ async function generateWeeklyDataV2Filtered(
   dailyData: any[],
   startDate: Date,
   endDate: Date
-): Promise<Array<{ 
-  week: string; 
-  active_count: number;
-  suspended_count: number;
-  temp_locked_count: number;
-  other_count: number;
-  total_count: number;
-}>> {
+): Promise<
+  Array<{
+    week: string;
+    active_count: number;
+    suspended_count: number;
+    temp_locked_count: number;
+    other_count: number;
+    total_count: number;
+  }>
+> {
   const filteredData = dailyData.filter((item) => {
     const date = new Date(item.created_date);
     return date >= startDate && date <= endDate;
   });
 
   // 期間内の週を計算
-  const weeklyMap = new Map<string, {
-    active_count: number;
-    suspended_count: number;
-    temp_locked_count: number;
-    other_count: number;
-    total_count: number;
-  }>();
+  const weeklyMap = new Map<
+    string,
+    {
+      active_count: number;
+      suspended_count: number;
+      temp_locked_count: number;
+      other_count: number;
+      total_count: number;
+    }
+  >();
 
   filteredData.forEach((item) => {
     const date = new Date(item.created_date);
@@ -599,7 +630,8 @@ async function generateWeeklyDataV2Filtered(
     weeklyMap.set(weekKey, {
       active_count: existing.active_count + (item.active_count || 0),
       suspended_count: existing.suspended_count + (item.suspended_count || 0),
-      temp_locked_count: existing.temp_locked_count + (item.temp_locked_count || 0),
+      temp_locked_count:
+        existing.temp_locked_count + (item.temp_locked_count || 0),
       other_count: existing.other_count + (item.other_count || 0),
       total_count: existing.total_count + (item.total_count || 0),
     });
@@ -621,27 +653,32 @@ async function generateMonthlyDataV2Filtered(
   dailyData: any[],
   startDate: Date,
   endDate: Date
-): Promise<Array<{ 
-  month: string; 
-  active_count: number;
-  suspended_count: number;
-  temp_locked_count: number;
-  other_count: number;
-  total_count: number;
-}>> {
+): Promise<
+  Array<{
+    month: string;
+    active_count: number;
+    suspended_count: number;
+    temp_locked_count: number;
+    other_count: number;
+    total_count: number;
+  }>
+> {
   const filteredData = dailyData.filter((item) => {
     const date = new Date(item.created_date);
     return date >= startDate && date <= endDate;
   });
 
   // 月別データをカウント
-  const monthlyMap = new Map<string, {
-    active_count: number;
-    suspended_count: number;
-    temp_locked_count: number;
-    other_count: number;
-    total_count: number;
-  }>();
+  const monthlyMap = new Map<
+    string,
+    {
+      active_count: number;
+      suspended_count: number;
+      temp_locked_count: number;
+      other_count: number;
+      total_count: number;
+    }
+  >();
 
   filteredData.forEach((item) => {
     const date = new Date(item.created_date);
@@ -660,7 +697,8 @@ async function generateMonthlyDataV2Filtered(
     monthlyMap.set(monthKey, {
       active_count: existing.active_count + (item.active_count || 0),
       suspended_count: existing.suspended_count + (item.suspended_count || 0),
-      temp_locked_count: existing.temp_locked_count + (item.temp_locked_count || 0),
+      temp_locked_count:
+        existing.temp_locked_count + (item.temp_locked_count || 0),
       other_count: existing.other_count + (item.other_count || 0),
       total_count: existing.total_count + (item.total_count || 0),
     });
@@ -770,7 +808,9 @@ export async function fetchFilteredDomainRanking(
   try {
     let query = supabase
       .from("domain_per_day_view02")
-      .select("created_date, domain, active_count, suspended_count, temp_locked_count, total_count");
+      .select(
+        "created_date, domain, active_count, suspended_count, temp_locked_count, total_count"
+      );
 
     // 日付フィルター適用
     if (startDate) {
@@ -792,12 +832,15 @@ export async function fetchFilteredDomainRanking(
     }
 
     // ドメインごとに集計
-    const domainMap = new Map<string, {
-      active_count: number;
-      suspended_count: number;
-      temp_locked_count: number;
-      total_count: number;
-    }>();
+    const domainMap = new Map<
+      string,
+      {
+        active_count: number;
+        suspended_count: number;
+        temp_locked_count: number;
+        total_count: number;
+      }
+    >();
 
     data.forEach((item) => {
       const existing = domainMap.get(item.domain) || {
@@ -810,7 +853,8 @@ export async function fetchFilteredDomainRanking(
       domainMap.set(item.domain, {
         active_count: existing.active_count + (item.active_count || 0),
         suspended_count: existing.suspended_count + (item.suspended_count || 0),
-        temp_locked_count: existing.temp_locked_count + (item.temp_locked_count || 0),
+        temp_locked_count:
+          existing.temp_locked_count + (item.temp_locked_count || 0),
         total_count: existing.total_count + (item.total_count || 0),
       });
     });
@@ -905,7 +949,7 @@ export async function fetchAccountDetails(twitterId: string): Promise<any> {
 export async function fetchRecentAccounts(): Promise<any[]> {
   try {
     const { data, error } = await supabase
-      .from("twitter_account_v3")
+      .from("twitter_create_with_account_v1")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(5);
@@ -1455,9 +1499,13 @@ export async function fetchTempLockedAccounts(
     }
 
     // ソート処理
-    if (sortField && sortDirection && (sortDirection === "asc" || sortDirection === "desc")) {
+    if (
+      sortField &&
+      sortDirection &&
+      (sortDirection === "asc" || sortDirection === "desc")
+    ) {
       const ascending = sortDirection === "asc";
-      
+
       switch (sortField) {
         case "created_at":
           query = query.order("log_created_at", { ascending });
@@ -1475,10 +1523,16 @@ export async function fetchTempLockedAccounts(
           query = query.order("twitter_id", { ascending });
           break;
         case "follower_count":
-          query = query.order("follower_count", { ascending, nullsFirst: false });
+          query = query.order("follower_count", {
+            ascending,
+            nullsFirst: false,
+          });
           break;
         case "following_count":
-          query = query.order("following_count", { ascending, nullsFirst: false });
+          query = query.order("following_count", {
+            ascending,
+            nullsFirst: false,
+          });
           break;
         case "posts_count":
           query = query.order("posts_count", { ascending, nullsFirst: false });

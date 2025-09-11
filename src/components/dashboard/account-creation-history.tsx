@@ -13,6 +13,7 @@ import {
   getStatusText,
   getStatusBadgeColor,
 } from "@/utils/status-helpers";
+import { formatDateLocal } from "@/utils/date-helpers";
 
 export default function AccountCreationHistory() {
   const [accounts, setAccounts] = useState<TwitterAccountInfo[]>([]);
@@ -140,7 +141,7 @@ export default function AccountCreationHistory() {
                       {account.id}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(account.created_at)}
+                      {formatDateLocal(account.log_created_at)}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <div>
@@ -171,24 +172,25 @@ export default function AccountCreationHistory() {
                             {getStatusText(status)}
                           </span>
                         </div>
-                        {isSuspended(account.status) && account.shadowban_check_at && (
-                          <div className="text-xs text-gray-500 mt-1 ml-6">
-                            凍結判定: {formatDate(account.shadowban_check_at)}
-                          </div>
-                        )}
+                        {isSuspended(account.status) &&
+                          account.shadowban_check_at && (
+                            <div className="text-xs text-gray-500 mt-1 ml-6">
+                              凍結判定: {formatDate(account.shadowban_check_at)}
+                            </div>
+                          )}
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(account.updated_at)}
+                      {formatDateLocal(account.updated_at)}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {account.posts_count}
+                      {account.posts_count || 0}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {account.following_count}
+                      {account.following_count || 0}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {account.follower_count}
+                      {account.follower_count || 0}
                     </td>
                   </tr>
                 );

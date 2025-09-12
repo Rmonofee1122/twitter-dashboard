@@ -12,7 +12,7 @@ export default function HourlyChart() {
   const [data, setData] = useState<HourlyData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    return new Date().toISOString().split('T')[0];
+    return new Date().toISOString().split("T")[0];
   });
 
   useEffect(() => {
@@ -49,9 +49,7 @@ export default function HourlyChart() {
               時間別作成数分布
             </h3>
             <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">
-                日付:
-              </label>
+              <label className="text-sm font-medium text-gray-700">日付:</label>
               <input
                 type="date"
                 value={selectedDate}
@@ -71,9 +69,7 @@ export default function HourlyChart() {
               時間別作成数分布
             </h3>
             <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">
-                日付:
-              </label>
+              <label className="text-sm font-medium text-gray-700">日付:</label>
               <input
                 type="date"
                 value={selectedDate}

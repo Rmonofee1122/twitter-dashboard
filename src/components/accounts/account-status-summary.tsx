@@ -18,6 +18,7 @@ interface StatusCounts {
   examination: number;
   suspended: number;
   temp_locked: number;
+  notShadowban: number;
 }
 
 interface AccountStatusSummaryProps {
@@ -38,7 +39,10 @@ const AccountStatusSummary = memo(function AccountStatusSummary({
   statusCounts,
 }: AccountStatusSummaryProps) {
   // デバッグ用ログ
-  console.log("🔍 AccountStatusSummary props:", { totalAccounts, statusCounts });
+  console.log("🔍 AccountStatusSummary props:", {
+    totalAccounts,
+    statusCounts,
+  });
 
   const statusItems: StatusItem[] = useMemo(
     () => [
@@ -89,6 +93,10 @@ const AccountStatusSummary = memo(function AccountStatusSummary({
         </h1>
         <p className="text-gray-600">
           登録済みのTwitterアカウント {totalAccounts.toLocaleString()} 件
+        </p>
+        <p className="text-gray-600">
+          シャドBANされていないアカウント{" "}
+          {statusCounts.notShadowban?.toLocaleString() || 0} 件
         </p>
       </div>
 

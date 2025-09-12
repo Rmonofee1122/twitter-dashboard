@@ -22,6 +22,7 @@ interface AccountsResponse {
     examination: number;
     suspended: number;
     temp_locked: number;
+    notShadowban: number;
   };
 }
 
@@ -43,6 +44,7 @@ export default function AccountsPage() {
     examination: 0,
     suspended: 0,
     temp_locked: 0,
+    notShadowban: 0,
   });
   const [loading, setLoading] = useState(true);
   const [itemsPerPage, setItemsPerPage] = useState(10);

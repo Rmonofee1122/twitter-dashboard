@@ -32,18 +32,6 @@ export async function GET() {
       throw dailyError;
     }
 
-    // 過去14日間のデータを一度に取得（created_atのみ）
-    const { data: recentData, error: recentError } = await supabase
-      .from("twitter_create_logs")
-      .select("created_at")
-      .gte("created_at", twoWeeksAgo.toISOString())
-      .lt("created_at", todayEnd.toISOString());
-
-    if (recentError) {
-      console.error("過去2週間データ取得エラー:", recentError);
-      throw recentError;
-    }
-
     // 累計アカウント数（別クエリで効率的に取得）
     const totalCount = dailyData?.reduce(
       (acc, item) => acc + item.total_count,
@@ -51,33 +39,43 @@ export async function GET() {
     );
 
     // 今日の作成数
+    const todayString = todayStart.toISOString().split("T")[0];
     const todayCount = dailyData?.reduce(
       (acc, item) =>
-        item.created_date === todayStart ? acc + item.total_count : acc,
+        item.created_date === todayString ? acc + item.total_count : acc,
       0
     );
 
     // 昨日の作成数
+    const yesterdayString = yesterdayStart.toISOString().split("T")[0];
     const yesterdayCount = dailyData?.reduce(
       (acc, item) =>
-        item.created_date === yesterdayStart ? acc + item.total_count : acc,
+        item.created_date === yesterdayString ? acc + item.total_count : acc,
       0
     );
 
-    // 今週の作成数（過去7日間）
-    const weekAgo = new Date(todayStart);
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const weekAgoString = weekAgo.toISOString().split("T")[0];
+    // 今週の作成数
+    // 今週の開始日
+    const thisWeekStart = new Date(todayStart);
+    thisWeekStart.setDate(todayStart.getDate() - todayStart.getDay());
+    const thisWeekStartString = thisWeekStart.toISOString().split("T")[0];
     const thisWeekCount = dailyData?.reduce(
       (acc, item) =>
-        item.created_date >= weekAgoString ? acc + item.total_count : acc,
+        item.created_date >= thisWeekStartString ? acc + item.total_count : acc,
       0
     );
 
     // 前週の作成数（過去7日間）
+    // 前週の開始日
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+    const lastWeekStartString = lastWeekStart.toISOString().split("T")[0];
     const lastWeekCount = dailyData?.reduce(
       (acc, item) =>
-        item.created_date >= twoWeeksAgo ? acc + item.total_count : acc,
+        item.created_date >= lastWeekStartString &&
+        item.created_date < thisWeekStartString
+          ? acc + item.total_count
+          : acc,
       0
     );
 

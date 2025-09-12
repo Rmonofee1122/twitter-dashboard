@@ -147,32 +147,81 @@ export async function GET(request: Request) {
     if (page === 1) {
       try {
         console.log("📊 ステータス別件数を取得中（簡略版）...");
-        
+
         // フィルターなしで基本的なステータスカウントのみ取得（高速化）
         if (!search && !startDate && !endDate) {
           // フィルターが無い場合は高速集計
           const statusQueries = [
-            supabase.from("twitter_create_with_account_v1").select("*", { count: "exact", head: true }).eq("status", "active"),
-            supabase.from("twitter_create_with_account_v1").select("*", { count: "exact", head: true }).or("status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"),
-            supabase.from("twitter_create_with_account_v1").select("*", { count: "exact", head: true }).eq("status", "stop"),
-            supabase.from("twitter_create_with_account_v1").select("*", { count: "exact", head: true }).eq("status", "temp_locked"),
-            supabase.from("twitter_create_with_account_v1").select("*", { count: "exact", head: true }).eq("status", "examination"),
-            supabase.from("twitter_create_with_account_v1").select("*", { count: "exact", head: true }).or("status.eq.suspend,status.eq.suspended"),
+            supabase
+              .from("twitter_create_with_account_v1")
+              .select("*", { count: "exact", head: true })
+              .eq("status", "active"),
+            supabase
+              .from("twitter_create_with_account_v1")
+              .select("*", { count: "exact", head: true })
+              .or(
+                "status.eq.search_ban,status.eq.search_suggestion_ban,status.eq.ghost_ban"
+              ),
+            supabase
+              .from("twitter_create_with_account_v1")
+              .select("*", { count: "exact", head: true })
+              .eq("status", "stop"),
+            supabase
+              .from("twitter_create_with_account_v1")
+              .select("*", { count: "exact", head: true })
+              .eq("status", "temp_locked"),
+            supabase
+              .from("twitter_create_with_account_v1")
+              .select("*", { count: "exact", head: true })
+              .eq("status", "examination"),
+            supabase
+              .from("twitter_create_with_account_v1")
+              .select("*", { count: "exact", head: true })
+              .or("status.eq.suspend,status.eq.suspended"),
+            supabase
+              .from("twitter_create_with_account_v1")
+              .select("*", { count: "exact", head: true })
+              .eq("status", "active")
+              .is("updated_at", null),
           ];
 
           const results = await Promise.allSettled(statusQueries);
-          
+
           statusCounts = {
-            active: results[0].status === 'fulfilled' ? (results[0].value.count || 0) : 0,
-            shadowban: results[1].status === 'fulfilled' ? (results[1].value.count || 0) : 0,
-            stopped: results[2].status === 'fulfilled' ? (results[2].value.count || 0) : 0,
-            temp_locked: results[3].status === 'fulfilled' ? (results[3].value.count || 0) : 0,
-            examination: results[4].status === 'fulfilled' ? (results[4].value.count || 0) : 0,
-            suspended: results[5].status === 'fulfilled' ? (results[5].value.count || 0) : 0,
+            active:
+              results[0].status === "fulfilled"
+                ? results[0].value.count || 0
+                : 0,
+            shadowban:
+              results[1].status === "fulfilled"
+                ? results[1].value.count || 0
+                : 0,
+            stopped:
+              results[2].status === "fulfilled"
+                ? results[2].value.count || 0
+                : 0,
+            temp_locked:
+              results[3].status === "fulfilled"
+                ? results[3].value.count || 0
+                : 0,
+            examination:
+              results[4].status === "fulfilled"
+                ? results[4].value.count || 0
+                : 0,
+            suspended:
+              results[5].status === "fulfilled"
+                ? results[5].value.count || 0
+                : 0,
+            notShadowban:
+              results[6].status === "fulfilled"
+                ? results[6].value.count || 0
+                : 0,
           };
         } else {
           // フィルターがある場合は統計を無効化（パフォーマンス重視）
-          console.log("⚠️ フィルター適用時は統計表示を無効化（パフォーマンス重視）");
+          console.log(
+            "⚠️ フィルター適用時は統計表示を無効化（パフォーマンス重視）"
+          );
           statusCounts = {
             active: 0,
             shadowban: 0,
@@ -180,6 +229,7 @@ export async function GET(request: Request) {
             temp_locked: 0,
             examination: 0,
             suspended: 0,
+            notShadowban: 0,
           };
         }
 
@@ -194,6 +244,7 @@ export async function GET(request: Request) {
           temp_locked: 0,
           examination: 0,
           suspended: 0,
+          notShadowban: 0,
         };
       }
     }

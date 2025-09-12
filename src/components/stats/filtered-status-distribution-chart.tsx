@@ -26,9 +26,13 @@ export default function FilteredStatusDistributionChart({
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
-      const total = statusDistribution.reduce((sum, item) => sum + item.value, 0);
-      const percentage = total > 0 ? ((data.value / total) * 100).toFixed(1) : "0.0";
-      
+      const total = statusDistribution.reduce(
+        (sum, item) => sum + item.value,
+        0
+      );
+      const percentage =
+        total > 0 ? ((data.value / total) * 100).toFixed(1) : "0.0";
+
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
           <p className="font-medium text-gray-900 mb-1">{data.name}</p>
@@ -42,20 +46,27 @@ export default function FilteredStatusDistributionChart({
   };
 
   // カスタムラベル
-  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const renderCustomLabel = ({
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    percent,
+  }: any) => {
     if (percent < 0.05) return null; // 5%未満は表示しない
-    
+
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
     return (
-      <text 
-        x={x} 
-        y={y} 
-        fill="white" 
-        textAnchor={x > cx ? 'start' : 'end'} 
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor={x > cx ? "start" : "end"}
         dominantBaseline="central"
         fontSize="12"
         fontWeight="bold"
@@ -73,7 +84,9 @@ export default function FilteredStatusDistributionChart({
         <h3 className="text-lg font-semibold text-gray-900">
           アカウント状態分布
           {isLoading && (
-            <span className="ml-2 text-sm text-gray-500">データ読み込み中...</span>
+            <span className="ml-2 text-sm text-gray-500">
+              データ読み込み中...
+            </span>
           )}
         </h3>
         <div className="text-sm text-gray-600">
@@ -104,8 +117,8 @@ export default function FilteredStatusDistributionChart({
                 ))}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
-              <Legend 
-                verticalAlign="bottom" 
+              <Legend
+                verticalAlign="bottom"
                 height={36}
                 formatter={(value, entry: any) => (
                   <span style={{ color: entry.color, fontWeight: 500 }}>
@@ -117,17 +130,21 @@ export default function FilteredStatusDistributionChart({
           </ResponsiveContainer>
 
           {/* 詳細統計 */}
-          <div className="mt-6 grid grid-cols-2 gap-4">
+          <div className="mt-6 grid grid-cols-3 gap-4">
             {statusDistribution.map((item, index) => {
-              const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : "0.0";
+              const percentage =
+                total > 0 ? ((item.value / total) * 100).toFixed(1) : "0.0";
               return (
-                <div 
+                <div
                   key={index}
                   className="flex items-center justify-between p-3 rounded-lg border"
-                  style={{ borderColor: item.color + "40", backgroundColor: item.color + "10" }}
+                  style={{
+                    borderColor: item.color + "40",
+                    backgroundColor: item.color + "10",
+                  }}
                 >
                   <div className="flex items-center space-x-2">
-                    <div 
+                    <div
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: item.color }}
                     ></div>
@@ -139,9 +156,7 @@ export default function FilteredStatusDistributionChart({
                     <div className="text-sm font-bold text-gray-900">
                       {item.value.toLocaleString()}
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {percentage}%
-                    </div>
+                    <div className="text-xs text-gray-500">{percentage}%</div>
                   </div>
                 </div>
               );
@@ -152,7 +167,9 @@ export default function FilteredStatusDistributionChart({
         <div className="h-[400px] flex items-center justify-center text-gray-500">
           <div className="text-center">
             <p className="text-lg mb-2">データがありません</p>
-            <p className="text-sm">選択した期間にはアカウントデータが存在しません</p>
+            <p className="text-sm">
+              選択した期間にはアカウントデータが存在しません
+            </p>
           </div>
         </div>
       )}

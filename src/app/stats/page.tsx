@@ -221,6 +221,11 @@ export default function StatsPage() {
             color: "#F59E0B",
           },
           {
+            name: "シャドBAN",
+            value: periodTotals.shadowban,
+            color: "#F97316",
+          },
+          {
             name: "その他",
             value: periodTotals.other,
             color: "#6B7280",

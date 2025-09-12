@@ -75,6 +75,7 @@ export default function FilteredCreationTrendsChart({
         (item.active_count || 0) + 
         (item.suspended_count || 0) + 
         (item.temp_locked_count || 0) + 
+        (item.shadowban_count || 0) + 
         (item.other_count || 0)
       )
     );
@@ -158,6 +159,12 @@ export default function FilteredCreationTrendsChart({
               fill="#F59E0B" 
             />
             <Bar 
+              dataKey="shadowban_count" 
+              stackId="status" 
+              name="シャドBAN" 
+              fill="#F97316" 
+            />
+            <Bar 
               dataKey="other_count" 
               stackId="status" 
               name="その他" 
@@ -168,15 +175,16 @@ export default function FilteredCreationTrendsChart({
       )}
       
       {/* 統計サマリー */}
-      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
         {(() => {
           const data = getChartData();
           const totals = data.reduce((acc, item) => ({
             active: acc.active + (item.active_count || 0),
             suspended: acc.suspended + (item.suspended_count || 0),
             tempLocked: acc.tempLocked + (item.temp_locked_count || 0),
+            shadowban: acc.shadowban + (item.shadowban_count || 0),
             other: acc.other + (item.other_count || 0),
-          }), { active: 0, suspended: 0, tempLocked: 0, other: 0 });
+          }), { active: 0, suspended: 0, tempLocked: 0, shadowban: 0, other: 0 });
 
           return (
             <>
@@ -196,6 +204,12 @@ export default function FilteredCreationTrendsChart({
                 <p className="text-sm text-yellow-600 font-medium">一時制限</p>
                 <p className="text-xl font-bold text-yellow-700">
                   {totals.tempLocked.toLocaleString()}
+                </p>
+              </div>
+              <div className="bg-orange-50 p-3 rounded-lg">
+                <p className="text-sm text-orange-600 font-medium">シャドBAN</p>
+                <p className="text-xl font-bold text-orange-700">
+                  {totals.shadowban.toLocaleString()}
                 </p>
               </div>
               <div className="bg-gray-50 p-3 rounded-lg">

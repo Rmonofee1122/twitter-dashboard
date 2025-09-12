@@ -30,14 +30,14 @@ export default function TrendStatsCards() {
   const fetchTrendStats = async () => {
     try {
       setLoading(true);
-      
+
       // キャッシュキーを生成（統計データは3分間キャッシュ）
-      const cacheKey = 'trend-stats';
-      
+      const cacheKey = "trend-stats";
+
       // キャッシュから取得を試行
       const cachedData = apiCache.get(cacheKey);
       if (cachedData) {
-        console.log('Using cached trend stats data');
+        console.log("Using cached trend stats data");
         setStats(cachedData);
         setLoading(false);
         return;
@@ -48,10 +48,10 @@ export default function TrendStatsCards() {
         throw new Error("トレンド統計データの取得に失敗しました");
       }
       const data = await response.json();
-      
+
       // データをキャッシュに保存（3分間）
       apiCache.set(cacheKey, data, 3);
-      
+
       setStats(data);
     } catch (error) {
       console.error("トレンド統計データの取得に失敗しました:", error);

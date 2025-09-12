@@ -21,6 +21,17 @@ export async function GET() {
     const twoWeeksAgo = new Date(todayStart);
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
+    // 日別データ（過去30日間）
+    const { data: dailyData, error: dailyError } = await supabase
+      .from("status_count_per_day03")
+      .select("created_date, total_count")
+      .order("created_date", { ascending: true });
+
+    if (dailyError) {
+      console.error("日別データ取得エラー:", dailyError);
+      throw dailyError;
+    }
+
     // 過去14日間のデータを一度に取得（created_atのみ）
     const { data: recentData, error: recentError } = await supabase
       .from("twitter_create_logs")
@@ -34,46 +45,41 @@ export async function GET() {
     }
 
     // 累計アカウント数（別クエリで効率的に取得）
-    const { count: totalCount, error: totalError } = await supabase
-      .from("twitter_create_logs")
-      .select("*", { count: "exact", head: true });
+    const totalCount = dailyData?.reduce(
+      (acc, item) => acc + item.total_count,
+      0
+    );
 
-    if (totalError) {
-      console.error("累計アカウント数取得エラー:", totalError);
-    }
+    // 今日の作成数
+    const todayCount = dailyData?.reduce(
+      (acc, item) =>
+        item.created_date === todayStart ? acc + item.total_count : acc,
+      0
+    );
 
-    // データを効率的に分類
-    let todayCount = 0;
-    let yesterdayCount = 0;
-    let thisWeekCount = 0;
-    let lastWeekCount = 0;
+    // 昨日の作成数
+    const yesterdayCount = dailyData?.reduce(
+      (acc, item) =>
+        item.created_date === yesterdayStart ? acc + item.total_count : acc,
+      0
+    );
 
+    // 今週の作成数（過去7日間）
     const weekAgo = new Date(todayStart);
     weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekAgoString = weekAgo.toISOString().split("T")[0];
+    const thisWeekCount = dailyData?.reduce(
+      (acc, item) =>
+        item.created_date >= weekAgoString ? acc + item.total_count : acc,
+      0
+    );
 
-    recentData?.forEach((item) => {
-      const itemDate = new Date(item.created_at);
-
-      // 今日
-      if (itemDate >= todayStart && itemDate < todayEnd) {
-        todayCount++;
-      }
-
-      // 昨日
-      if (itemDate >= yesterdayStart && itemDate < todayStart) {
-        yesterdayCount++;
-      }
-
-      // 今週（過去7日間）
-      if (itemDate >= weekAgo) {
-        thisWeekCount++;
-      }
-
-      // 前週（7-14日前）
-      if (itemDate >= twoWeeksAgo && itemDate < weekAgo) {
-        lastWeekCount++;
-      }
-    });
+    // 前週の作成数（過去7日間）
+    const lastWeekCount = dailyData?.reduce(
+      (acc, item) =>
+        item.created_date >= twoWeeksAgo ? acc + item.total_count : acc,
+      0
+    );
 
     const trendStats = {
       today: todayCount,

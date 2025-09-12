@@ -42,7 +42,7 @@ export default function TrendChart({
 
       // 単一日のフィルターかどうかを判定
       const isSingleDay = startDate && endDate && startDate === endDate;
-      
+
       if (isSingleDay) {
         // 時間別データを取得
         const response = await fetch(`/api/hourly-data?date=${startDate}`);
@@ -101,7 +101,7 @@ export default function TrendChart({
     if (isSingleDay) {
       return data.hourly;
     }
-    
+
     switch (selectedPeriod) {
       case "weekly":
         return data.weekly;
@@ -118,7 +118,7 @@ export default function TrendChart({
     if (isSingleDay) {
       return "hour";
     }
-    
+
     switch (selectedPeriod) {
       case "weekly":
         return "week";
@@ -161,9 +161,7 @@ export default function TrendChart({
         <h3 className="text-lg font-semibold text-gray-900">
           アカウント作成推移
           {startDate && endDate && startDate === endDate && (
-            <span className="text-sm text-gray-600 ml-2">
-              (時間別表示)
-            </span>
+            <span className="text-sm text-gray-600 ml-2">(時間別表示)</span>
           )}
         </h3>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { formatDate, formatDateLocal } from "@/utils/date-helpers";
+import { formatDate01, formatDateLocal } from "@/utils/date-helpers";
 import {
   Edit,
   Trash2,
@@ -476,7 +476,7 @@ export default function PromptTable({
                         : "text-gray-400 italic"
                     }`}
                   >
-                    {formatDate(prompt.last_used_at)}
+                    {formatDate01(prompt.last_used_at)}
                   </div>
                   {prompt.last_used_at && (
                     <div className="text-xs text-gray-500">

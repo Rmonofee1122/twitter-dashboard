@@ -8,29 +8,33 @@
  * @param dateString - ISO日付文字列またはnull/undefined
  * @returns フォーマット済みの日付文字列または「未実行」
  */
-export const formatDate = (dateString: string | null | undefined): string => {
+export const formatDate01 = (dateString: string | null | undefined): string => {
   if (!dateString) return "未実行";
-  
+
   try {
     const date = new Date(dateString);
-    
+
     // 1970年1月1日の場合は「未実行」を返す
-    if (date.getFullYear() === 1970 && date.getMonth() === 0 && date.getDate() === 1) {
+    if (
+      date.getFullYear() === 1970 &&
+      date.getMonth() === 0 &&
+      date.getDate() === 1
+    ) {
       return "未実行";
     }
-    
+
     // 無効な日付の場合も「未実行」
     if (isNaN(date.getTime())) {
       return "未実行";
     }
-    
+
     // 正常な日付の場合は日本語形式でフォーマット
-    return date.toLocaleString('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleString("ja-JP", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   } catch (error) {
     return "未実行";
@@ -42,27 +46,33 @@ export const formatDate = (dateString: string | null | undefined): string => {
  * @param dateString - ISO日付文字列またはnull/undefined
  * @returns フォーマット済みの日付文字列または「未実行」
  */
-export const formatDateShort = (dateString: string | null | undefined): string => {
+export const formatDateShort = (
+  dateString: string | null | undefined
+): string => {
   if (!dateString) return "未実行";
-  
+
   try {
     const date = new Date(dateString);
-    
+
     // 1970年1月1日の場合は「未実行」を返す
-    if (date.getFullYear() === 1970 && date.getMonth() === 0 && date.getDate() === 1) {
+    if (
+      date.getFullYear() === 1970 &&
+      date.getMonth() === 0 &&
+      date.getDate() === 1
+    ) {
       return "未実行";
     }
-    
+
     // 無効な日付の場合も「未実行」
     if (isNaN(date.getTime())) {
       return "未実行";
     }
-    
+
     // 正常な日付の場合は日付のみフォーマット
-    return date.toLocaleDateString('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
+    return date.toLocaleDateString("ja-JP", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   } catch (error) {
     return "未実行";
@@ -74,28 +84,34 @@ export const formatDateShort = (dateString: string | null | undefined): string =
  * @param dateString - ISO日付文字列またはnull/undefined
  * @returns 相対時間文字列または「未実行」
  */
-export const formatRelativeTime = (dateString: string | null | undefined): string => {
+export const formatRelativeTime = (
+  dateString: string | null | undefined
+): string => {
   if (!dateString) return "未実行";
-  
+
   try {
     const date = new Date(dateString);
     const now = new Date();
-    
+
     // 1970年1月1日の場合は「未実行」を返す
-    if (date.getFullYear() === 1970 && date.getMonth() === 0 && date.getDate() === 1) {
+    if (
+      date.getFullYear() === 1970 &&
+      date.getMonth() === 0 &&
+      date.getDate() === 1
+    ) {
       return "未実行";
     }
-    
+
     // 無効な日付の場合も「未実行」
     if (isNaN(date.getTime())) {
       return "未実行";
     }
-    
+
     const diffMs = now.getTime() - date.getTime();
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffMinutes < 1) {
       return "たった今";
     } else if (diffMinutes < 60) {
@@ -118,16 +134,18 @@ export const formatRelativeTime = (dateString: string | null | undefined): strin
  * @param dateString - 日付文字列
  * @returns ISO形式の日付文字列またはnull
  */
-export const toISOString = (dateString: string | null | undefined): string | null => {
+export const toISOString = (
+  dateString: string | null | undefined
+): string | null => {
   if (!dateString) return null;
-  
+
   try {
     const date = new Date(dateString);
-    
+
     if (isNaN(date.getTime())) {
       return null;
     }
-    
+
     return date.toISOString();
   } catch (error) {
     return null;
@@ -141,7 +159,7 @@ export const toISOString = (dateString: string | null | undefined): string | nul
  * @returns 日付範囲の文字列
  */
 export const formatDateRange = (
-  startDate: string | null | undefined, 
+  startDate: string | null | undefined,
   endDate: string | null | undefined
 ): string => {
   if (!startDate && !endDate) return "全期間";
@@ -175,17 +193,23 @@ export const getDaysAgoISOString = (days: number): string => {
  * @param dateString - ISO日付文字列（UTC）またはnull/undefined
  * @returns 東京時間でフォーマット済みの日付文字列または「未実行」
  */
-export const formatDateLocal = (dateString: string | null | undefined): string => {
+export const formatDateLocal = (
+  dateString: string | null | undefined
+): string => {
   if (!dateString) return "未実行";
-  
+
   try {
     const date = new Date(dateString);
-    
+
     // 1970年1月1日の場合は「未実行」を返す
-    if (date.getFullYear() === 1970 && date.getMonth() === 0 && date.getDate() === 1) {
+    if (
+      date.getFullYear() === 1970 &&
+      date.getMonth() === 0 &&
+      date.getDate() === 1
+    ) {
       return "未実行";
     }
-    
+
     // 無効な日付の場合も「未実行」
     if (isNaN(date.getTime())) {
       return "未実行";
@@ -193,15 +217,15 @@ export const formatDateLocal = (dateString: string | null | undefined): string =
 
     // dateに9:00を加算
     date.setHours(date.getHours() + 9);
-    
+
     // UTC時刻を東京時間（Asia/Tokyo）に変換してフォーマット
-    return date.toLocaleString('ja-JP', {
-      timeZone: 'Asia/Tokyo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleString("ja-JP", {
+      timeZone: "Asia/Tokyo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   } catch (error) {
     return "未実行";
@@ -213,28 +237,34 @@ export const formatDateLocal = (dateString: string | null | undefined): string =
  * @param dateString - ISO日付文字列（UTC）またはnull/undefined
  * @returns 東京時間でフォーマット済みの日付文字列または「未実行」
  */
-export const formatDateLocalShort = (dateString: string | null | undefined): string => {
+export const formatDateLocalShort = (
+  dateString: string | null | undefined
+): string => {
   if (!dateString) return "未実行";
-  
+
   try {
     const date = new Date(dateString);
-    
+
     // 1970年1月1日の場合は「未実行」を返す
-    if (date.getFullYear() === 1970 && date.getMonth() === 0 && date.getDate() === 1) {
+    if (
+      date.getFullYear() === 1970 &&
+      date.getMonth() === 0 &&
+      date.getDate() === 1
+    ) {
       return "未実行";
     }
-    
+
     // 無効な日付の場合も「未実行」
     if (isNaN(date.getTime())) {
       return "未実行";
     }
-    
+
     // UTC時刻を東京時間に変換して日付のみフォーマット
-    return date.toLocaleDateString('ja-JP', {
-      timeZone: 'Asia/Tokyo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
+    return date.toLocaleDateString("ja-JP", {
+      timeZone: "Asia/Tokyo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   } catch (error) {
     return "未実行";
@@ -247,13 +277,13 @@ export const formatDateLocalShort = (dateString: string | null | undefined): str
  */
 export const getCurrentTokyoTime = (): string => {
   const now = new Date();
-  return now.toLocaleString('ja-JP', {
-    timeZone: 'Asia/Tokyo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+  return now.toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 };

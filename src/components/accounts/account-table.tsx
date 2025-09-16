@@ -420,13 +420,13 @@ const AccountTable = memo(function AccountTable({
             </div>
             {isSuspendedStatus && account.twitter_id && (
               <div className="text-xs text-gray-500 mt-1 ml-6">
-                凍結判定: {formatDateLocal(account.updated_at)}
+                凍結判定: {formatDate(account.updated_at)}
               </div>
             )}
           </div>
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-          {formatDateLocal(account.updated_at)}
+          {formatDate(account.updated_at)}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
           <div className="text-sm font-medium text-gray-900">

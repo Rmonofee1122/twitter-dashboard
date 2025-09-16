@@ -1,8 +1,17 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { formatDateLocal } from "@/utils/date-helpers";
-import { Edit, Trash2, Plus, Star, StarOff, Copy, Eye, Upload } from "lucide-react";
+import { formatDate, formatDateLocal } from "@/utils/date-helpers";
+import {
+  Edit,
+  Trash2,
+  Plus,
+  Star,
+  StarOff,
+  Copy,
+  Eye,
+  Upload,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { GeminiPrompt } from "@/types/database";
 import PromptPagination from "@/components/gemini/prompt-pagination";
@@ -41,175 +50,212 @@ export default function PromptTable({
   onEditPrompt,
 }: PromptTableProps) {
   const [csvImporting, setCsvImporting] = useState(false);
-  
-  const getSortIcon = useCallback((field: string) => {
-    if (sortField !== field) return null;
-    return sortDirection === "asc" ? "↑" : "↓";
-  }, [sortField, sortDirection]);
 
-  const handleDelete = useCallback(async (prompt: GeminiPrompt) => {
-    if (!confirm(`プロンプト "${prompt.prompt.substring(0, 50)}..." を削除しますか？`)) {
-      return;
-    }
+  const getSortIcon = useCallback(
+    (field: string) => {
+      if (sortField !== field) return null;
+      return sortDirection === "asc" ? "↑" : "↓";
+    },
+    [sortField, sortDirection]
+  );
 
-    try {
-      console.log(`🗑️ プロンプトを削除: ${prompt.id}`);
-      const response = await fetch(`/api/gemini-prompts?id=${prompt.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`削除失敗: ${errorData}`);
-      }
-
-      const result = await response.json();
-      console.log("✅ プロンプト削除成功:", result);
-      toast.success("プロンプトを削除しました", {
-        duration: 3000,
-      });
-      onDataChange();
-    } catch (error) {
-      console.error("❌ プロンプト削除エラー:", error);
-      toast.error("プロンプトの削除に失敗しました", {
-        duration: 3000,
-      });
-    }
-  }, [onDataChange]);
-
-  const handleToggleFavorite = useCallback(async (prompt: GeminiPrompt) => {
-    try {
-      const response = await fetch("/api/gemini-prompts", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: prompt.id,
-          action: "toggle_favorite"
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "お気に入り更新に失敗しました");
-      }
-
-      const result = await response.json();
-      toast.success(result.prompt.favorite ? "お気に入りに追加しました" : "お気に入りから削除しました", {
-        duration: 2000,
-      });
-      onDataChange();
-    } catch (error) {
-      console.error("❌ お気に入り更新エラー:", error);
-      toast.error("お気に入りの更新に失敗しました", {
-        duration: 3000,
-      });
-    }
-  }, [onDataChange]);
-
-  const handleUsePrompt = useCallback(async (prompt: GeminiPrompt) => {
-    try {
-      await navigator.clipboard.writeText(prompt.prompt);
-      toast.success("プロンプトをクリップボードにコピーしました", {
-        duration: 2000,
-      });
-
-      const response = await fetch("/api/gemini-prompts", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: prompt.id,
-          action: "use"
-        }),
-      });
-
-      if (response.ok) {
-        onDataChange();
-      }
-    } catch (error) {
-      console.error("❌ プロンプトコピーエラー:", error);
-      toast.error("プロンプトのコピーに失敗しました", {
-        duration: 3000,
-      });
-    }
-  }, [onDataChange]);
-
-  const handleCsvImport = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      toast.error('CSVファイルを選択してください', { duration: 3000 });
-      return;
-    }
-
-    setCsvImporting(true);
-    
-    try {
-      const text = await file.text();
-      const lines = text.split('\n').filter(line => line.trim());
-      const prompts: { prompt: string; tags: string[] }[] = [];
-
-      for (const line of lines) {
-        const trimmedLine = line.trim();
-        if (trimmedLine) {
-          const columns = trimmedLine.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
-          
-          if (columns.length >= 1 && columns[0]) {
-            const promptText = columns[0];
-            const tags = columns.length > 1 && columns[1] 
-              ? columns[1].split('|').map(tag => tag.trim()).filter(tag => tag)
-              : ['インポート'];
-            
-            prompts.push({
-              prompt: promptText,
-              tags: tags.length > 0 ? tags : ['インポート']
-            });
-          }
-        }
-      }
-
-      if (prompts.length === 0) {
-        toast.error('CSVファイルからプロンプトが見つかりませんでした', { duration: 3000 });
+  const handleDelete = useCallback(
+    async (prompt: GeminiPrompt) => {
+      if (
+        !confirm(
+          `プロンプト "${prompt.prompt.substring(0, 50)}..." を削除しますか？`
+        )
+      ) {
         return;
       }
 
-      console.log(`📊 CSVから${prompts.length}個のプロンプトを検出`);
+      try {
+        console.log(`🗑️ プロンプトを削除: ${prompt.id}`);
+        const response = await fetch(`/api/gemini-prompts?id=${prompt.id}`, {
+          method: "DELETE",
+        });
 
-      const response = await fetch('/api/gemini-prompts/bulk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompts }),
-      });
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(`削除失敗: ${errorData}`);
+        }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'バルクインサートに失敗しました');
+        const result = await response.json();
+        console.log("✅ プロンプト削除成功:", result);
+        toast.success("プロンプトを削除しました", {
+          duration: 3000,
+        });
+        onDataChange();
+      } catch (error) {
+        console.error("❌ プロンプト削除エラー:", error);
+        toast.error("プロンプトの削除に失敗しました", {
+          duration: 3000,
+        });
+      }
+    },
+    [onDataChange]
+  );
+
+  const handleToggleFavorite = useCallback(
+    async (prompt: GeminiPrompt) => {
+      try {
+        const response = await fetch("/api/gemini-prompts", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: prompt.id,
+            action: "toggle_favorite",
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "お気に入り更新に失敗しました");
+        }
+
+        const result = await response.json();
+        toast.success(
+          result.prompt.favorite
+            ? "お気に入りに追加しました"
+            : "お気に入りから削除しました",
+          {
+            duration: 2000,
+          }
+        );
+        onDataChange();
+      } catch (error) {
+        console.error("❌ お気に入り更新エラー:", error);
+        toast.error("お気に入りの更新に失敗しました", {
+          duration: 3000,
+        });
+      }
+    },
+    [onDataChange]
+  );
+
+  const handleUsePrompt = useCallback(
+    async (prompt: GeminiPrompt) => {
+      try {
+        await navigator.clipboard.writeText(prompt.prompt);
+        toast.success("プロンプトをクリップボードにコピーしました", {
+          duration: 2000,
+        });
+
+        const response = await fetch("/api/gemini-prompts", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: prompt.id,
+            action: "use",
+          }),
+        });
+
+        if (response.ok) {
+          onDataChange();
+        }
+      } catch (error) {
+        console.error("❌ プロンプトコピーエラー:", error);
+        toast.error("プロンプトのコピーに失敗しました", {
+          duration: 3000,
+        });
+      }
+    },
+    [onDataChange]
+  );
+
+  const handleCsvImport = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      if (!file.name.toLowerCase().endsWith(".csv")) {
+        toast.error("CSVファイルを選択してください", { duration: 3000 });
+        return;
       }
 
-      const result = await response.json();
-      console.log('✅ プロンプトバルクインサート成功:', result);
-      
-      toast.success(`${prompts.length}個のプロンプトを一括登録しました`, {
-        duration: 5000,
-      });
-      
-      onDataChange();
-    } catch (error) {
-      console.error('❌ CSVインポートエラー:', error);
-      toast.error(error instanceof Error ? error.message : 'CSVインポートに失敗しました', {
-        duration: 3000,
-      });
-    } finally {
-      setCsvImporting(false);
-      event.target.value = '';
-    }
-  }, [onDataChange]);
+      setCsvImporting(true);
+
+      try {
+        const text = await file.text();
+        const lines = text.split("\n").filter((line) => line.trim());
+        const prompts: { prompt: string; tags: string[] }[] = [];
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine) {
+            const columns = trimmedLine
+              .split(",")
+              .map((col) => col.trim().replace(/^"|"$/g, ""));
+
+            if (columns.length >= 1 && columns[0]) {
+              const promptText = columns[0];
+              const tags =
+                columns.length > 1 && columns[1]
+                  ? columns[1]
+                      .split("|")
+                      .map((tag) => tag.trim())
+                      .filter((tag) => tag)
+                  : ["インポート"];
+
+              prompts.push({
+                prompt: promptText,
+                tags: tags.length > 0 ? tags : ["インポート"],
+              });
+            }
+          }
+        }
+
+        if (prompts.length === 0) {
+          toast.error("CSVファイルからプロンプトが見つかりませんでした", {
+            duration: 3000,
+          });
+          return;
+        }
+
+        console.log(`📊 CSVから${prompts.length}個のプロンプトを検出`);
+
+        const response = await fetch("/api/gemini-prompts/bulk", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ prompts }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "バルクインサートに失敗しました");
+        }
+
+        const result = await response.json();
+        console.log("✅ プロンプトバルクインサート成功:", result);
+
+        toast.success(`${prompts.length}個のプロンプトを一括登録しました`, {
+          duration: 5000,
+        });
+
+        onDataChange();
+      } catch (error) {
+        console.error("❌ CSVインポートエラー:", error);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "CSVインポートに失敗しました",
+          {
+            duration: 3000,
+          }
+        );
+      } finally {
+        setCsvImporting(false);
+        event.target.value = "";
+      }
+    },
+    [onDataChange]
+  );
 
   const paginationInfo = useMemo(() => {
     if (totalPrompts) {
@@ -257,7 +303,7 @@ export default function PromptTable({
             </button>
             <label className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50">
               <Upload className="h-4 w-4 mr-1" />
-              {csvImporting ? 'インポート中...' : 'CSVインポート'}
+              {csvImporting ? "インポート中..." : "CSVインポート"}
               <input
                 type="file"
                 accept=".csv"
@@ -267,15 +313,13 @@ export default function PromptTable({
               />
             </label>
           </div>
-          
+
           <div className="flex items-center space-x-4">
-            <div className="text-sm text-gray-500">
-              {paginationInfo}
-            </div>
+            <div className="text-sm text-gray-500">{paginationInfo}</div>
           </div>
         </div>
       </div>
-      
+
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -307,7 +351,9 @@ export default function PromptTable({
               >
                 <div className="flex items-center space-x-1">
                   <span>お気に入り</span>
-                  <span className="text-blue-600">{getSortIcon("favorite")}</span>
+                  <span className="text-blue-600">
+                    {getSortIcon("favorite")}
+                  </span>
                 </div>
               </th>
               <th
@@ -316,7 +362,9 @@ export default function PromptTable({
               >
                 <div className="flex items-center space-x-1">
                   <span>使用回数</span>
-                  <span className="text-blue-600">{getSortIcon("used_count")}</span>
+                  <span className="text-blue-600">
+                    {getSortIcon("used_count")}
+                  </span>
                 </div>
               </th>
               <th
@@ -325,7 +373,9 @@ export default function PromptTable({
               >
                 <div className="flex items-center space-x-1">
                   <span>最終使用日時</span>
-                  <span className="text-blue-600">{getSortIcon("last_used_at")}</span>
+                  <span className="text-blue-600">
+                    {getSortIcon("last_used_at")}
+                  </span>
                 </div>
               </th>
               <th
@@ -334,7 +384,9 @@ export default function PromptTable({
               >
                 <div className="flex items-center space-x-1">
                   <span>作成日時</span>
-                  <span className="text-blue-600">{getSortIcon("created_at")}</span>
+                  <span className="text-blue-600">
+                    {getSortIcon("created_at")}
+                  </span>
                 </div>
               </th>
               <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -344,17 +396,19 @@ export default function PromptTable({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {prompts.map((prompt) => (
-              <tr key={prompt.id} className="hover:bg-gray-50 transition-colors">
+              <tr
+                key={prompt.id}
+                className="hover:bg-gray-50 transition-colors"
+              >
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <div className="font-medium">{prompt.id}</div>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-900">
                   <div className="max-w-xs">
                     <div className="truncate" title={prompt.prompt}>
-                      {prompt.prompt.length > 100 
-                        ? `${prompt.prompt.substring(0, 100)}...` 
-                        : prompt.prompt
-                      }
+                      {prompt.prompt.length > 100
+                        ? `${prompt.prompt.substring(0, 100)}...`
+                        : prompt.prompt}
                     </div>
                   </div>
                 </td>
@@ -383,7 +437,11 @@ export default function PromptTable({
                         ? "text-yellow-500 hover:bg-yellow-50"
                         : "text-gray-400 hover:bg-gray-50"
                     }`}
-                    title={prompt.favorite ? "お気に入りから削除" : "お気に入りに追加"}
+                    title={
+                      prompt.favorite
+                        ? "お気に入りから削除"
+                        : "お気に入りに追加"
+                    }
                   >
                     {prompt.favorite ? (
                       <Star className="h-5 w-5 fill-current" />
@@ -394,34 +452,41 @@ export default function PromptTable({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <div className="flex items-center">
-                    <span className={`text-lg font-bold ${
-                      prompt.used_count === 0 
-                        ? "text-gray-400" 
-                        : prompt.used_count < 10 
-                        ? "text-green-600"
-                        : prompt.used_count < 50
-                        ? "text-orange-600"
-                        : "text-red-600"
-                    }`}>
+                    <span
+                      className={`text-lg font-bold ${
+                        prompt.used_count === 0
+                          ? "text-gray-400"
+                          : prompt.used_count < 10
+                          ? "text-green-600"
+                          : prompt.used_count < 50
+                          ? "text-orange-600"
+                          : "text-red-600"
+                      }`}
+                    >
                       {prompt.used_count.toLocaleString()}
                     </span>
                     <span className="ml-2 text-xs text-gray-500">回</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <div className={`${
-                    prompt.last_used_at 
-                      ? "text-gray-900" 
-                      : "text-gray-400 italic"
-                  }`}>
-                    {formatDateLocal(prompt.last_used_at)}
+                  <div
+                    className={`${
+                      prompt.last_used_at
+                        ? "text-gray-900"
+                        : "text-gray-400 italic"
+                    }`}
+                  >
+                    {formatDate(prompt.last_used_at)}
                   </div>
                   {prompt.last_used_at && (
                     <div className="text-xs text-gray-500">
                       {(() => {
                         const lastUsed = new Date(prompt.last_used_at);
                         const now = new Date();
-                        const diffHours = Math.floor((now.getTime() - lastUsed.getTime()) / (1000 * 60 * 60));
+                        const diffHours = Math.floor(
+                          (now.getTime() - lastUsed.getTime()) /
+                            (1000 * 60 * 60)
+                        );
                         if (diffHours < 1) return "1時間以内";
                         if (diffHours < 24) return `${diffHours}時間前`;
                         const diffDays = Math.floor(diffHours / 24);
@@ -480,14 +545,14 @@ export default function PromptTable({
       </div>
       <div>
         {/* ページネーション */}
-      <PromptPagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalPrompts={totalPrompts}
-        itemsPerPage={itemsPerPage}
-        onPageChange={onPageChange}
-        onItemsPerPageChange={onItemsPerPageChange}
-      />
+        <PromptPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalPrompts={totalPrompts}
+          itemsPerPage={itemsPerPage}
+          onPageChange={onPageChange}
+          onItemsPerPageChange={onItemsPerPageChange}
+        />
       </div>
     </div>
   );

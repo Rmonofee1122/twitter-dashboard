@@ -13,7 +13,7 @@ import {
   getStatusText,
   getStatusBadgeColor,
 } from "@/utils/status-helpers";
-import { formatDateLocal } from "@/utils/date-helpers";
+import { formatDate01, formatDateLocal } from "@/utils/date-helpers";
 
 export default function AccountCreationHistory() {
   const [accounts, setAccounts] = useState<TwitterAccountInfo[]>([]);
@@ -181,7 +181,7 @@ export default function AccountCreationHistory() {
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDateLocal(account.updated_at)}
+                      {formatDate01(account.updated_at)}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                       {account.posts_count || 0}

@@ -988,7 +988,7 @@ export async function fetchRecentAccounts(): Promise<any[]> {
     const { data, error } = await supabase
       .from("twitter_create_with_account_v1")
       .select("*")
-      .order("created_at", { ascending: false })
+      .order("log_created_at", { ascending: false })
       .limit(5);
 
     if (error) {

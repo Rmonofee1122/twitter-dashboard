@@ -51,6 +51,7 @@ export default function StatsPage() {
       suspendedAccounts: 0,
       tempLockedAccounts: 0,
       shadowbanAccounts: 0,
+      notShadowbanAccounts: 0,
       todayCreated: 0,
       weekCreated: 0,
       monthCreated: 0,
@@ -118,6 +119,7 @@ export default function StatsPage() {
       (acc, day) => acc + day.shadowban_count,
       0
     ),
+    notShadowbanAccounts: 0,
     todayCreated: 0, // フィルタリングされた期間では意味がないため0とする
     weekCreated: 0, // フィルタリングされた期間では意味がないため0とする
     monthCreated: 0, // フィルタリングされた期間では意味がないため0とする

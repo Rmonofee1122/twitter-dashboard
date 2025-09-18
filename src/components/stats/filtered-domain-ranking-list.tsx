@@ -16,7 +16,8 @@ const ProgressBarTooltip = ({
     item.total_count -
     item.active_count -
     item.suspended_count -
-    item.temp_locked_count;
+    item.temp_locked_count -
+    item.shadowban_count;
 
   return (
     <div className="absolute z-30 bg-white p-3 border border-gray-200 rounded-lg shadow-lg -top-28 -left-20 min-w-max">
@@ -29,6 +30,9 @@ const ProgressBarTooltip = ({
       </p>
       <p className="text-sm" style={{ color: "#F59E0B" }}>
         一時制限: {item.temp_locked_count.toLocaleString()}件
+      </p>
+      <p className="text-sm" style={{ color: "#F97316" }}>
+        シャドBAN: {item.shadowban_count.toLocaleString()}件
       </p>
       <p className="text-sm" style={{ color: "#6B7280" }}>
         その他: {otherCount.toLocaleString()}件
@@ -122,8 +126,6 @@ export default function FilteredDomainRankingList({
     return pages;
   };
 
-  const maxCount = Math.max(...domainData.map((d) => d.total_count), 1);
-
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 overflow-visible">
       <div className="flex items-center justify-between mb-6">
@@ -169,6 +171,10 @@ export default function FilteredDomainRankingList({
             <div className="flex items-center space-x-2">
               <div className="w-4 h-3 bg-yellow-500 rounded"></div>
               <span className="text-gray-700">一時制限</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-3 bg-orange-500 rounded"></div>
+              <span className="text-gray-700">シャドBAN</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-4 h-3 bg-gray-500 rounded"></div>
@@ -248,9 +254,9 @@ export default function FilteredDomainRankingList({
                       }%`,
                     }}
                   ></div>
-                  {/* その他の割合 */}
+                  {/* シャドBANの割合 */}
                   <div
-                    className="bg-gray-500 h-3 absolute top-0 transition-all duration-200 hover:brightness-110"
+                    className="bg-orange-500 h-3 absolute top-0 transition-all duration-200 hover:brightness-110"
                     style={{
                       left: `${
                         item.total_count > 0
@@ -263,10 +269,33 @@ export default function FilteredDomainRankingList({
                       }%`,
                       width: `${
                         item.total_count > 0
+                          ? (item.shadowban_count / item.total_count) * 100
+                          : 0
+                      }%`,
+                    }}
+                  ></div>
+
+                  {/* その他の割合 */}
+                  <div
+                    className="bg-gray-500 h-3 absolute top-0 transition-all duration-200 hover:brightness-110"
+                    style={{
+                      left: `${
+                        item.total_count > 0
+                          ? ((item.active_count +
+                              item.suspended_count +
+                              item.temp_locked_count +
+                              item.shadowban_count) /
+                              item.total_count) *
+                            100
+                          : 0
+                      }%`,
+                      width: `${
+                        item.total_count > 0
                           ? ((item.total_count -
                               item.active_count -
                               item.suspended_count -
-                              item.temp_locked_count) /
+                              item.temp_locked_count -
+                              item.shadowban_count) /
                               item.total_count) *
                             100
                           : 0

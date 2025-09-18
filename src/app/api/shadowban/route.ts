@@ -238,7 +238,7 @@ export async function GET(request: NextRequest) {
   }
 
   const urls = [
-    `http://localhost:3000/api/test?screen_name=${encodeURIComponent(
+    `https://shadowban.lami.zip/api/test?screen_name=${encodeURIComponent(
       screenName
     )}`,
     `https://twitter-shadowban-v2.vercel.app/api/test?screen_name=${encodeURIComponent(

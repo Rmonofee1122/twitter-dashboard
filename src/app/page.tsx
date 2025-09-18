@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, Users, Plus, TrendingUp } from "lucide-react";
+import {
+  BarChart3,
+  Users,
+  Plus,
+  TrendingUp,
+  Twitter,
+  Activity,
+  Hash,
+  MessageCircle,
+} from "lucide-react";
 import { DashboardStats } from "@/types/database";
 import StatCard from "@/components/ui/stat-card";
 import ActivityCard from "@/components/dashboard/activity-card";

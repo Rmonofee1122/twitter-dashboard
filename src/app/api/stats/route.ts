@@ -28,6 +28,7 @@ export interface FilteredDomainData {
   active_count: number;
   suspended_count: number;
   temp_locked_count: number;
+  shadowban_count: number;
   total_count: number;
 }
 
@@ -846,8 +847,10 @@ export async function fetchFilteredDomainRanking(
     let query = supabase
       .from("domain_per_day_view02")
       .select(
-        "created_date, domain, active_count, suspended_count, temp_locked_count, total_count"
+        "created_date, domain, active_count, suspended_count, temp_locked_count, shadowban_count, total_count"
       );
+
+    console.log(startDate, endDate);
 
     // 日付フィルター適用
     if (startDate) {
@@ -875,6 +878,7 @@ export async function fetchFilteredDomainRanking(
         active_count: number;
         suspended_count: number;
         temp_locked_count: number;
+        shadowban_count: number;
         total_count: number;
       }
     >();
@@ -884,6 +888,7 @@ export async function fetchFilteredDomainRanking(
         active_count: 0,
         suspended_count: 0,
         temp_locked_count: 0,
+        shadowban_count: 0,
         total_count: 0,
       };
 
@@ -892,6 +897,7 @@ export async function fetchFilteredDomainRanking(
         suspended_count: existing.suspended_count + (item.suspended_count || 0),
         temp_locked_count:
           existing.temp_locked_count + (item.temp_locked_count || 0),
+        shadowban_count: existing.shadowban_count + (item.shadowban_count || 0),
         total_count: existing.total_count + (item.total_count || 0),
       });
     });

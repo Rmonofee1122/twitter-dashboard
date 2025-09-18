@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     let query = supabase
       .from("domain_view02")
       .select("*", { count: "exact" })
-      .order("active_count", { ascending: false, nullsFirst: false });
+      .order("total_count", { ascending: false, nullsFirst: false });
 
     // 検索フィルター
     if (search) {
@@ -47,6 +47,12 @@ export async function GET(request: Request) {
           break;
         case "temp_locked_count":
           query = query.order("temp_locked_count", {
+            ascending,
+            nullsFirst: false,
+          });
+          break;
+        case "shadowban_count":
+          query = query.order("shadowban_count", {
             ascending,
             nullsFirst: false,
           });
@@ -83,7 +89,8 @@ export async function GET(request: Request) {
         total_count:
           (item.active_count || 0) +
           (item.suspended_count || 0) +
-          (item.temp_locked_count || 0),
+          (item.temp_locked_count || 0) +
+          (item.shadowban_count || 0),
       })) || [];
 
     // レスポンスにキャッシュヘッダーを追加

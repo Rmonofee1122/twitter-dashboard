@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useEffect, useCallback, useMemo } from "react";
+import React, { memo, useState, useEffect, useCallback, useMemo } from "react";
 import {
   Search,
   AlertTriangle,
@@ -16,6 +16,7 @@ import Pagination from "@/components/ui/pagination";
 interface DomainStatusData {
   domain: string;
   active_count: number;
+  shadowban_count: number;
   suspended_count: number;
   temp_locked_count: number;
   total_count: number;
@@ -42,7 +43,7 @@ const SortableHeader = memo(function SortableHeader({
   sortDirection: string;
   onSort?: (field: string) => void;
 }) {
-  const getSortIcon = () => {
+  const getSortIcon = useCallback(() => {
     if (sortField !== field) {
       return <ChevronsUpDown className="h-4 w-4 text-gray-400" />;
     }
@@ -54,7 +55,7 @@ const SortableHeader = memo(function SortableHeader({
     }
 
     return <ChevronsUpDown className="h-4 w-4 text-gray-400" />;
-  };
+  }, [sortField, sortDirection, field]);
 
   return (
     <th
@@ -121,21 +122,21 @@ const DomainStatusTable = memo(function DomainStatusTable() {
   const handleSort = useCallback(
     (field: string) => {
       if (sortField === field) {
-        if (sortDirection === "asc") {
-          setSortDirection("desc");
-        } else if (sortDirection === "desc") {
-          setSortField("");
-          setSortDirection("");
-        } else {
-          setSortDirection("asc");
-        }
+        setSortDirection((prev) => {
+          if (prev === "asc") return "desc";
+          if (prev === "desc") {
+            setSortField("");
+            return "";
+          }
+          return "asc";
+        });
       } else {
         setSortField(field);
         setSortDirection("asc");
       }
       setCurrentPage(1);
     },
-    [sortField, sortDirection]
+    [sortField]
   );
 
   const handlePageChange = useCallback((page: number) => {
@@ -152,8 +153,8 @@ const DomainStatusTable = memo(function DomainStatusTable() {
     setCurrentPage(1);
   }, []);
 
-  if (loading) {
-    return (
+  const loadingContent = useMemo(
+    () => (
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           ドメイン・ステータス別作成数一覧
@@ -163,11 +164,12 @@ const DomainStatusTable = memo(function DomainStatusTable() {
           <p className="mt-2 text-gray-500">データを読み込み中...</p>
         </div>
       </div>
-    );
-  }
+    ),
+    []
+  );
 
-  if (error) {
-    return (
+  const errorContent = useMemo(
+    () => (
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           ドメイン・ステータス別作成数一覧
@@ -186,7 +188,16 @@ const DomainStatusTable = memo(function DomainStatusTable() {
           </div>
         </div>
       </div>
-    );
+    ),
+    [error, fetchDomainStatusData]
+  );
+
+  if (loading) {
+    return loadingContent;
+  }
+
+  if (error) {
+    return errorContent;
   }
 
   return (
@@ -252,12 +263,20 @@ const DomainStatusTable = memo(function DomainStatusTable() {
                 onSort={handleSort}
               />
               <SortableHeader
+                label="シャドBAN"
+                field="shadowban_count"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+              />
+              <SortableHeader
                 label="一時制限"
                 field="temp_locked_count"
                 sortField={sortField}
                 sortDirection={sortDirection}
                 onSort={handleSort}
               />
+
               <SortableHeader
                 label="凍結"
                 field="suspended_count"
@@ -278,7 +297,7 @@ const DomainStatusTable = memo(function DomainStatusTable() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {data.map((item, index) => (
+            {data.map((item) => (
               <tr key={item.domain} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900 font-mono">
@@ -290,6 +309,14 @@ const DomainStatusTable = memo(function DomainStatusTable() {
                     <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
                     <span className="text-sm font-medium text-gray-900">
                       {item.active_count?.toLocaleString() || 0}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <AlertTriangle className="h-4 w-4 text-orange-500 mr-2" />
+                    <span className="text-sm font-medium text-gray-900">
+                      {item.shadowban_count?.toLocaleString() || 0}
                     </span>
                   </div>
                 </td>
@@ -322,6 +349,16 @@ const DomainStatusTable = memo(function DomainStatusTable() {
                         width:
                           item.total_count > 0
                             ? `${(item.active_count / item.total_count) * 100}%`
+                            : "0%",
+                        minWidth: "2px",
+                      }}
+                    />
+                    <div
+                      className="h-2 bg-orange-500 rounded"
+                      style={{
+                        width:
+                          item.total_count > 0
+                            ? `${(item.shadowban_count / item.total_count) * 100}%`
                             : "0%",
                         minWidth: "2px",
                       }}

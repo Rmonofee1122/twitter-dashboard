@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Calendar, X } from "lucide-react";
 
 interface DateFilterProps {
@@ -85,94 +85,70 @@ const DateFilter = memo(function DateFilter({
     };
   }, []);
 
-  const quickSelectOptions: QuickSelectOption[] = useMemo(
-    () => [
+  const quickSelectOptions: QuickSelectOption[] = useMemo(() => {
+    const todayStr = formatDate(today);
+    const yesterdayStr = formatDate(yesterday);
+    const weekStartStr = formatDate(thisWeekStart);
+    const past7DaysStr = formatDate(past7Days);
+    const monthStartStr = formatDate(thisMonthStart);
+    const past30DaysStr = formatDate(past30Days);
+    const lastMonthStartStr = formatDate(lastMonthStart);
+    const lastMonthEndStr = formatDate(lastMonthEnd);
+    const past90DaysStr = formatDate(past90Days);
+    const thisYearStartStr = formatDate(thisYearStart);
+
+    return [
       {
         label: "今日",
-        onClick: () => {
-          const todayStr = formatDate(today);
-          onQuickSelect(todayStr, todayStr);
-        },
+        onClick: () => onQuickSelect(todayStr, todayStr),
       },
       {
         label: "昨日",
-        onClick: () => {
-          const yesterdayStr = formatDate(yesterday);
-          onQuickSelect(yesterdayStr, yesterdayStr);
-        },
+        onClick: () => onQuickSelect(yesterdayStr, yesterdayStr),
       },
       {
         label: "今週",
-        onClick: () => {
-          const weekStartStr = formatDate(thisWeekStart);
-          const todayStr = formatDate(today);
-          onQuickSelect(weekStartStr, todayStr);
-        },
+        onClick: () => onQuickSelect(weekStartStr, todayStr),
       },
       {
         label: "過去7日間",
-        onClick: () => {
-          const past7DaysStr = formatDate(past7Days);
-          const todayStr = formatDate(today);
-          onQuickSelect(past7DaysStr, todayStr);
-        },
+        onClick: () => onQuickSelect(past7DaysStr, todayStr),
       },
       {
         label: "今月",
-        onClick: () => {
-          const monthStartStr = formatDate(thisMonthStart);
-          const todayStr = formatDate(today);
-          onQuickSelect(monthStartStr, todayStr);
-        },
+        onClick: () => onQuickSelect(monthStartStr, todayStr),
       },
       {
         label: "過去30日間",
-        onClick: () => {
-          const past30DaysStr = formatDate(past30Days);
-          const todayStr = formatDate(today);
-          onQuickSelect(past30DaysStr, todayStr);
-        },
+        onClick: () => onQuickSelect(past30DaysStr, todayStr),
       },
       {
         label: "先月",
-        onClick: () => {
-          const lastMonthStartStr = formatDate(lastMonthStart);
-          const lastMonthEndStr = formatDate(lastMonthEnd);
-          onQuickSelect(lastMonthStartStr, lastMonthEndStr);
-        },
+        onClick: () => onQuickSelect(lastMonthStartStr, lastMonthEndStr),
       },
       {
         label: "過去90日間",
-        onClick: () => {
-          const past90DaysStr = formatDate(past90Days);
-          const todayStr = formatDate(today);
-          onQuickSelect(past90DaysStr, todayStr);
-        },
+        onClick: () => onQuickSelect(past90DaysStr, todayStr),
       },
       {
         label: "今年",
-        onClick: () => {
-          const thisYearStartStr = formatDate(thisYearStart);
-          const todayStr = formatDate(today);
-          onQuickSelect(thisYearStartStr, todayStr);
-        },
+        onClick: () => onQuickSelect(thisYearStartStr, todayStr),
       },
-    ],
-    [
-      today,
-      yesterday,
-      thisWeekStart,
-      thisMonthStart,
-      lastMonthStart,
-      lastMonthEnd,
-      thisYearStart,
-      past7Days,
-      past30Days,
-      past90Days,
-      formatDate,
-      onQuickSelect,
-    ]
-  );
+    ];
+  }, [
+    today,
+    yesterday,
+    thisWeekStart,
+    thisMonthStart,
+    lastMonthStart,
+    lastMonthEnd,
+    thisYearStart,
+    past7Days,
+    past30Days,
+    past90Days,
+    formatDate,
+    onQuickSelect,
+  ]);
 
   const hasDateFilter = useMemo(
     () => startDate || endDate,
@@ -191,6 +167,18 @@ const DateFilter = memo(function DateFilter({
       onEndDateChange(e.target.value);
     },
     [onEndDateChange]
+  );
+
+  const handleQuickSelectChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const selectedOption = quickSelectOptions.find(
+        (opt) => opt.label === e.target.value
+      );
+      if (selectedOption) {
+        selectedOption.onClick();
+      }
+    },
+    [quickSelectOptions]
   );
 
   return (
@@ -244,14 +232,7 @@ const DateFilter = memo(function DateFilter({
               クイック選択
             </label>
             <select
-              onChange={(e) => {
-                const selectedOption = quickSelectOptions.find(
-                  (opt) => opt.label === e.target.value
-                );
-                if (selectedOption) {
-                  selectedOption.onClick();
-                }
-              }}
+              onChange={handleQuickSelectChange}
               value=""
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
@@ -266,33 +247,46 @@ const DateFilter = memo(function DateFilter({
         </div>
 
         {/* 現在のフィルター表示 */}
-        {hasDateFilter && (
-          <div className="p-3 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <span className="font-medium">フィルター期間:</span>{" "}
-              {startDate && (
-                <span>{new Date(startDate).toLocaleDateString("ja-JP")}</span>
-              )}
-              {startDate && endDate && <span> 〜 </span>}
-              {endDate && (
-                <span>{new Date(endDate).toLocaleDateString("ja-JP")}</span>
-              )}
-              {!startDate && endDate && (
-                <span>
-                  {new Date(endDate).toLocaleDateString("ja-JP")} 以前
-                </span>
-              )}
-              {startDate && !endDate && (
-                <span>
-                  {new Date(startDate).toLocaleDateString("ja-JP")} 以降
-                </span>
-              )}
-            </p>
-          </div>
-        )}
+        {hasDateFilter && <DateFilterDisplay startDate={startDate} endDate={endDate} />}
       </div>
     </div>
   );
 });
+
+// 日付フィルター表示コンポーネントを分離してメモ化
+const DateFilterDisplay = memo(
+  ({ startDate, endDate }: { startDate: string; endDate: string }) => {
+    const formattedStartDate = useMemo(
+      () => (startDate ? new Date(startDate).toLocaleDateString("ja-JP") : null),
+      [startDate]
+    );
+
+    const formattedEndDate = useMemo(
+      () => (endDate ? new Date(endDate).toLocaleDateString("ja-JP") : null),
+      [endDate]
+    );
+
+    return (
+      <div className="p-3 bg-blue-50 rounded-lg">
+        <p className="text-sm text-blue-800">
+          <span className="font-medium">フィルター期間:</span>{" "}
+          {formattedStartDate && <span>{formattedStartDate}</span>}
+          {formattedStartDate && formattedEndDate && <span> 〜 </span>}
+          {formattedEndDate && !formattedStartDate && (
+            <span>{formattedEndDate} 以前</span>
+          )}
+          {formattedEndDate && formattedStartDate && (
+            <span>{formattedEndDate}</span>
+          )}
+          {formattedStartDate && !formattedEndDate && (
+            <span>{formattedStartDate} 以降</span>
+          )}
+        </p>
+      </div>
+    );
+  }
+);
+
+DateFilterDisplay.displayName = "DateFilterDisplay";
 
 export default DateFilter;

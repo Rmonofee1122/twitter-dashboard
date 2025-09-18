@@ -1,3 +1,4 @@
+import React, { useMemo, useCallback } from "react";
 import { TwitterAccountInfo } from "@/types/database";
 import AccountTable from "./account-table";
 import Pagination from "@/components/ui/pagination";
@@ -28,7 +29,7 @@ interface AccountDataTableProps {
   onItemsPerPageChange?: (itemsPerPage: number) => void;
 }
 
-export default function AccountDataTable({
+const AccountDataTable = React.memo(function AccountDataTable({
   accounts,
   loading,
   onRefresh,
@@ -51,12 +52,44 @@ export default function AccountDataTable({
   onSort,
   onItemsPerPageChange,
 }: AccountDataTableProps) {
-  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  const totalPages = useMemo(
+    () => Math.ceil(totalCount / itemsPerPage),
+    [totalCount, itemsPerPage]
+  );
 
-  const handleQuickSelect = (start: string, end: string) => {
-    onStartDateChange(start);
-    onEndDateChange(end);
-  };
+  const handleQuickSelect = useCallback(
+    (start: string, end: string) => {
+      onStartDateChange(start);
+      onEndDateChange(end);
+    },
+    [onStartDateChange, onEndDateChange]
+  );
+
+  const loadingContent = useMemo(
+    () => (
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-16 bg-gray-200 rounded"></div>
+          ))}
+        </div>
+      </div>
+    ),
+    []
+  );
+
+  const emptyContent = useMemo(
+    () => (
+      <div className="p-6 text-center py-12 text-gray-500">{emptyMessage}</div>
+    ),
+    [emptyMessage]
+  );
+
+  const refreshButtonClassName = useMemo(
+    () =>
+      `px-3 py-1 text-sm rounded-md transition-colors ${refreshButtonColor}`,
+    [refreshButtonColor]
+  );
 
   return (
     <div className="space-y-6">
@@ -76,27 +109,16 @@ export default function AccountDataTable({
 
       <div className="bg-white rounded-lg shadow-sm">
         {loading ? (
-          <div className="p-6">
-            <div className="animate-pulse space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-16 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-          </div>
+          loadingContent
         ) : accounts.length === 0 ? (
-          <div className="p-6 text-center py-12 text-gray-500">
-            {emptyMessage}
-          </div>
+          emptyContent
         ) : (
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
                 {title} ({totalCount.toLocaleString()}件)
               </h3>
-              <button
-                onClick={onRefresh}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${refreshButtonColor}`}
-              >
+              <button onClick={onRefresh} className={refreshButtonClassName}>
                 更新
               </button>
             </div>
@@ -128,4 +150,6 @@ export default function AccountDataTable({
       </div>
     </div>
   );
-}
+});
+
+export default AccountDataTable;

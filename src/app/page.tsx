@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   BarChart3,
   Users,
@@ -19,7 +19,7 @@ import ProgressBar from "@/components/ui/progress-bar";
 import AccountManagement from "@/components/dashboard/account-management";
 import AccountCreationHistory from "@/components/dashboard/account-creation-history";
 
-export default function Home() {
+const Home = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalAccounts: 0,
     activeAccounts: 0,
@@ -36,12 +36,7 @@ export default function Home() {
   });
   const [activityLoading, setActivityLoading] = useState(false);
 
-  useEffect(() => {
-    fetchDashboardData();
-    fetchRecentActivity();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       // TODO: Supabaseからダッシュボードデータを取得
       // 仮のデータを設定
@@ -55,9 +50,9 @@ export default function Home() {
     } catch (error) {
       console.error("ダッシュボードデータの取得に失敗しました:", error);
     }
-  };
+  }, []);
 
-  const fetchRecentActivity = async () => {
+  const fetchRecentActivity = useCallback(async () => {
     try {
       setActivityLoading(true);
       const response = await fetch("/api/recent-activity");
@@ -79,85 +74,115 @@ export default function Home() {
     } finally {
       setActivityLoading(false);
     }
-  };
+  }, []);
 
-  const statCards = [
-    {
-      title: "総アカウント数",
-      value: stats.totalAccounts,
-      icon: Users,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-    },
-    {
-      title: "アクティブアカウント",
-      value: stats.activeAccounts,
-      icon: TrendingUp,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-    },
-    {
-      title: "今日の作成数",
-      value: stats.accountsCreatedToday,
-      icon: Plus,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
-    },
-    {
-      title: "今月の作成数",
-      value: stats.accountsCreatedThisMonth,
-      icon: BarChart3,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-    },
-  ];
+  useEffect(() => {
+    fetchDashboardData();
+    fetchRecentActivity();
+  }, [fetchDashboardData, fetchRecentActivity]);
 
-  const recentActivities = [
-    {
-      action: "新規アカウント作成",
-      count: recentActivity.todayCreated,
-      time: "今日",
-    },
-    {
-      action: "今週のアカウント作成",
-      count: recentActivity.weekCreated,
-      time: "7日間",
-    },
-    {
-      action: "今月のアカウント作成",
-      count: recentActivity.monthCreated,
-      time: "今月",
-    },
-    {
-      action: "総アクティブアカウント",
-      count: recentActivity.activeAccounts,
-      time: "現在",
-    },
-  ];
 
-  const quickLinks = [
-    {
-      href: "/accounts",
-      icon: Users,
-      label: "アカウント一覧を見る",
-      hoverColor: "hover:border-blue-500 hover:bg-blue-50",
-    },
-    {
-      href: "/stats",
-      icon: BarChart3,
-      label: "詳細統計を見る",
-      hoverColor: "hover:border-green-500 hover:bg-green-50",
-    },
-    {
-      href: "/trends",
-      icon: TrendingUp,
-      label: "作成推移を見る",
-      hoverColor: "hover:border-purple-500 hover:bg-purple-50",
-    },
-  ];
+  const statCards = useMemo(
+    () => [
+      {
+        title: "総アカウント数",
+        value: stats.totalAccounts,
+        icon: Users,
+        color: "text-blue-600",
+        bgColor: "bg-blue-50",
+      },
+      {
+        title: "アクティブアカウント",
+        value: stats.activeAccounts,
+        icon: TrendingUp,
+        color: "text-green-600",
+        bgColor: "bg-green-50",
+      },
+      {
+        title: "今日の作成数",
+        value: stats.accountsCreatedToday,
+        icon: Plus,
+        color: "text-purple-600",
+        bgColor: "bg-purple-50",
+      },
+      {
+        title: "今月の作成数",
+        value: stats.accountsCreatedThisMonth,
+        icon: BarChart3,
+        color: "text-orange-600",
+        bgColor: "bg-orange-50",
+      },
+    ],
+    [
+      stats.totalAccounts,
+      stats.activeAccounts,
+      stats.accountsCreatedToday,
+      stats.accountsCreatedThisMonth,
+    ]
+  );
 
-  const activeRate =
-    (recentActivity.activeAccounts / recentActivity.totalAccounts) * 100;
+  const recentActivities = useMemo(
+    () => [
+      {
+        action: "新規アカウント作成",
+        count: recentActivity.todayCreated,
+        time: "今日",
+      },
+      {
+        action: "今週のアカウント作成",
+        count: recentActivity.weekCreated,
+        time: "7日間",
+      },
+      {
+        action: "今月のアカウント作成",
+        count: recentActivity.monthCreated,
+        time: "今月",
+      },
+      {
+        action: "総アクティブアカウント",
+        count: recentActivity.activeAccounts,
+        time: "現在",
+      },
+    ],
+    [
+      recentActivity.todayCreated,
+      recentActivity.weekCreated,
+      recentActivity.monthCreated,
+      recentActivity.activeAccounts,
+    ]
+  );
+
+  const quickLinks = useMemo(
+    () => [
+      {
+        href: "/accounts",
+        icon: Users,
+        label: "アカウント一覧を見る",
+        hoverColor: "hover:border-blue-500 hover:bg-blue-50",
+      },
+      {
+        href: "/stats",
+        icon: BarChart3,
+        label: "詳細統計を見る",
+        hoverColor: "hover:border-green-500 hover:bg-green-50",
+      },
+      {
+        href: "/trends",
+        icon: TrendingUp,
+        label: "作成推移を見る",
+        hoverColor: "hover:border-purple-500 hover:bg-purple-50",
+      },
+    ],
+    []
+  );
+
+  const activeRate = useMemo(
+    () =>
+      recentActivity.totalAccounts > 0
+        ? (recentActivity.activeAccounts / recentActivity.totalAccounts) * 100
+        : 0,
+    [recentActivity.activeAccounts, recentActivity.totalAccounts]
+  );
 
   return (
     <div className="space-y-6">
@@ -234,4 +259,6 @@ export default function Home() {
       <AccountCreationHistory />
     </div>
   );
-}
+};
+
+export default Home;

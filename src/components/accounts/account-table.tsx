@@ -1,3 +1,4 @@
+import React, { memo, useCallback, useState, useEffect, useMemo } from "react";
 import {
   CheckCircle,
   XCircle,
@@ -18,12 +19,11 @@ import {
   Ban,
   type LucideIcon,
 } from "lucide-react";
-import { memo, useCallback, useState, useEffect, useMemo } from "react";
 import { TwitterAccountInfo } from "@/types/database";
 import { getStatusText, getStatusBadgeColor } from "@/utils/status-helpers";
 import { fetchAccountDetails } from "@/app/api/stats/route";
 import { updateAccountStatus } from "@/lib/account-actions";
-import AccountDetailModal02 from "./account-detail-modal-v2";
+import AccountDetailModal from "./account-detail-modal";
 import AccountEditModal from "./account-edit-modal";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { formatDate01, formatDateLocal } from "@/utils/date-helpers";
@@ -77,7 +77,7 @@ const SortableHeader = memo(function SortableHeader({
   sortDirection: string;
   onSort?: (field: string) => void;
 }) {
-  const getSortIcon = () => {
+  const getSortIcon = useCallback(() => {
     if (sortField !== field) {
       return <ChevronsUpDown className="h-4 w-4 text-gray-400" />;
     }
@@ -89,7 +89,7 @@ const SortableHeader = memo(function SortableHeader({
     }
 
     return <ChevronsUpDown className="h-4 w-4 text-gray-400" />;
-  };
+  }, [field, sortField, sortDirection]);
 
   return (
     <th
@@ -147,6 +147,25 @@ const AccountTable = memo(function AccountTable({
       setIsLoading(false);
     }
   }, []);
+
+  const refreshAccountInfo = useCallback(
+    async (twitterId: string | null): Promise<TwitterAccountInfo | null> => {
+      if (!twitterId) return null;
+
+      try {
+        const accountDetails = await fetchAccountDetails(twitterId);
+        if (accountDetails) {
+          setSelectedAccount(accountDetails);
+          return accountDetails;
+        }
+        return null;
+      } catch (error) {
+        console.error("Failed to refresh account details:", error);
+        return null;
+      }
+    },
+    []
+  );
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
@@ -209,33 +228,36 @@ const AccountTable = memo(function AccountTable({
     setDeleteAccount(null);
   }, []);
 
-  const getStatusIcon = useCallback((status: string | null) => {
-    switch (status) {
-      case "active":
-      case "true":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case "suspended":
-      case "suspend":
-      case "email_ban":
-      case "Email_BAN":
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case "pending":
-      case "FarmUp":
-      case "farmup":
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      case "search_ban":
-      case "search_suggestion_ban":
-      case "ghost_ban":
-        return <AlertTriangle className="h-4 w-4 text-orange-500" />;
-      case "not_found":
-        return <EyeOff className="h-4 w-4 text-gray-500" />;
-      case "excluded":
-      case "false":
-        return <Minus className="h-4 w-4 text-gray-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
-    }
-  }, []);
+  const getStatusIcon = useMemo(
+    () => (status: string | null) => {
+      switch (status) {
+        case "active":
+        case "true":
+          return <CheckCircle className="h-4 w-4 text-green-500" />;
+        case "suspended":
+        case "suspend":
+        case "email_ban":
+        case "Email_BAN":
+          return <XCircle className="h-4 w-4 text-red-500" />;
+        case "pending":
+        case "FarmUp":
+        case "farmup":
+          return <Clock className="h-4 w-4 text-yellow-500" />;
+        case "search_ban":
+        case "search_suggestion_ban":
+        case "ghost_ban":
+          return <AlertTriangle className="h-4 w-4 text-orange-500" />;
+        case "not_found":
+          return <EyeOff className="h-4 w-4 text-gray-500" />;
+        case "excluded":
+        case "false":
+          return <Minus className="h-4 w-4 text-gray-500" />;
+        default:
+          return <Clock className="h-4 w-4 text-gray-500" />;
+      }
+    },
+    []
+  );
 
   const isShadeowBanned = useCallback((status: string | null) => {
     return (
@@ -309,15 +331,18 @@ const AccountTable = memo(function AccountTable({
     return status === "suspend" || status === "suspended";
   }, []);
 
-  const formatDate = useCallback((dateString: string) => {
-    return new Date(dateString).toLocaleDateString("ja-JP", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }, []);
+  const formatDate = useMemo(
+    () => (dateString: string) => {
+      return new Date(dateString).toLocaleDateString("ja-JP", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    },
+    []
+  );
 
   // テーブル行コンポーネントをメモ化
   const TableRow = memo(function TableRow({
@@ -342,7 +367,7 @@ const AccountTable = memo(function AccountTable({
     isSuspended: boolean;
   }) {
     return (
-      <tr key={account.id} className="hover:bg-gray-50">
+      <tr className="hover:bg-gray-50">
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
           {account.id}
         </td>
@@ -469,8 +494,11 @@ const AccountTable = memo(function AccountTable({
       {onItemsPerPageChange && (
         <div className="flex items-center justify-between my-4 ml-2 px-2">
           <div className="flex items-center space-x-3">
-            <span className="text-sm text-gray-600">表示件数:</span>
+            <label htmlFor="items-per-page" className="text-sm text-gray-600">
+              表示件数:
+            </label>
             <select
+              id="items-per-page"
               value={itemsPerPage}
               onChange={(e) => onItemsPerPageChange(parseInt(e.target.value))}
               className="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -586,12 +614,12 @@ const AccountTable = memo(function AccountTable({
         </table>
       </div>
 
-      <AccountDetailModal02
+      <AccountDetailModal
         account={selectedAccount}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         onAccountUpdate={onAccountUpdate}
-        onAccountRefresh={fetchAccountDetails}
+        onAccountRefresh={refreshAccountInfo}
       />
 
       <AccountEditModal

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Download, Shield } from "lucide-react";
 import { TwitterAccountInfo } from "@/types/database";
 import AccountTable from "@/components/accounts/account-table";
@@ -26,9 +26,28 @@ interface AccountsResponse {
   };
 }
 
+const DEBOUNCE_DELAY = 500;
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<TwitterAccountInfo[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, DEBOUNCE_DELAY);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "shadowban" | "stopped" | "examination" | "suspended"
   >("all");
@@ -59,12 +78,12 @@ export default function AccountsPage() {
   useEffect(() => {
     fetchAccounts();
     // 初回ロード時とフィルターなしの場合に統計を取得
-    if (currentPage === 1 && !searchTerm && !startDate && !endDate) {
+    if (currentPage === 1 && !debouncedSearchTerm && !startDate && !endDate) {
       fetchAccountStats();
     }
   }, [
     currentPage,
-    searchTerm,
+    debouncedSearchTerm,
     statusFilter,
     startDate,
     endDate,
@@ -73,7 +92,7 @@ export default function AccountsPage() {
     itemsPerPage,
   ]);
 
-  const fetchAccountStats = async () => {
+  const fetchAccountStats = useCallback(async () => {
     try {
       console.log("📊 専用APIでアカウント統計を取得中...");
       const statsResponse = await fetch("/api/account-stats");
@@ -87,15 +106,15 @@ export default function AccountsPage() {
     } catch (error) {
       console.error("💥 アカウント統計取得エラー:", error);
     }
-  };
+  }, []);
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: itemsPerPage.toString(),
-        search: searchTerm,
+        search: debouncedSearchTerm,
         status: statusFilter,
         ...(startDate && { startDate }),
         ...(endDate && { endDate }),
@@ -120,83 +139,98 @@ export default function AccountsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    currentPage,
+    debouncedSearchTerm,
+    statusFilter,
+    startDate,
+    endDate,
+    sortField,
+    sortDirection,
+    itemsPerPage,
+  ]);
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     // TODO: CSVエクスポート機能の実装
     console.log("Exporting accounts...");
-  };
+  }, []);
 
-  const handleSearch = (term: string) => {
+  const handleSearch = useCallback((term: string) => {
     setSearchTerm(term);
     setCurrentPage(1);
-  };
+  }, []);
 
-  const handleStatusFilter = (
-    status:
-      | "all"
-      | "active"
-      | "shadowban"
-      | "stopped"
-      | "examination"
-      | "suspended"
-  ) => {
-    setStatusFilter(status);
-    setCurrentPage(1);
-  };
+  const handleStatusFilter = useCallback(
+    (
+      status:
+        | "all"
+        | "active"
+        | "shadowban"
+        | "stopped"
+        | "examination"
+        | "suspended"
+    ) => {
+      setStatusFilter(status);
+      setCurrentPage(1);
+    },
+    []
+  );
 
-  const handleStartDateChange = (date: string) => {
+  const handleStartDateChange = useCallback((date: string) => {
     setStartDate(date);
     setCurrentPage(1);
-  };
+  }, []);
 
-  const handleEndDateChange = (date: string) => {
+  const handleEndDateChange = useCallback((date: string) => {
     setEndDate(date);
     setCurrentPage(1);
-  };
+  }, []);
 
-  const handleQuickSelect = (start: string, end: string) => {
+  const handleQuickSelect = useCallback((start: string, end: string) => {
     setStartDate(start);
     setEndDate(end);
     setCurrentPage(1);
-  };
+  }, []);
 
-  const handleDateClear = () => {
+  const handleDateClear = useCallback(() => {
     setStartDate("");
     setEndDate("");
     setCurrentPage(1);
-  };
+  }, []);
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
-  };
+  }, []);
 
-  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+  const handleItemsPerPageChange = useCallback((newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1); // ページを1に戻す
-  };
+  }, []);
 
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      // 同じフィールドをクリックした場合：null → asc → desc → null のサイクル
-      if (sortDirection === "") {
-        setSortDirection("asc");
-      } else if (sortDirection === "asc") {
-        setSortDirection("desc");
+  const handleSort = useCallback(
+    (field: string) => {
+      if (sortField === field) {
+        // 同じフィールドをクリックした場合：null → asc → desc → null のサイクル
+        if (sortDirection === "") {
+          setSortDirection("asc");
+        } else if (sortDirection === "asc") {
+          setSortDirection("desc");
+        } else {
+          setSortField("");
+          setSortDirection("");
+        }
       } else {
-        setSortField("");
-        setSortDirection("");
+        // 異なるフィールドをクリックした場合：昇順でソート開始
+        setSortField(field);
+        setSortDirection("asc");
       }
-    } else {
-      // 異なるフィールドをクリックした場合：昇順でソート開始
-      setSortField(field);
-      setSortDirection("asc");
-    }
-    // ソートが変わったら1ページ目に戻る
-    setCurrentPage(1);
-  };
+      // ソートが変わったら1ページ目に戻る
+      setCurrentPage(1);
+    },
+    [sortField, sortDirection]
+  );
 
-  const handleBulkShadowbanCheck = async () => {
+  const handleBulkShadowbanCheck = useCallback(async () => {
     if (isBulkShadowbanCheck) return;
 
     // フィルター条件に合致するアカウントを全て取得（ページネーションなし）
@@ -204,7 +238,7 @@ export default function AccountsPage() {
     try {
       const params = new URLSearchParams({
         limit: "10000", // 大きな値で全件取得
-        search: searchTerm,
+        search: debouncedSearchTerm,
         status: statusFilter,
         ...(startDate && { startDate }),
         ...(endDate && { endDate }),
@@ -223,34 +257,43 @@ export default function AccountsPage() {
 
       setBulkShadowbanProgress({ current: 0, total: validAccounts.length });
 
-      for (let i = 0; i < validAccounts.length; i++) {
-        const account = validAccounts[i];
-        const screenName = account.twitter_id
-          ? account.twitter_id.replace(/^@/, "")
-          : "";
+      // バッチ処理の最適化
+      const batchSize = 5;
+      for (let i = 0; i < validAccounts.length; i += batchSize) {
+        const batch = validAccounts.slice(
+          i,
+          Math.min(i + batchSize, validAccounts.length)
+        );
+        const batchPromises = batch.map(async (account, idx) => {
+          const screenName = account.twitter_id
+            ? account.twitter_id.replace(/^@/, "")
+            : "";
+
+          try {
+            const shadowbanResponse = await fetch(
+              `/api/shadowban?screen_name=${encodeURIComponent(screenName)}`
+            );
+
+            if (shadowbanResponse.ok) {
+              console.log(`シャドバン判定完了: ${screenName}`);
+            } else {
+              console.error(`シャドバン判定失敗: ${screenName}`);
+            }
+          } catch (error) {
+            console.error(`シャドバン判定エラー: ${screenName}`, error);
+          }
+        });
+
+        await Promise.all(batchPromises);
 
         setBulkShadowbanProgress({
-          current: i + 1,
+          current: Math.min(i + batchSize, validAccounts.length),
           total: validAccounts.length,
         });
 
-        try {
-          const shadowbanResponse = await fetch(
-            `/api/shadowban?screen_name=${encodeURIComponent(screenName)}`
-          );
-
-          if (shadowbanResponse.ok) {
-            console.log(`シャドバン判定完了: ${screenName}`);
-          } else {
-            console.error(`シャドバン判定失敗: ${screenName}`);
-          }
-        } catch (error) {
-          console.error(`シャドバン判定エラー: ${screenName}`, error);
-        }
-
-        // API制限対策で少し待機（最後は除く）
-        if (i < validAccounts.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+        // API制限対策で少し待機（最後のバッチは除く）
+        if (i + batchSize < validAccounts.length) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         }
       }
 
@@ -263,8 +306,17 @@ export default function AccountsPage() {
     } finally {
       setIsBulkShadowbanCheck(false);
       setBulkShadowbanProgress({ current: 0, total: 0 });
+      // データを再取得して最新状態を反映
+      fetchAccounts();
     }
-  };
+  }, [
+    isBulkShadowbanCheck,
+    debouncedSearchTerm,
+    statusFilter,
+    startDate,
+    endDate,
+    fetchAccounts,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -329,9 +381,11 @@ export default function AccountsPage() {
                   style={{
                     width: `${
                       bulkShadowbanProgress.total > 0
-                        ? (bulkShadowbanProgress.current /
-                            bulkShadowbanProgress.total) *
-                          100
+                        ? Math.round(
+                            (bulkShadowbanProgress.current /
+                              bulkShadowbanProgress.total) *
+                              100
+                          )
                         : 0
                     }%`,
                   }}

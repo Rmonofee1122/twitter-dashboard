@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import ProxyPageHeader from "@/components/proxy/proxy-page-header";
 import ProxyStatsCards from "@/components/proxy/proxy-stats-cards";
 import ProxyTable from "@/components/proxy/proxy-table";
@@ -15,7 +15,7 @@ interface ProxyResponse {
   totalPages: number;
 }
 
-export default function ProxyPage() {
+const MobileProxyPage = () => {
   const [proxies, setProxies] = useState<ProxyInfo[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalProxies, setTotalProxies] = useState(0);
@@ -25,11 +25,7 @@ export default function ProxyPage() {
   const [sortField, setSortField] = useState("used_count");
   const [sortDirection, setSortDirection] = useState("asc");
 
-  useEffect(() => {
-    fetchProxies();
-  }, [currentPage, itemsPerPage, sortField, sortDirection]);
-
-  const fetchProxies = async () => {
+  const fetchProxies = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -53,26 +49,33 @@ export default function ProxyPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage, sortField, sortDirection]);
 
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
-    }
-    setCurrentPage(1);
-  };
+  useEffect(() => {
+    fetchProxies();
+  }, [fetchProxies]);
 
-  const handlePageChange = (page: number) => {
+  const handleSort = useCallback(
+    (field: string) => {
+      if (sortField === field) {
+        setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      } else {
+        setSortField(field);
+        setSortDirection("asc");
+      }
+      setCurrentPage(1);
+    },
+    [sortField]
+  );
+
+  const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
-  };
+  }, []);
 
-  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+  const handleItemsPerPageChange = useCallback((newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -108,4 +111,6 @@ export default function ProxyPage() {
       />
     </div>
   );
-}
+};
+
+export default MobileProxyPage;

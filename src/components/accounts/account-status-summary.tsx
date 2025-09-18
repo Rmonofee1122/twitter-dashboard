@@ -9,7 +9,7 @@ import {
   LucideIcon,
   Clock3,
 } from "lucide-react";
-import { memo, useMemo } from "react";
+import React, { memo, useMemo } from "react";
 
 interface StatusCounts {
   active: number;
@@ -38,24 +38,19 @@ const AccountStatusSummary = memo(function AccountStatusSummary({
   totalAccounts,
   statusCounts,
 }: AccountStatusSummaryProps) {
-  // デバッグ用ログ
-  console.log("🔍 AccountStatusSummary props:", {
-    totalAccounts,
-    statusCounts,
-  });
 
   const statusItems: StatusItem[] = useMemo(
     () => [
       {
         label: "アクティブ",
-        count: statusCounts.active,
+        count: statusCounts.active || 0,
         icon: CheckCircle,
         color: "text-green-600",
         bgColor: "bg-green-50",
       },
       {
         label: "シャドBAN",
-        count: statusCounts.shadowban,
+        count: statusCounts.shadowban || 0,
         icon: AlertTriangle,
         color: "text-orange-600",
         bgColor: "bg-orange-50",
@@ -69,20 +64,38 @@ const AccountStatusSummary = memo(function AccountStatusSummary({
       },
       {
         label: "審査中",
-        count: statusCounts.examination,
+        count: statusCounts.examination || 0,
         icon: Clock,
         color: "text-yellow-600",
         bgColor: "bg-yellow-50",
       },
       {
         label: "凍結",
-        count: statusCounts.suspended,
+        count: statusCounts.suspended || 0,
         icon: XCircle,
         color: "text-red-600",
         bgColor: "bg-red-50",
       },
     ],
-    [statusCounts]
+    [
+      statusCounts.active,
+      statusCounts.shadowban,
+      statusCounts.stopped,
+      statusCounts.temp_locked,
+      statusCounts.examination,
+      statusCounts.suspended,
+    ]
+  );
+
+  // パーセンテージ計算をメモ化
+  const percentages = useMemo(
+    () =>
+      statusItems.map((item) =>
+        totalAccounts > 0
+          ? ((item.count / totalAccounts) * 100).toFixed(1)
+          : "0"
+      ),
+    [statusItems, totalAccounts]
   );
 
   return (
@@ -103,33 +116,43 @@ const AccountStatusSummary = memo(function AccountStatusSummary({
       {/* ステータス別件数表示 */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {statusItems.map((item, index) => (
-          <div
-            key={index}
-            className={`${item.bgColor} rounded-lg p-4 border border-gray-200`}
-          >
-            <div className="flex items-center space-x-3">
-              <div className={`p-2 rounded-lg bg-white`}>
-                <item.icon className={`h-5 w-5 ${item.color}`} />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  {item.label}
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {item.count?.toLocaleString() || 0}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {totalAccounts > 0
-                    ? `${((item.count / totalAccounts) * 100).toFixed(1)}%`
-                    : "0%"}
-                </p>
-              </div>
-            </div>
-          </div>
+          <StatusCard
+            key={`${item.label}-${item.count}`}
+            item={item}
+            percentage={percentages[index]}
+          />
         ))}
       </div>
     </div>
   );
 });
+
+// 個別のステータスカードコンポーネントをメモ化
+const StatusCard = memo(
+  ({ item, percentage }: { item: StatusItem; percentage: string }) => {
+    const Icon = item.icon;
+
+    return (
+      <div
+        className={`${item.bgColor} rounded-lg p-4 border border-gray-200`}
+      >
+        <div className="flex items-center space-x-3">
+          <div className="p-2 rounded-lg bg-white">
+            <Icon className={`h-5 w-5 ${item.color}`} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-600">{item.label}</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {item.count.toLocaleString()}
+            </p>
+            <p className="text-xs text-gray-500">{percentage}%</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+);
+
+StatusCard.displayName = "StatusCard";
 
 export default AccountStatusSummary;

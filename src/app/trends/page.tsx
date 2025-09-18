@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import TrendStatsCards from "@/components/trends/trend-stats-cards";
 import TrendChart from "@/components/trends/trend-chart";
 import CumulativeChart from "@/components/trends/cumulative-chart";
@@ -21,7 +21,7 @@ interface TrendData {
   hourly: Array<{ hour: string; count: number }>;
 }
 
-export default function TrendsPage() {
+const TrendsPage = () => {
   const [trendData, setTrendData] = useState<TrendData>({
     daily: [],
     weekly: [],
@@ -40,18 +40,8 @@ export default function TrendsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  useEffect(() => {
-    // パフォーマンス指標を取得
-    async function loadPerformanceMetrics() {
-      const metrics = await fetchPerformanceMetrics();
-      setPerformanceMetrics(metrics);
-    }
-
-    loadPerformanceMetrics();
-
-    // TODO: Supabaseからデータを取得
-    // 仮のデータを設定
-    const generateDailyData = () => {
+  // データ生成関数をメモ化
+  const generateDailyData = useCallback(() => {
       const data = [];
       let cumulative = 2200;
       for (let i = 29; i >= 0; i--) {
@@ -66,9 +56,9 @@ export default function TrendsPage() {
         });
       }
       return data;
-    };
+  }, []);
 
-    const generateWeeklyData = () => {
+  const generateWeeklyData = useCallback(() => {
       const data = [];
       for (let i = 11; i >= 0; i--) {
         const date = new Date();
@@ -81,9 +71,9 @@ export default function TrendsPage() {
         });
       }
       return data;
-    };
+  }, []);
 
-    const generateMonthlyData = () => {
+  const generateMonthlyData = useCallback(() => {
       const data = [];
       for (let i = 11; i >= 0; i--) {
         const date = new Date();
@@ -102,9 +92,9 @@ export default function TrendsPage() {
         });
       }
       return data;
-    };
+  }, []);
 
-    const generateHourlyData = () => {
+  const generateHourlyData = useCallback(() => {
       const data = [];
       for (let i = 0; i < 24; i++) {
         data.push({
@@ -113,17 +103,33 @@ export default function TrendsPage() {
         });
       }
       return data;
-    };
+  }, []);
 
+  const loadPerformanceMetrics = useCallback(async () => {
+    const metrics = await fetchPerformanceMetrics();
+    setPerformanceMetrics(metrics);
+  }, []);
+
+  useEffect(() => {
+    loadPerformanceMetrics();
+
+    // TODO: Supabaseからデータを取得
+    // 仮のデータを設定
     setTrendData({
       daily: generateDailyData(),
       weekly: generateWeeklyData(),
       monthly: generateMonthlyData(),
       hourly: generateHourlyData(),
     });
-  }, []);
+  }, [
+    loadPerformanceMetrics,
+    generateDailyData,
+    generateWeeklyData,
+    generateMonthlyData,
+    generateHourlyData,
+  ]);
 
-  const getCurrentStats = () => {
+  const stats = useMemo(() => {
     const dailyData = trendData.daily;
     if (dailyData.length === 0)
       return {
@@ -146,29 +152,34 @@ export default function TrendsPage() {
       .reduce((sum, item) => sum + item.count, 0);
 
     return { today, yesterday, thisWeek, lastWeek, cumulative };
-  };
+  }, [trendData.daily]);
 
-  const stats = getCurrentStats();
-  const dailyAverage = Math.round(stats.thisWeek / 7);
+  const dailyAverage = useMemo(
+    () => (stats.thisWeek > 0 ? Math.round(stats.thisWeek / 7) : 0),
+    [stats.thisWeek]
+  );
 
   // インサイトデータ
-  const insights = {
-    peakHour: "14:00-16:00",
-    growthTrend: "過去30日間で安定した成長を維持",
-    averageEfficiency: dailyAverage,
-  };
+  const insights = useMemo(
+    () => ({
+      peakHour: "14:00-16:00",
+      growthTrend: "過去30日間で安定した成長を維持",
+      averageEfficiency: dailyAverage,
+    }),
+    [dailyAverage]
+  );
 
   // パフォーマンス指標は既にstateで管理
 
-  const handleDateFilterClear = () => {
+  const handleDateFilterClear = useCallback(() => {
     setStartDate("");
     setEndDate("");
-  };
+  }, []);
 
-  const handleQuickSelect = (start: string, end: string) => {
+  const handleQuickSelect = useCallback((start: string, end: string) => {
     setStartDate(start);
     setEndDate(end);
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -221,4 +232,6 @@ export default function TrendsPage() {
       {/* <TrendInsights insights={insights} /> */}
     </div>
   );
-}
+};
+
+export default TrendsPage;

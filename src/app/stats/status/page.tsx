@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo, memo } from "react";
 import StatusStats from "@/components/stats/status/status-stats";
 import StatusTrendChart from "@/components/stats/status/status-trend-chart";
 import DateFilter from "@/components/accounts/date-filter";
@@ -25,7 +25,7 @@ interface StatusStatsData {
   };
 }
 
-export default function StatusStatsPage() {
+const StatusStatsPage = memo(function StatusStatsPage() {
   const [statusData, setStatusData] = useState<StatusStatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [startDate, setStartDate] = useState("");
@@ -38,6 +38,17 @@ export default function StatusStatsPage() {
     "suspended",
   ]);
 
+  // デフォルト日付を事前計算
+  const defaultDates = useMemo(() => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    return {
+      end: today.toISOString().split("T")[0],
+      start: thirtyDaysAgo.toISOString().split("T")[0],
+    };
+  }, []);
+
   const fetchStatusData = useCallback(
     async (start?: string, end?: string, statuses?: string[]) => {
       try {
@@ -49,12 +60,8 @@ export default function StatusStatsPage() {
 
         // 日付が指定されていない場合はデフォルトで過去30日間
         if (!apiStartDate || !apiEndDate) {
-          const today = new Date();
-          const thirtyDaysAgo = new Date();
-          thirtyDaysAgo.setDate(today.getDate() - 30);
-
-          apiEndDate = today.toISOString().split("T")[0];
-          apiStartDate = thirtyDaysAgo.toISOString().split("T")[0];
+          apiEndDate = defaultDates.end;
+          apiStartDate = defaultDates.start;
         }
 
         const statusParams =
@@ -70,7 +77,7 @@ export default function StatusStatsPage() {
         setIsLoading(false);
       }
     },
-    [startDate, endDate, selectedStatuses]
+    [startDate, endDate, selectedStatuses, defaultDates]
   );
 
   useEffect(() => {
@@ -108,6 +115,11 @@ export default function StatusStatsPage() {
     fetchStatusData("", "");
   }, [fetchStatusData]);
 
+  const allStatusesArray = useMemo(
+    () => ["active", "shadowban", "stopped", "examination", "suspended"],
+    []
+  );
+
   const handleStatusChange = useCallback(
     (statuses: string[]) => {
       setSelectedStatuses(statuses);
@@ -117,33 +129,70 @@ export default function StatusStatsPage() {
   );
 
   const handleClearStatusFilter = useCallback(() => {
-    const allStatuses = [
-      "active",
-      "shadowban",
-      "stopped",
-      "examination",
-      "suspended",
-    ];
-    setSelectedStatuses(allStatuses);
-    fetchStatusData(startDate, endDate, allStatuses);
-  }, [startDate, endDate, fetchStatusData]);
+    setSelectedStatuses(allStatusesArray);
+    fetchStatusData(startDate, endDate, allStatusesArray);
+  }, [startDate, endDate, fetchStatusData, allStatusesArray]);
+
+  // ローディング状態をメモ化
+  const loadingContent = useMemo(
+    () => (
+      <div className="p-6">
+        <div className="flex justify-center items-center min-h-[200px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+            <p className="text-gray-600">データを読み込み中...</p>
+          </div>
+        </div>
+      </div>
+    ),
+    []
+  );
+
+  // エラー状態をメモ化
+  const errorContent = useMemo(
+    () => (
+      <div className="p-6">
+        <div className="flex justify-center items-center min-h-[200px]">
+          <div className="text-center">
+            <p className="text-red-600 font-medium">
+              データの取得に失敗しました
+            </p>
+            <button
+              onClick={() => fetchStatusData()}
+              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            >
+              再読み込み
+            </button>
+          </div>
+        </div>
+      </div>
+    ),
+    [fetchStatusData]
+  );
+
+  // チャートデータの変換をメモ化
+  const transformedChartData = useMemo(() => {
+    if (!statusData) return [];
+    return statusData.chartData.map(
+      ({ date, active, shadowban, stopped, examination, suspended }) => ({
+        date,
+        active,
+        suspended,
+        shadowban,
+        stopped,
+        examination,
+        pending: shadowban,
+        excluded: stopped + examination,
+      })
+    );
+  }, [statusData]);
 
   if (isLoading) {
-    return (
-      <div className="p-6">
-        <div className="text-center">データを読み込み中...</div>
-      </div>
-    );
+    return loadingContent;
   }
 
   if (!statusData) {
-    return (
-      <div className="p-6">
-        <div className="text-center text-red-600">
-          データの取得に失敗しました
-        </div>
-      </div>
-    );
+    return errorContent;
   }
 
   return (
@@ -170,23 +219,12 @@ export default function StatusStatsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        <StatusTrendChart
-          chartData={statusData.chartData.map(
-            ({ date, active, shadowban, stopped, examination, suspended }) => ({
-              date,
-              active,
-              suspended,
-              shadowban,
-              stopped,
-              examination,
-              pending: shadowban,
-              excluded: stopped + examination,
-            })
-          )}
-        />
+        <StatusTrendChart chartData={transformedChartData} />
       </div>
 
       <StatusStats totalStats={statusData.totalStats} />
     </div>
   );
-}
+});
+
+export default StatusStatsPage;

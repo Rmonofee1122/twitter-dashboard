@@ -18,14 +18,13 @@ export async function GET(request: Request) {
       startDate = thirtyDaysAgo.toISOString().split("T")[0];
     }
 
-    let query = supabase
-      .from("status_count_per_day02")
+    // status_count_per_day03ビューからデータを取得
+    const { data, error } = await supabase
+      .from("status_count_per_day03")
       .select("*")
       .gte("created_date", startDate)
       .lte("created_date", endDate)
       .order("created_date", { ascending: true });
-
-    const { data, error } = await query;
 
     if (error) {
       console.error("ステータス統計データの取得エラー:", error);
@@ -54,15 +53,11 @@ export async function GET(request: Request) {
 
     const allDates = generateDateRange(startDate, endDate);
 
-    // 日付ごとにグループ化
-    const groupedByDate = statusData.reduce((acc, item) => {
-      const dateKey = item.created_date;
-      if (!acc[dateKey]) {
-        acc[dateKey] = {};
-      }
-      acc[dateKey][item.status] = item.count;
+    // ビューから直接取得したデータを日付でマップ化
+    const dataByDate = statusData.reduce((acc, item) => {
+      acc[item.created_date] = item;
       return acc;
-    }, {} as Record<string, Record<string, number>>);
+    }, {} as Record<string, any>);
 
     // ステータスフィルターの解析
     const selectedStatuses = statusFilter
@@ -71,30 +66,25 @@ export async function GET(request: Request) {
 
     // チャート用データに変換（全日付を含む、データがない日は0）
     const chartData = allDates.map((date) => {
-      const statuses = groupedByDate[date] || {};
+      const dayRecord = dataByDate[date] || {};
       const dayData: any = { date };
 
       if (selectedStatuses.includes("active")) {
-        dayData.active = statuses["active"] || 0;
+        dayData.active = dayRecord.active_count || 0;
       }
       if (selectedStatuses.includes("suspended")) {
-        dayData.suspended =
-          (statuses["suspend"] || 0) +
-          (statuses["suspended"] || 0) +
-          (statuses["not_found"] || 0);
+        dayData.suspended = dayRecord.suspended_count || 0;
       }
-      if (selectedStatuses.includes("stopped")) {
-        dayData.stopped = (statuses["stop"] || 0) + (statuses["stopped"] || 0);
+      if (selectedStatuses.includes("temp_locked")) {
+        // temp_locked_countを「stopped」として扱う
+        dayData.stopped = dayRecord.temp_locked_count || 0;
       }
       if (selectedStatuses.includes("examination")) {
-        dayData.examination =
-          (statuses["false"] || 0) + (statuses["examination"] || 0);
+        // other_countを「examination」として扱う
+        dayData.examination = dayRecord.other_count || 0;
       }
       if (selectedStatuses.includes("shadowban")) {
-        dayData.shadowban =
-          (statuses["search_ban"] || 0) +
-          (statuses["ghost_ban"] || 0) +
-          (statuses["search_suggestion_ban:"] || 0);
+        dayData.shadowban = dayRecord.shadowban_count || 0;
       }
 
       return dayData;
@@ -103,30 +93,12 @@ export async function GET(request: Request) {
     // 全体統計を計算
     const totalStats = statusData.reduce(
       (acc, item) => {
-        const status = item.status;
-        const count = item.count;
-
-        if (status === "active" || status === "true") {
-          acc.active += count;
-        } else if (
-          status === "suspend" ||
-          status === "suspended" ||
-          status === "email_ban" ||
-          status === "Email_BAN"
-        ) {
-          acc.suspended += count;
-        } else if (status === "FarmUp" || status === "farmup") {
-          acc.pending += count;
-        } else if (status === "false" || status === "not_found") {
-          acc.excluded += count;
-        } else if (
-          status === "search_ban" ||
-          status === "search_suggestion_ban" ||
-          status === "ghost_ban"
-        ) {
-          acc.shadowban += count;
-        }
-        acc.total += count;
+        acc.total += item.total_count || 0;
+        acc.active += item.active_count || 0;
+        acc.suspended += item.suspended_count || 0;
+        acc.shadowban += item.shadowban_count || 0;
+        acc.stopped += item.temp_locked_count || 0; // temp_lockedを「stopped」として扱う
+        acc.examination += item.other_count || 0; // otherを「examination」として扱う
         return acc;
       },
       {

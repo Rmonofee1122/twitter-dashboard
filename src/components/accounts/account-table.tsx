@@ -27,6 +27,7 @@ import AccountDetailModal from "./account-detail-modal";
 import AccountEditModal from "./account-edit-modal";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { formatDate01, formatDateLocal } from "@/utils/date-helpers";
+import PaginationHeader from "@/components/ui/pagination-header";
 
 interface AccountTableProps {
   accounts: TwitterAccountInfo[];
@@ -38,6 +39,8 @@ interface AccountTableProps {
   onItemsPerPageChange?: (itemsPerPage: number) => void;
   currentPage?: number;
   totalAccounts?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }
 
 interface ActionButtonProps {
@@ -114,6 +117,8 @@ const AccountTable = memo(function AccountTable({
   onItemsPerPageChange,
   currentPage = 1,
   totalAccounts,
+  totalPages,
+  onPageChange,
 }: AccountTableProps) {
   const [selectedAccount, setSelectedAccount] =
     useState<TwitterAccountInfo | null>(null);
@@ -509,6 +514,13 @@ const AccountTable = memo(function AccountTable({
               <option value={100}>100件</option>
             </select>
           </div>
+          <PaginationHeader
+            currentPage={currentPage}
+            totalPages={totalPages || 0}
+            totalItems={totalAccounts || 0}
+            itemsPerPage={itemsPerPage}
+            onPageChange={onPageChange || (() => {})}
+          />
           <div className="text-sm text-gray-500">
             {totalAccounts
               ? (() => {

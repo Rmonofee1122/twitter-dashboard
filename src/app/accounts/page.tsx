@@ -414,6 +414,8 @@ export default function AccountsPage() {
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
             totalAccounts={totalAccounts}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
           />
         )}
 

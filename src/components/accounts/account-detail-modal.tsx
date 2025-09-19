@@ -191,26 +191,28 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
   // CopyButtonコンポーネントをuseMemoで定義
   const CopyButton = useMemo(
     () =>
-      React.memo(({ value, fieldName }: { value: string; fieldName: string }) => {
-        const isCopied = copiedField === fieldName;
-        const hasValue = value && value !== "未設定";
+      React.memo(
+        ({ value, fieldName }: { value: string; fieldName: string }) => {
+          const isCopied = copiedField === fieldName;
+          const hasValue = value && value !== "未設定";
 
-        if (!hasValue) return null;
+          if (!hasValue) return null;
 
-        return (
-          <button
-            onClick={() => copyToClipboard(value, fieldName)}
-            className="ml-2 p-1 text-gray-400 hover:text-blue-600 bg-white hover:bg-blue-50 rounded border border-gray-200 hover:border-blue-300 transition-colors"
-            title="コピー"
-          >
-            {isCopied ? (
-              <Check className="h-3 w-3 text-green-600" />
-            ) : (
-              <Copy className="h-3 w-3" />
-            )}
-          </button>
-        );
-      }),
+          return (
+            <button
+              onClick={() => copyToClipboard(value, fieldName)}
+              className="ml-2 p-1 text-gray-400 hover:text-blue-600 bg-white hover:bg-blue-50 rounded border border-gray-200 hover:border-blue-300 transition-colors"
+              title="コピー"
+            >
+              {isCopied ? (
+                <Check className="h-3 w-3 text-green-600" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
+            </button>
+          );
+        }
+      ),
     [copiedField, copyToClipboard]
   );
 
@@ -220,10 +222,9 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
   );
 
   // 基本情報セクション
-  const renderBasicInfo = useMemo(
-    () => {
-      if (!currentAccount) return null;
-      return (
+  const renderBasicInfo = useMemo(() => {
+    if (!currentAccount) return null;
+    return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pb-4">
           <div className="bg-blue-50 rounded-md p-3 border border-blue-200">
@@ -401,10 +402,8 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
           </div>
         </div>
       </div>
-      );
-    },
-    [currentAccount, copiedField, copyToClipboard, formatDate, CopyButton]
-  );
+    );
+  }, [currentAccount, copiedField, copyToClipboard, formatDate, CopyButton]);
 
   // 統計情報セクション
   // const renderStatsInfo = () => (
@@ -475,10 +474,9 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
   // );
 
   // モード設定セクション
-  const renderTechnicalInfo = useMemo(
-    () => {
-      if (!currentAccount) return null;
-      return (
+  const renderTechnicalInfo = useMemo(() => {
+    if (!currentAccount) return null;
+    return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
@@ -500,16 +498,13 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
           </div>
         </div>
       </div>
-      );
-    },
-    [selectedStatus, handleStatusChange, currentAccount]
-  );
+    );
+  }, [selectedStatus, handleStatusChange, currentAccount]);
 
   // 認証情報セクション
-  const renderSecurityInfo = useMemo(
-    () => {
-      if (!currentAccount) return null;
-      return (
+  const renderSecurityInfo = useMemo(() => {
+    if (!currentAccount) return null;
+    return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
@@ -574,16 +569,13 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
           </div>
         </div>
       </div>
-      );
-    },
-    [currentAccount, copiedField, copyToClipboard, CopyButton]
-  );
+    );
+  }, [currentAccount, copiedField, copyToClipboard, CopyButton]);
 
   // シャドバン判定セクション
-  const renderShadowbanInfo = useMemo(
-    () => {
-      if (!currentAccount) return null;
-      return (
+  const renderShadowbanInfo = useMemo(() => {
+    if (!currentAccount) return null;
+    return (
       <div className="rounded-lg p-4">
         <div className="space-y-4">
           <button
@@ -596,10 +588,8 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
           </button>
         </div>
       </div>
-      );
-    },
-    [isCheckingShadowban, currentAccount, handleShadowbanCheck]
-  );
+    );
+  }, [isCheckingShadowban, currentAccount, handleShadowbanCheck]);
 
   // シャドバン判定ログセクション
   const renderShadowbanLogs = useMemo(
@@ -650,7 +640,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                 >
                   {/* 日時 */}
                   <div className="font-medium text-gray-700">
-                    {new Date(log.updated_at).toLocaleDateString("ja-JP", {
+                    {new Date(log.log_created_at).toLocaleDateString("ja-JP", {
                       year: "numeric",
                       month: "2-digit",
                       day: "2-digit",

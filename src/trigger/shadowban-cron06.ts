@@ -13,7 +13,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// 5分おき（東京タイムゾーン）で起動する「宣言的スケジュール」
+// 3分おき（東京タイムゾーン）で起動する「宣言的スケジュール」
 // v3の scheduled task / timezone 指定の書式に準拠
 export const shadowbanCron = schedules.task({
   id: "shadowban-every-3m-port-3005",
@@ -25,12 +25,12 @@ export const shadowbanCron = schedules.task({
 
     // 1) queued から5件ロックして running に遷移（RPCは前回案のSQL）
     const { data: jobs, error: lockErr } = await supabase.rpc(
-      "lock_and_take_jobs_older",
+      "lock_and_take_jobs",
       { p_limit: BATCH_SIZE }
     );
 
     if (lockErr) {
-      logger.error("lock_and_take_jobs_older error", { lockErr });
+      logger.error("lock_and_take_jobs error", { lockErr });
       return;
     }
     if (!jobs?.length) {

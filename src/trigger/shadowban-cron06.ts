@@ -25,12 +25,12 @@ export const shadowbanCron = schedules.task({
 
     // 1) queued から5件ロックして running に遷移（RPCは前回案のSQL）
     const { data: jobs, error: lockErr } = await supabase.rpc(
-      "lock_and_take_jobs",
+      "lock_and_take_jobs_older",
       { p_limit: BATCH_SIZE }
     );
 
     if (lockErr) {
-      logger.error("lock_and_take_jobs error", { lockErr });
+      logger.error("lock_and_take_jobs_older error", { lockErr });
       return;
     }
     if (!jobs?.length) {

@@ -1,5 +1,11 @@
 import { defineConfig } from "@trigger.dev/sdk/v3";
 
+// MaxListenersの警告を防ぐための設定
+if (typeof process !== 'undefined' && process.setMaxListeners) {
+  // Trigger.devは複数のイベントリスナーを使用するため、上限を増やす
+  process.setMaxListeners(20);
+}
+
 export default defineConfig({
   project: "proj_pmijdaguedlbxwujarop",
   runtime: "node",

@@ -3,7 +3,10 @@ import { schedules, logger } from "@trigger.dev/sdk";
 import { createClient } from "@supabase/supabase-js";
 
 // Trigger.dev 上のタスク実行環境に渡す環境変数（ダッシュボードの Env Vars に設定）
-const SHADOWBAN_API_BASE = process.env.SHADOWBAN_API_BASE!; // 例: https://your-worker.example.com
+const API_BASE_URL =
+  process.env.API_BASE_URL ||
+  process.env.SHADOWBAN_API_BASE ||
+  "https://your-app.vercel.app"; // 本番環境のURL
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,12 +16,12 @@ const supabase = createClient(
 // 5分おき（東京タイムゾーン）で起動する「宣言的スケジュール」
 // v3の scheduled task / timezone 指定の書式に準拠
 export const shadowbanCron = schedules.task({
-  id: "shadowban-every-5m",
-  cron: { pattern: "*/3 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで5分おき
+  id: "shadowban-every-3m-port-3004",
+  cron: { pattern: "*/3 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで3分おき
   // 同時二重起動を避けたいなら queue を1に
   queue: { concurrencyLimit: 1 },
   run: async (_payload) => {
-    const BATCH_SIZE = 30;
+    const BATCH_SIZE = 40;
 
     // 1) queued から5件ロックして running に遷移（RPCは前回案のSQL）
     const { data: jobs, error: lockErr } = await supabase.rpc(
@@ -41,8 +44,9 @@ export const shadowbanCron = schedules.task({
     // 2) 小並列で順次処理（外部APIはバックオフ付きで）
     for (const job of jobs) {
       try {
+        // 直接外部shadowban APIを呼び出し（自分のAPIを経由しない）
         const data = await fetchWithBackoff(
-          `http://localhost:3003/api/test?screen_name=${encodeURIComponent(
+          `http://localhost:3004/api/test?screen_name=${encodeURIComponent(
             job.screen_name
           )}`,
           { headers: { accept: "application/json" } },

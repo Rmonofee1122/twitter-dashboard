@@ -14,7 +14,7 @@ export default function BannedAccountsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(100);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<string>("");
 

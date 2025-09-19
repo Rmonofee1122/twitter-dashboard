@@ -16,12 +16,12 @@ const supabase = createClient(
 // 5分おき（東京タイムゾーン）で起動する「宣言的スケジュール」
 // v3の scheduled task / timezone 指定の書式に準拠
 export const shadowbanCron = schedules.task({
-  id: "shadowban-every-3m-port-3002",
+  id: "shadowban-every-3m-port-3005",
   cron: { pattern: "*/3 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで3分おき
   // 同時二重起動を避けたいなら queue を1に
   queue: { concurrencyLimit: 1 },
   run: async (_payload) => {
-    const BATCH_SIZE = 30;
+    const BATCH_SIZE = 40;
 
     // 1) queued から5件ロックして running に遷移（RPCは前回案のSQL）
     const { data: jobs, error: lockErr } = await supabase.rpc(
@@ -46,7 +46,7 @@ export const shadowbanCron = schedules.task({
       try {
         // 直接外部shadowban APIを呼び出し（自分のAPIを経由しない）
         const data = await fetchWithBackoff(
-          `http://localhost:3002/api/test?screen_name=${encodeURIComponent(
+          `http://localhost:3005/api/test?screen_name=${encodeURIComponent(
             job.screen_name
           )}`,
           { headers: { accept: "application/json" } },

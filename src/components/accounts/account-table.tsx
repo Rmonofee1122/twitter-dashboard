@@ -110,7 +110,7 @@ const AccountTable = memo(function AccountTable({
   sortField = "",
   sortDirection = "",
   onSort,
-  itemsPerPage = 10,
+  itemsPerPage = 100,
   onItemsPerPageChange,
   currentPage = 1,
   totalAccounts,

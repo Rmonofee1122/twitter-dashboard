@@ -66,7 +66,7 @@ export default function AccountsPage() {
     notShadowban: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(100);
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<string>("");
   const [isBulkShadowbanCheck, setIsBulkShadowbanCheck] = useState(false);

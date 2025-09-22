@@ -640,7 +640,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                 >
                   {/* 日時 */}
                   <div className="font-medium text-gray-700">
-                    {new Date(log.log_created_at).toLocaleDateString("ja-JP", {
+                    {new Date(log.updated_at).toLocaleDateString("ja-JP", {
                       year: "numeric",
                       month: "2-digit",
                       day: "2-digit",

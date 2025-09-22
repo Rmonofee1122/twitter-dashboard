@@ -71,6 +71,7 @@ async function saveShadowbanDataToSupabase(
       reply_deboosting: shadowbanData.reply_deboosting === true || false,
       created_at:
         shadowbanData.user?.legacy?.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     if (accountData.not_found === true) {

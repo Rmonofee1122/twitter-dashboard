@@ -5,6 +5,7 @@ import { memo, useCallback, useState } from "react";
 import ShadowbanLogDetailModal from "./shadowban-log-detail-modal";
 import { TwitterAccountInfo } from "@/types/database";
 import { fetchAccountDetails } from "@/app/api/stats/route";
+import PaginationHeader from "@/components/ui/pagination-header";
 
 export interface ShadowbanLogEntry {
   log_id: number;
@@ -37,6 +38,8 @@ interface ShadowbanLogTableProps {
   onItemsPerPageChange?: (itemsPerPage: number) => void;
   currentPage?: number;
   totalLogs?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }
 
 interface ActionButtonProps {
@@ -72,8 +75,11 @@ const ShadowbanLogTable = memo(function ShadowbanLogTable({
   onItemsPerPageChange,
   currentPage = 1,
   totalLogs,
+  totalPages,
+  onPageChange,
 }: ShadowbanLogTableProps) {
-  const [selectedAccount, setSelectedAccount] = useState<TwitterAccountInfo | null>(null);
+  const [selectedAccount, setSelectedAccount] =
+    useState<TwitterAccountInfo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoadingAccount, setIsLoadingAccount] = useState(false);
   const formatDate = useCallback((dateString: string) => {
@@ -178,6 +184,13 @@ const ShadowbanLogTable = memo(function ShadowbanLogTable({
               <option value={100}>100件</option>
             </select>
           </div>
+          <PaginationHeader
+            currentPage={currentPage}
+            totalPages={totalPages || 0}
+            totalItems={totalLogs || 0}
+            itemsPerPage={itemsPerPage}
+            onPageChange={onPageChange || (() => {})}
+          />
           <div className="text-sm text-gray-500">
             {totalLogs
               ? (() => {

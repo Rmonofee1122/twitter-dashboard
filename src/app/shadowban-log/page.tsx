@@ -10,7 +10,7 @@ import { useShadowbanLogs } from "@/hooks/use-shadowban-logs";
 
 export default function ShadowbanLogPage() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [itemsPerPage, setItemsPerPage] = useState(100);
 
   // フィルター状態
   const [searchTerm, setSearchTerm] = useState("");
@@ -101,6 +101,8 @@ export default function ShadowbanLogPage() {
         onItemsPerPageChange={handleItemsPerPageChange}
         currentPage={currentPage}
         totalLogs={totalLogs}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
       />
 
       {!loading && !error && totalPages > 1 && (

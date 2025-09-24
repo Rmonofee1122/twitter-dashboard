@@ -14,13 +14,13 @@ const supabase = createClient(
 // v3の scheduled task / timezone 指定の書式に準拠
 export const shadowbanCron = schedules.task({
   id: "shadowban-every-3m-port-3000",
-  cron: { pattern: "*/3 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで5分おき
+  cron: { pattern: "*/3 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで3分おき
   // 同時二重起動を避けたいなら queue を1に
   queue: { concurrencyLimit: 1 },
   run: async (_payload) => {
-    const BATCH_SIZE = 40;
+    const BATCH_SIZE = 30;
 
-    // 1) queued から40件ロックして running に遷移（RPCは前回案のSQL）
+    // 1) queued から30件ロックして running に遷移（RPCは前回案のSQL）
     const { data: jobs, error: lockErr } = await supabase.rpc(
       "lock_and_take_jobs",
       { p_limit: BATCH_SIZE }
@@ -83,9 +83,13 @@ async function fetchWithBackoff(
   url: string,
   init: RequestInit = {},
   {
-    retries = 5,
+    // リトライ回数
+    retries = 3,
+    // 初期遅延
     baseMs = 300,
+    // 最大遅延
     maxMs = 10_000,
+    // 1回あたりのタイムアウト
     perTryTimeoutMs = 10_000,
     totalDeadlineMs = 25_000,
   } = {}

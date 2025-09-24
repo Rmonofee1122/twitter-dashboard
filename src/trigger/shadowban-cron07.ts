@@ -21,7 +21,7 @@ export const shadowbanCron = schedules.task({
   // 同時二重起動を避けたいなら queue を1に
   queue: { concurrencyLimit: 1 },
   run: async (_payload) => {
-    const BATCH_SIZE = 40;
+    const BATCH_SIZE = 30;
 
     // 1) queued から5件ロックして running に遷移（RPCは前回案のSQL）
     const { data: jobs, error: lockErr } = await supabase.rpc(
@@ -87,9 +87,13 @@ async function fetchWithBackoff(
   url: string,
   init: RequestInit = {},
   {
-    retries = 5,
+    // リトライ回数
+    retries = 3,
+    // 初期遅延
     baseMs = 300,
+    // 最大遅延
     maxMs = 10_000,
+    // 1回あたりのタイムアウト
     perTryTimeoutMs = 10_000,
     totalDeadlineMs = 25_000,
   } = {}

@@ -378,10 +378,10 @@ export default function ShadowbanLogDetailModal({
           </label>
           <div className="flex items-center bg-gray-50 rounded-md border p-2">
             <p className="text-sm text-gray-800 flex-1 font-mono">
-              {formatDate(currentAccount.created_at)}
+              {formatDate(currentAccount.log_created_at)}
             </p>
             <CopyButton
-              value={formatDate(currentAccount.created_at)}
+              value={formatDate(currentAccount.log_created_at)}
               fieldName="created_at"
             />
           </div>

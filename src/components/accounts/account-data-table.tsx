@@ -27,6 +27,7 @@ interface AccountDataTableProps {
   sortDirection?: string;
   onSort?: (field: string) => void;
   onItemsPerPageChange?: (itemsPerPage: number) => void;
+  totalPages?: number;
 }
 
 const AccountDataTable = React.memo(function AccountDataTable({
@@ -131,6 +132,8 @@ const AccountDataTable = React.memo(function AccountDataTable({
               onItemsPerPageChange={onItemsPerPageChange}
               currentPage={currentPage}
               totalAccounts={totalCount}
+              totalPages={totalPages}
+              onPageChange={onPageChange}
             />
 
             {/* ページネーション */}

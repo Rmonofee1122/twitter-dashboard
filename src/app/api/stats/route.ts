@@ -848,7 +848,8 @@ export async function fetchFilteredDomainRanking(
       .from("domain_per_day_view02")
       .select(
         "created_date, domain, active_count, suspended_count, temp_locked_count, shadowban_count, total_count"
-      );
+      )
+      .order("created_date", { ascending: false });
 
     console.log(startDate, endDate);
 
@@ -883,6 +884,7 @@ export async function fetchFilteredDomainRanking(
       }
     >();
 
+    // 該当のドメインの開始日から終了日までのデータを集計
     data.forEach((item) => {
       const existing = domainMap.get(item.domain) || {
         active_count: 0,

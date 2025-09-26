@@ -84,6 +84,7 @@ export default function TweetFetcher({ onFetchComplete }: TweetFetcherProps) {
         tweet_id: tweet.id,
         tweet_created_at: new Date(tweet.created_at).toISOString(),
         tweet_text: tweet.text,
+        tweet_link: `https://x.com/${data.user.screen_name}/status/${tweet.id}`, // ツイートリンクを追加
         favorite_count: tweet.favorite_count,
         retweet_count: tweet.retweet_count,
         reply_count: tweet.reply_count,

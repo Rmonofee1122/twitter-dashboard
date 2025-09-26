@@ -15,6 +15,7 @@ export interface TweetLogEntry {
   tweet_id: string;
   tweet_created_at: string;
   tweet_text: string;
+  tweet_link?: string;
   favorite_count: number;
   retweet_count: number;
   reply_count: number;
@@ -241,8 +242,20 @@ const TweetLogTable = memo(function TweetLogTable({
                     {log.twitter_id}
                   </a>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {log.tweet_text}
+                <td className="px-6 py-4 text-sm text-gray-900">
+                  <div className="max-w-md">
+                    <p className="truncate">{log.tweet_text}</p>
+                    {(log.tweet_link || `https://x.com/${log.screen_name}/status/${log.tweet_id}`) && (
+                      <a
+                        href={log.tweet_link || `https://x.com/${log.screen_name}/status/${log.tweet_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 text-xs mt-1 inline-block"
+                      >
+                        ツイートを見る →
+                      </a>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {log.favorite_count}

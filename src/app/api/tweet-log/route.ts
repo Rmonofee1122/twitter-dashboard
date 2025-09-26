@@ -46,31 +46,6 @@ export async function GET(request: Request) {
       );
     }
 
-    // ステータスフィルター
-    if (statusFilter !== "all") {
-      switch (statusFilter) {
-        case "normal":
-          query = query
-            .is("suspend", false)
-            .is("search_ban", false)
-            .is("search_suggestion_ban", false)
-            .is("ghost_ban", false)
-            .is("not_found", false);
-          break;
-        case "shadowban":
-          query = query.or(
-            "search_ban.eq.true,search_suggestion_ban.eq.true,ghost_ban.eq.true"
-          );
-          break;
-        case "suspended":
-          query = query.or("suspend.eq.true,status.eq.suspended");
-          break;
-        case "not_found":
-          query = query.eq("not_found", true);
-          break;
-      }
-    }
-
     // 日付フィルター
     if (startDate) {
       query = query.gte("tweet_created_at", startDate);

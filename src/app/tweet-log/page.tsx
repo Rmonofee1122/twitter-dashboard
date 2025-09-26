@@ -2,8 +2,8 @@
 
 import { useState, useCallback } from "react";
 import TweetLogHeader from "@/components/tweet-log/tweet-log-header";
-import ShadowbanLogFilters from "@/components/shadowban/shadowban-log-filters";
-import ShadowbanLogDateFilters from "@/components/shadowban/shadowban-log-date-filters";
+import TweetLogFilters from "@/components/tweet-log/tweet-log-filters";
+import TweetLogDateFilters from "@/components/tweet-log/tweet-log-date-filters";
 import TweetLogTable from "@/components/tweet-log/tweet-log-table";
 import Pagination from "@/components/ui/pagination";
 import { useTweetLogs } from "@/hooks/use-tweet-logs";
@@ -75,7 +75,7 @@ export default function ShadowbanLogPage() {
     <div className="space-y-6">
       <TweetLogHeader onRefresh={refetch} loading={loading} />
 
-      <ShadowbanLogDateFilters
+      <TweetLogDateFilters
         startDate={startDate}
         endDate={endDate}
         onStartDateChange={handleStartDateChange}
@@ -85,11 +85,9 @@ export default function ShadowbanLogPage() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-        <ShadowbanLogFilters
+        <TweetLogFilters
           searchTerm={searchTerm}
-          statusFilter={statusFilter}
           onSearchChange={handleSearch}
-          onStatusFilterChange={handleStatusFilter}
         />
       </div>
 

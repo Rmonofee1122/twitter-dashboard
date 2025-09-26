@@ -32,6 +32,7 @@ import {
   Clock3,
   Network,
   Smartphone,
+  MessageCircle,
 } from "lucide-react";
 
 const navigation = [
@@ -108,7 +109,7 @@ const navigation = [
   },
   // { name: "アカウント一覧v2", href: "/accounts-v2", icon: Users },
   { name: "シャドBAN履歴", href: "/shadowban-log", icon: FileText },
-  { name: "ツイート履歴", href: "/tweet-log", icon: FileText },
+  { name: "ツイート履歴", href: "/tweet-log", icon: MessageCircle },
   {
     name: "プロキシ管理",
     href: "/proxy/dc",

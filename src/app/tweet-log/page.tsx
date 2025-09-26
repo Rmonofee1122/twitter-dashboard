@@ -5,6 +5,7 @@ import TweetLogHeader from "@/components/tweet-log/tweet-log-header";
 import TweetLogFilters from "@/components/tweet-log/tweet-log-filters";
 import TweetLogDateFilters from "@/components/tweet-log/tweet-log-date-filters";
 import TweetLogTable from "@/components/tweet-log/tweet-log-table";
+import TweetFetcher from "@/components/tweet-log/tweet-fetcher";
 import Pagination from "@/components/ui/pagination";
 import { useTweetLogs } from "@/hooks/use-tweet-logs";
 
@@ -74,6 +75,8 @@ export default function ShadowbanLogPage() {
   return (
     <div className="space-y-6">
       <TweetLogHeader onRefresh={refetch} loading={loading} />
+
+      <TweetFetcher />
 
       <TweetLogDateFilters
         startDate={startDate}

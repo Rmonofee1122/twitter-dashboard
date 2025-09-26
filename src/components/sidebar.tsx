@@ -31,7 +31,7 @@ import {
   CircleX,
   Clock3,
   Network,
-  Smartphone
+  Smartphone,
 } from "lucide-react";
 
 const navigation = [
@@ -97,16 +97,27 @@ const navigation = [
     ],
   },
   // { name: '画像一覧', href: '/images', icon: Image },
-  { name: "画像", href: "/images-r2", icon: Image, submenu: [
-    { name: "画像一覧", href: "/images-r2", icon: Image },
-    { name: "プロンプト一覧", href: "/images-r2/prompt", icon: FileText },
-  ] },
+  {
+    name: "画像",
+    href: "/images-r2",
+    icon: Image,
+    submenu: [
+      { name: "画像一覧", href: "/images-r2", icon: Image },
+      { name: "プロンプト一覧", href: "/images-r2/prompt", icon: FileText },
+    ],
+  },
   // { name: "アカウント一覧v2", href: "/accounts-v2", icon: Users },
   { name: "シャドBAN履歴", href: "/shadowban-log", icon: FileText },
-  { name: "プロキシ管理", href: "/proxy/dc", icon: Network, submenu: [
-    { name: "データセンター", href: "/proxy/dc", icon: Globe },
-    { name: "モバイル", href: "/proxy/mobile", icon: Smartphone },
-  ], },
+  { name: "ツイート履歴", href: "/tweet-log", icon: FileText },
+  {
+    name: "プロキシ管理",
+    href: "/proxy/dc",
+    icon: Network,
+    submenu: [
+      { name: "データセンター", href: "/proxy/dc", icon: Globe },
+      { name: "モバイル", href: "/proxy/mobile", icon: Smartphone },
+    ],
+  },
   { name: "設定", href: "/settings", icon: Settings },
 ];
 

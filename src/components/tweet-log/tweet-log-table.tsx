@@ -241,16 +241,24 @@ const TweetLogTable = memo(function TweetLogTable({
                     {log.twitter_id}
                   </a>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {log.tweet_text}
                 </td>
-                <td className="px-6 py-4">{log.favorite_count}</td>
-                <td className="px-6 py-4">{log.retweet_count}</td>
-                {/* <td className="px-6 py-4">{log.reply_count}</td> */}
-                {/* <td className="px-6 py-4">{log.quote_count}</td> */}
-                <td className="px-6 py-4">{log.view_count}</td>
-                <td className="px-6 py-4">{formatDate(log.updated_at)}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {log.favorite_count}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {log.retweet_count}
+                </td>
+                {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{log.reply_count}</td> */}
+                {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{log.quote_count}</td> */}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {log.view_count}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {formatDate(log.updated_at)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <div className="flex items-center space-x-1">
                     <ActionButton
                       icon={Eye}

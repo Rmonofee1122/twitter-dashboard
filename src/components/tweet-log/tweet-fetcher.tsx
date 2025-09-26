@@ -30,7 +30,11 @@ interface TweetResponse {
   };
 }
 
-export default function TweetFetcher() {
+interface TweetFetcherProps {
+  onFetchComplete?: () => void;
+}
+
+export default function TweetFetcher({ onFetchComplete }: TweetFetcherProps) {
   const [screenName, setScreenName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,16 +57,16 @@ export default function TweetFetcher() {
       const response = await fetch(
         `/api/fetch-tweets?screen_name=${screenName}&count=20`,
         {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }
       );
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('API Response Error:', errorText);
+        console.error("API Response Error:", errorText);
         throw new Error(`APIエラー: ${response.status} - ${errorText}`);
       }
 
@@ -93,6 +97,10 @@ export default function TweetFetcher() {
         media_type: tweet.media && tweet.media.length > 0 ? "image" : null,
         media_url:
           tweet.media && tweet.media.length > 0 ? tweet.media[0] : null,
+        // 標準時刻 + 9時間で更新
+        updated_at: new Date(
+          new Date().getTime() + 9 * 60 * 60 * 1000
+        ).toISOString(),
       }));
 
       // Supabaseに一括保存
@@ -113,10 +121,19 @@ export default function TweetFetcher() {
       setFetchedCount(data.tweets.length);
       setSuccess(true);
       setScreenName("");
+
+      // データ取得完了後にコールバックを実行（テーブルを再読み込み）
+      if (onFetchComplete) {
+        setTimeout(() => {
+          onFetchComplete();
+        }, 500); // 少し遅延を入れてDBへの保存を確実にする
+      }
     } catch (err) {
       console.error("Error fetching tweets:", err);
-      if (err instanceof TypeError && err.message === 'Failed to fetch') {
-        setError("APIサーバーに接続できませんでした。CORSエラーの可能性があります。APIサーバーが起動していることを確認してください。");
+      if (err instanceof TypeError && err.message === "Failed to fetch") {
+        setError(
+          "APIサーバーに接続できませんでした。CORSエラーの可能性があります。APIサーバーが起動していることを確認してください。"
+        );
       } else {
         setError(
           err instanceof Error

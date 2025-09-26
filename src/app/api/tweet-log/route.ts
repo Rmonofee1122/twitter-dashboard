@@ -15,8 +15,10 @@ export async function GET(request: Request) {
     const to = from + limit - 1;
 
     // 必要な列のみを取得してパフォーマンス向上
-    let query = supabase.from("twitter_tweet_log").select(
-      `
+    let query = supabase
+      .from("twitter_tweet_log")
+      .select(
+        `
         id,
         twitter_id,
         name,
@@ -36,8 +38,9 @@ export async function GET(request: Request) {
         created_at,
         updated_at
       `,
-      { count: "exact" }
-    );
+        { count: "exact" }
+      )
+      .order("id", { ascending: false });
 
     // 検索フィルター
     if (search) {

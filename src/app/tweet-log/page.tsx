@@ -76,7 +76,7 @@ export default function ShadowbanLogPage() {
     <div className="space-y-6">
       <TweetLogHeader onRefresh={refetch} loading={loading} />
 
-      <TweetFetcher />
+      <TweetFetcher onFetchComplete={refetch} />
 
       <TweetLogDateFilters
         startDate={startDate}

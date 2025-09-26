@@ -205,14 +205,17 @@ const TweetLogTable = memo(function TweetLogTable({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 リツイート数
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 リプライ数
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 引用数
-              </th>
+              </th> */}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 閲覧数
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                更新日時
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 操作
@@ -243,9 +246,10 @@ const TweetLogTable = memo(function TweetLogTable({
                 </td>
                 <td className="px-6 py-4">{log.favorite_count}</td>
                 <td className="px-6 py-4">{log.retweet_count}</td>
-                <td className="px-6 py-4">{log.reply_count}</td>
-                <td className="px-6 py-4">{log.quote_count}</td>
+                {/* <td className="px-6 py-4">{log.reply_count}</td> */}
+                {/* <td className="px-6 py-4">{log.quote_count}</td> */}
                 <td className="px-6 py-4">{log.view_count}</td>
+                <td className="px-6 py-4">{formatDate(log.updated_at)}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-1">
                     <ActionButton

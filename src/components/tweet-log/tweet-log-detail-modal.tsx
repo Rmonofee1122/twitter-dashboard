@@ -9,8 +9,13 @@ import {
   Settings,
   Lock,
   Search,
+  MessageSquare,
+  Heart,
+  Repeat,
+  Image,
+  Calendar,
 } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { TwitterAccountInfo } from "@/types/database";
 import {
@@ -21,6 +26,22 @@ import {
 import { updateAccountStatus } from "@/lib/account-actions";
 import { fetchAccountDetails } from "@/app/api/stats/route";
 
+// ツイートログの型定義
+interface TweetLog {
+  id: number;
+  tweet_id: string;
+  tweet_text: string | null;
+  favorite_count: number | null;
+  retweet_count: number | null;
+  media_type: string | null;
+  media_url: string | null;
+  media_view_count: number | null;
+  media_duration_millis: number | null;
+  media_height: number | null;
+  media_width: number | null;
+  tweet_created_at: string | null;
+  created_at: string;
+}
 interface ShadowbanLogDetailModalProps {
   account: TwitterAccountInfo | null;
   isOpen: boolean;
@@ -44,6 +65,8 @@ export default function ShadowbanLogDetailModal({
   const [showShadowbanResult, setShowShadowbanResult] = useState(false);
   const [shadowbanLogs, setShadowbanLogs] = useState<any[]>([]);
   const [isLoadingShadowbanLogs, setIsLoadingShadowbanLogs] = useState(false);
+  const [tweetLogs, setTweetLogs] = useState<TweetLog[]>([]);
+  const [isLoadingTweetLogs, setIsLoadingTweetLogs] = useState(false);
   const [currentAccount, setCurrentAccount] =
     useState<TwitterAccountInfo | null>(account);
   // アカウントが変更されたときにステータスを初期化
@@ -155,6 +178,32 @@ export default function ShadowbanLogDetailModal({
     }
   }, [account?.twitter_id]);
 
+  // ツイートログを取得する関数
+  const fetchTweetLogs = useCallback(async () => {
+    if (!account?.twitter_id) return;
+
+    setIsLoadingTweetLogs(true);
+    try {
+      const response = await fetch(
+        `/api/tweet-logs?twitter_id=${encodeURIComponent(
+          account.twitter_id
+        )}&limit=20`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      setTweetLogs(result.logs || []);
+    } catch (error) {
+      console.error("ツイートログ取得エラー:", error);
+      setTweetLogs([]);
+    } finally {
+      setIsLoadingTweetLogs(false);
+    }
+  }, [account?.twitter_id]);
+
   // モーダルが開かれた時にログを取得
   useEffect(() => {
     if (isOpen && account?.twitter_id) {
@@ -162,6 +211,120 @@ export default function ShadowbanLogDetailModal({
     }
   }, [isOpen, account?.twitter_id, fetchShadowbanLogs]);
 
+  // ツイート履歴セクション (useMemoを早い段階で定義)
+  const renderTweetLogs = useMemo(
+    () => (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-sm font-semibold text-gray-800">ツイート履歴</h4>
+          <button
+            onClick={fetchTweetLogs}
+            disabled={isLoadingTweetLogs}
+            className="flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            <MessageSquare className="h-3 w-3 mr-1" />
+            {isLoadingTweetLogs ? "読み込み中..." : "更新"}
+          </button>
+        </div>
+
+        {isLoadingTweetLogs ? (
+          <div className="text-center py-4">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mx-auto"></div>
+            <p className="text-xs text-gray-500 mt-1">
+              ツイートを読み込み中...
+            </p>
+          </div>
+        ) : tweetLogs.length === 0 ? (
+          <div className="text-center py-4">
+            <p className="text-xs text-gray-500">ツイート履歴がありません</p>
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {tweetLogs.map((log) => (
+              <div
+                key={log.id}
+                className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors"
+              >
+                {/* ツイートヘッダー */}
+                <div className="flex justify-between items-start mb-2">
+                  <a
+                    href={`https://x.com/${currentAccount?.twitter_id?.replace(
+                      /^@/,
+                      ""
+                    )}/status/${log.tweet_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-500 hover:underline font-mono"
+                  >
+                    ID: {log.tweet_id}
+                  </a>
+                  <div className="flex items-center text-xs text-gray-500">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    {log.tweet_created_at
+                      ? new Date(log.tweet_created_at).toLocaleDateString(
+                          "ja-JP",
+                          {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )
+                      : "日時不明"}
+                  </div>
+                </div>
+
+                {/* ツイート本文 */}
+                {log.tweet_text && (
+                  <p className="text-sm text-gray-700 mb-2 whitespace-pre-wrap break-words">
+                    {log.tweet_text}
+                  </p>
+                )}
+
+                {/* メディア情報 */}
+                {log.media_type && (
+                  <div className="flex items-center mb-2 text-xs text-gray-600">
+                    <Image className="h-3 w-3 mr-1" />
+                    <span className="mr-2">{log.media_type}</span>
+                    {log.media_view_count && (
+                      <span className="mr-2">
+                        視聴: {log.media_view_count.toLocaleString()}
+                      </span>
+                    )}
+                    {log.media_width && log.media_height && (
+                      <span>
+                        {log.media_width}x{log.media_height}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* エンゲージメント指標 */}
+                <div className="flex items-center space-x-4 text-xs text-gray-600">
+                  {log.favorite_count !== null && (
+                    <div className="flex items-center">
+                      <Heart className="h-3 w-3 mr-1 text-red-500" />
+                      <span>{log.favorite_count.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {log.retweet_count !== null && (
+                    <div className="flex items-center">
+                      <Repeat className="h-3 w-3 mr-1 text-green-500" />
+                      <span>{log.retweet_count.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    ),
+    [tweetLogs, isLoadingTweetLogs, fetchTweetLogs, currentAccount]
+  );
+
+  // 条件付きreturnは全てのフックの後に配置
   if (!isOpen || !currentAccount) return null;
 
   const copyToClipboard = async (text: string, fieldName: string) => {

@@ -76,7 +76,9 @@ export default function ShadowbanLogDetailModal({
   const [isLoadingShadowbanLogs, setIsLoadingShadowbanLogs] = useState(false);
   const [tweetLogs, setTweetLogs] = useState<TweetLogEntry[]>(initialTweetLogs);
   const [isLoadingTweetLogs, setIsLoadingTweetLogs] = useState(false);
-  const [activeTab, setActiveTab] = useState<"account" | "tweets" | "shadowban">("account");
+  const [activeTab, setActiveTab] = useState<
+    "account" | "tweets" | "shadowban"
+  >("account");
   const [currentAccount, setCurrentAccount] =
     useState<TwitterAccountInfo | null>(account);
   // アカウントが変更されたときにステータスを初期化
@@ -227,116 +229,118 @@ export default function ShadowbanLogDetailModal({
 
   // ツイート履歴タブが選択された時にデータを取得（初期データがない場合のみ）
   useEffect(() => {
-    if (activeTab === "tweets" && account?.twitter_id && tweetLogs.length === 0 && initialTweetLogs.length === 0) {
+    if (
+      activeTab === "tweets" &&
+      account?.twitter_id &&
+      tweetLogs.length === 0 &&
+      initialTweetLogs.length === 0
+    ) {
       fetchTweetLogs();
     }
-  }, [activeTab, account?.twitter_id, tweetLogs.length, fetchTweetLogs, initialTweetLogs.length]);
+  }, [
+    activeTab,
+    account?.twitter_id,
+    tweetLogs.length,
+    fetchTweetLogs,
+    initialTweetLogs.length,
+  ]);
 
   // ツイート履歴セクション (useMemoを早い段階で定義)
   const renderTweetLogs = useMemo(
     () => (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-
-        <div className="mt-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100">
         {isLoadingTweetLogs ? (
-          <div className="text-center py-4">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mx-auto"></div>
-            <p className="text-xs text-gray-500 mt-1">
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
+            <p className="text-sm text-gray-500 mt-2">
               ツイートを読み込み中...
             </p>
           </div>
         ) : tweetLogs.length === 0 ? (
-          <div className="text-center py-4">
-            <p className="text-xs text-gray-500">ツイート履歴がありません</p>
+          <div className="text-center py-8">
+            <p className="text-sm text-gray-500">ツイート履歴がありません</p>
           </div>
         ) : (
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {tweetLogs.map((log) => (
-              <div
-                key={log.id}
-                className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors"
-              >
-                {/* ツイートヘッダー */}
-                <div className="flex justify-between items-start mb-2">
-                  <a
-                    href={`https://x.com/${currentAccount?.twitter_id?.replace(
-                      /^@/,
-                      ""
-                    )}/status/${log.tweet_id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-500 hover:underline font-mono"
-                  >
-                    ID: {log.tweet_id}
-                  </a>
-                  <div className="flex items-center text-xs text-gray-500">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    {log.tweet_created_at
-                      ? new Date(log.tweet_created_at).toLocaleDateString(
-                          "ja-JP",
-                          {
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )
-                      : "日時不明"}
-                  </div>
-                </div>
-
-                {/* ツイート本文 */}
-                {log.tweet_text && (
-                  <p className="text-sm text-gray-700 mb-2 whitespace-pre-wrap break-words">
-                    {log.tweet_text}
-                  </p>
-                )}
-
-                {/* メディア情報 */}
-                {/* {log.media_type && (
-                  <div className="flex items-center mb-2 text-xs text-gray-600">
-                    <Image className="h-3 w-3 mr-1" />
-                    <span className="mr-2">{log.media_type}</span>
-                    {log.media_view_count && (
-                      <span className="mr-2">
-                        視聴: {log.media_view_count.toLocaleString()}
-                      </span>
-                    )}
-                    {log.media_width && log.media_height && (
-                      <span>
-                        {log.media_width}x{log.media_height}
-                      </span>
-                    )}
-                  </div>
-                )} */}
-
-                {/* エンゲージメント指標 */}
-                <div className="flex items-center space-x-4 text-xs text-gray-600">
-                  {log.favorite_count !== null && (
-                    <div className="flex items-center">
-                      <Heart className="h-3 w-3 mr-1 text-red-500" />
-                      <span>{log.favorite_count.toLocaleString()}</span>
-                    </div>
-                  )}
-                  {log.retweet_count !== null && (
-                    <div className="flex items-center">
-                      <Repeat className="h-3 w-3 mr-1 text-green-500" />
-                      <span>{log.retweet_count.toLocaleString()}</span>
-                    </div>
-                  )}
-                  {log.retweet_count !== null && (
-                    <div className="flex items-center">
-                      <Eye className="h-3 w-3 mr-1 text-blue-500" />
-                      <span>{log.view_count.toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    投稿日時
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ツイートID
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-xs">
+                    ツイート内容
+                  </th>
+                  <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <Heart className="h-3 w-3 inline text-red-500" />
+                  </th>
+                  <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <Repeat className="h-3 w-3 inline text-green-500" />
+                  </th>
+                  <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <Eye className="h-3 w-3 inline text-blue-500" />
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {tweetLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {log.tweet_created_at
+                        ? new Date(log.tweet_created_at).toLocaleDateString(
+                            "ja-JP",
+                            {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )
+                        : "日時不明"}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
+                      <a
+                        href={`https://x.com/${currentAccount?.twitter_id?.replace(
+                          /^@/,
+                          ""
+                        )}/status/${log.tweet_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-500 hover:underline font-mono"
+                      >
+                        {log.tweet_id}
+                      </a>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-700 max-w-xs">
+                      <div className="truncate" title={log.tweet_text || ""}>
+                        {log.tweet_text || "-"}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center text-xs text-gray-600">
+                      {log.favorite_count !== null
+                        ? log.favorite_count.toLocaleString()
+                        : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-center text-xs text-gray-600">
+                      {log.retweet_count !== null
+                        ? log.retweet_count.toLocaleString()
+                        : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-center text-xs text-gray-600">
+                      {log.view_count !== null
+                        ? log.view_count.toLocaleString()
+                        : "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-        </div>
       </div>
     ),
     [tweetLogs, isLoadingTweetLogs, currentAccount]
@@ -1008,7 +1012,9 @@ export default function ShadowbanLogDetailModal({
               <div>
                 <div className="flex items-center mb-2">
                   <Settings className="h-4 w-4 text-purple-600 mr-2" />
-                  <h3 className="text-lg font-bold text-gray-800">モード設定</h3>
+                  <h3 className="text-lg font-bold text-gray-800">
+                    モード設定
+                  </h3>
                 </div>
                 {renderTechnicalInfo()}
               </div>
@@ -1021,7 +1027,9 @@ export default function ShadowbanLogDetailModal({
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
                   <MessageSquare className="h-4 w-4 text-blue-600 mr-2" />
-                  <h3 className="text-lg font-bold text-gray-800">ツイート履歴</h3>
+                  <h3 className="text-lg font-bold text-gray-800">
+                    ツイート履歴
+                  </h3>
                 </div>
                 <button
                   onClick={fetchTweetLogs}
@@ -1042,7 +1050,9 @@ export default function ShadowbanLogDetailModal({
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
                   <Shield className="h-4 w-4 text-orange-600 mr-2" />
-                  <h3 className="text-lg font-bold text-gray-800">シャドバン判定履歴</h3>
+                  <h3 className="text-lg font-bold text-gray-800">
+                    シャドバン判定履歴
+                  </h3>
                 </div>
                 <button
                   onClick={fetchShadowbanLogs}

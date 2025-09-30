@@ -652,122 +652,135 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
   // ツイート履歴セクション
   const renderTweetLogs = useMemo(
     () => (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
         {isLoadingTweetLogs ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
-            <p className="text-sm text-gray-500 mt-2">
+          <div className="text-center py-4">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mx-auto"></div>
+            <p className="text-xs text-gray-500 mt-1">
               ツイートを読み込み中...
             </p>
           </div>
         ) : tweetLogs.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-gray-500">ツイート履歴がありません</p>
-          </div>
+          <p className="text-xs text-gray-500 text-center py-8">
+            ツイート履歴がありません
+          </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    投稿日時
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ツイートID
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-xs">
-                    ツイート内容
-                  </th>
-                  <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <Heart className="h-3 w-3 inline text-red-500" />
-                  </th>
-                  <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <Repeat className="h-3 w-3 inline text-green-500" />
-                  </th>
-                  <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <Eye className="h-3 w-3 inline text-blue-500" />
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {tweetLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {log.tweet_created_at
-                        ? new Date(log.tweet_created_at).toLocaleDateString(
-                            "ja-JP",
-                            {
-                              year: "numeric",
-                              month: "2-digit",
-                              day: "2-digit",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )
-                        : "日時不明"}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
-                      <a
-                        href={`https://x.com/${currentAccount?.twitter_id?.replace(
-                          /^@/,
-                          ""
-                        )}/status/${log.tweet_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-500 hover:underline font-mono"
-                      >
-                        {log.tweet_id}
-                      </a>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-700 max-w-xs">
-                      <div className="truncate" title={log.tweet_text || ""}>
-                        {log.tweet_text || "-"}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center text-xs text-gray-600">
-                      {log.favorite_count !== null
-                        ? log.favorite_count.toLocaleString()
-                        : "-"}
-                    </td>
-                    <td className="px-4 py-3 text-center text-xs text-gray-600">
-                      {log.retweet_count !== null
-                        ? log.retweet_count.toLocaleString()
-                        : "-"}
-                    </td>
-                    <td className="px-4 py-3 text-center text-xs text-gray-600">
-                      {log.view_count !== null
-                        ? log.view_count.toLocaleString()
-                        : "-"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            {/* テーブルヘッダー */}
+            <div className="bg-gray-50 grid grid-cols-6 gap-4 p-3 border-b border-gray-200">
+              <div className="text-xs font-semibold text-gray-700">
+                投稿日時
+              </div>
+              <div className="text-xs font-semibold text-gray-700 col-span-2">
+                内容
+              </div>
+              <div className="text-xs font-semibold text-gray-700 col-span-2">
+                エンゲージメント
+              </div>
+              <div className="text-xs font-semibold text-gray-700">
+                ツイートリンク
+              </div>
+            </div>
+
+            {/* ログデータ */}
+            <div className="max-h-48 overflow-y-auto">
+              {tweetLogs.map((log, index) => (
+                <div
+                  key={log.id}
+                  className={`grid grid-cols-6 gap-4 p-3 border-b border-gray-100 text-xs ${
+                    index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                  } hover:bg-blue-50 transition-colors`}
+                >
+                  {/* 投稿日時 */}
+                  <div className="font-medium text-gray-700">
+                    {log.tweet_created_at
+                      ? new Date(log.tweet_created_at).toLocaleDateString(
+                          "ja-JP",
+                          {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )
+                      : "日時不明"}
+                  </div>
+
+                  {/* ツイート内容 */}
+                  <div className="text-gray-700 col-span-2">
+                    <div className="truncate" title={log.tweet_text || ""}>
+                      {log.tweet_text || "-"}
+                    </div>
+                  </div>
+
+                  {/* エンゲージメント */}
+                  <div className="flex items-center space-x-3 col-span-2">
+                    <span className="flex items-center">
+                      <Heart className="h-3 w-3 mr-1 text-red-500" />
+                      <span className="text-gray-600">
+                        {log.favorite_count !== null
+                          ? log.favorite_count.toLocaleString()
+                          : "0"}
+                      </span>
+                    </span>
+                    <span className="flex items-center">
+                      <Repeat className="h-3 w-3 mr-1 text-green-500" />
+                      <span className="text-gray-600">
+                        {log.retweet_count !== null
+                          ? log.retweet_count.toLocaleString()
+                          : "0"}
+                      </span>
+                    </span>
+                    <span className="flex items-center">
+                      <Eye className="h-3 w-3 mr-1 text-blue-500" />
+                      <span className="text-gray-600">
+                        {log.view_count !== null
+                          ? log.view_count.toLocaleString()
+                          : "0"}
+                      </span>
+                    </span>
+                  </div>
+
+                  {/* リンク */}
+                  <div>
+                    <a
+                      href={`https://x.com/${currentAccount?.twitter_id?.replace(
+                        /^@/,
+                        ""
+                      )}/status/${log.tweet_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline"
+                    >
+                      表示 →
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
+        {/* 更新ボタンは右寄せ */}
+        <div className="flex items-center justify-end mt-4">
+          <button
+            onClick={fetchTweetLogs}
+            disabled={isLoadingTweetLogs}
+            className="flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            <MessageSquare className="h-3 w-3 mr-1" />
+            {isLoadingTweetLogs ? "読み込み中..." : "更新"}
+          </button>
+        </div>
       </div>
     ),
-    [tweetLogs, isLoadingTweetLogs, currentAccount]
+    [tweetLogs, isLoadingTweetLogs, fetchTweetLogs, currentAccount]
   );
 
   // シャドバン判定ログセクション
   const renderShadowbanLogs = useMemo(
     () => (
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-sm font-semibold text-gray-800">
-            ステータス変更履歴
-          </h4>
-          <button
-            onClick={fetchShadowbanLogs}
-            disabled={isLoadingShadowbanLogs}
-            className="flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors disabled:opacity-50"
-          >
-            <Shield className="h-3 w-3 mr-1" />
-            {isLoadingShadowbanLogs ? "読み込み中..." : "更新"}
-          </button>
-        </div>
-
         {isLoadingShadowbanLogs ? (
           <div className="text-center py-4">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mx-auto"></div>
@@ -881,6 +894,17 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
             </div>
           </div>
         )}
+        <div className="flex items-center justify-end mt-4">
+          {/* 更新ボタンは右寄せ */}
+          <button
+            onClick={fetchShadowbanLogs}
+            disabled={isLoadingShadowbanLogs}
+            className="flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            <Shield className="h-3 w-3 mr-1" />
+            {isLoadingShadowbanLogs ? "読み込み中..." : "更新"}
+          </button>
+        </div>
       </div>
     ),
     [shadowbanLogs, isLoadingShadowbanLogs, fetchShadowbanLogs]

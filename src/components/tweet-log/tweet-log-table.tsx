@@ -82,6 +82,7 @@ const TweetLogTable = memo(function TweetLogTable({
     useState<TwitterAccountInfo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoadingAccount, setIsLoadingAccount] = useState(false);
+  const [tweetLogsData, setTweetLogsData] = useState<TweetLogEntry[]>([]);
   const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString("ja-JP", {
       year: "numeric",
@@ -96,9 +97,27 @@ const TweetLogTable = memo(function TweetLogTable({
   const handleViewAccountDetails = useCallback(async (twitterId: string) => {
     setIsLoadingAccount(true);
     try {
+      // アカウント詳細を取得
       const accountDetails = await fetchAccountDetails(twitterId);
       if (accountDetails) {
         setSelectedAccount(accountDetails);
+
+        // ツイート履歴を取得
+        try {
+          const response = await fetch(
+            `/api/tweet-logs?twitter_id=${encodeURIComponent(twitterId)}&limit=20`
+          );
+          if (response.ok) {
+            const result = await response.json();
+            setTweetLogsData(result.logs || []);
+          } else {
+            setTweetLogsData([]);
+          }
+        } catch (error) {
+          console.error("ツイート履歴取得エラー:", error);
+          setTweetLogsData([]);
+        }
+
         setIsModalOpen(true);
       }
     } catch (error) {
@@ -293,6 +312,7 @@ const TweetLogTable = memo(function TweetLogTable({
         onClose={handleCloseModal}
         onAccountUpdate={() => {}} // ログページでは更新不要
         onAccountRefresh={fetchAccountDetails}
+        initialTweetLogs={tweetLogsData}
       />
     </div>
   );

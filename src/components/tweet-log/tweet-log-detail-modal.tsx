@@ -14,6 +14,7 @@ import {
   Repeat,
   Image,
   Calendar,
+  Eye,
 } from "lucide-react";
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
@@ -27,20 +28,26 @@ import { updateAccountStatus } from "@/lib/account-actions";
 import { fetchAccountDetails } from "@/app/api/stats/route";
 
 // ツイートログの型定義
-interface TweetLog {
+export interface TweetLogEntry {
   id: number;
+  twitter_id: string;
+  name: string;
+  screen_name: string;
   tweet_id: string;
-  tweet_text: string | null;
-  favorite_count: number | null;
-  retweet_count: number | null;
-  media_type: string | null;
-  media_url: string | null;
-  media_view_count: number | null;
-  media_duration_millis: number | null;
-  media_height: number | null;
-  media_width: number | null;
-  tweet_created_at: string | null;
+  tweet_created_at: string;
+  tweet_text: string;
+  tweet_link?: string;
+  favorite_count: number;
+  retweet_count: number;
+  reply_count: number;
+  quote_count: number;
+  view_count: number;
+  is_retweet: boolean;
+  is_quote: boolean;
+  media_type: string;
+  media_url: string;
   created_at: string;
+  updated_at: string;
 }
 interface ShadowbanLogDetailModalProps {
   account: TwitterAccountInfo | null;
@@ -48,6 +55,7 @@ interface ShadowbanLogDetailModalProps {
   onClose: () => void;
   onAccountUpdate?: () => void;
   onAccountRefresh?: (twitterId: string) => Promise<TwitterAccountInfo | null>;
+  initialTweetLogs?: TweetLogEntry[];
 }
 
 export default function ShadowbanLogDetailModal({
@@ -56,6 +64,7 @@ export default function ShadowbanLogDetailModal({
   onClose,
   onAccountUpdate,
   onAccountRefresh,
+  initialTweetLogs = [],
 }: ShadowbanLogDetailModalProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
@@ -65,8 +74,9 @@ export default function ShadowbanLogDetailModal({
   const [showShadowbanResult, setShowShadowbanResult] = useState(false);
   const [shadowbanLogs, setShadowbanLogs] = useState<any[]>([]);
   const [isLoadingShadowbanLogs, setIsLoadingShadowbanLogs] = useState(false);
-  const [tweetLogs, setTweetLogs] = useState<TweetLog[]>([]);
+  const [tweetLogs, setTweetLogs] = useState<TweetLogEntry[]>(initialTweetLogs);
   const [isLoadingTweetLogs, setIsLoadingTweetLogs] = useState(false);
+  const [activeTab, setActiveTab] = useState<"account" | "tweets" | "shadowban">("account");
   const [currentAccount, setCurrentAccount] =
     useState<TwitterAccountInfo | null>(account);
   // アカウントが変更されたときにステータスを初期化
@@ -208,25 +218,26 @@ export default function ShadowbanLogDetailModal({
   useEffect(() => {
     if (isOpen && account?.twitter_id) {
       fetchShadowbanLogs();
+      // 常にアカウント情報タブから開始
+      setActiveTab("account");
+      // 初期データを設定
+      setTweetLogs(initialTweetLogs);
     }
-  }, [isOpen, account?.twitter_id, fetchShadowbanLogs]);
+  }, [isOpen, account?.twitter_id, fetchShadowbanLogs, initialTweetLogs]);
+
+  // ツイート履歴タブが選択された時にデータを取得（初期データがない場合のみ）
+  useEffect(() => {
+    if (activeTab === "tweets" && account?.twitter_id && tweetLogs.length === 0 && initialTweetLogs.length === 0) {
+      fetchTweetLogs();
+    }
+  }, [activeTab, account?.twitter_id, tweetLogs.length, fetchTweetLogs, initialTweetLogs.length]);
 
   // ツイート履歴セクション (useMemoを早い段階で定義)
   const renderTweetLogs = useMemo(
     () => (
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-sm font-semibold text-gray-800">ツイート履歴</h4>
-          <button
-            onClick={fetchTweetLogs}
-            disabled={isLoadingTweetLogs}
-            className="flex items-center px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors disabled:opacity-50"
-          >
-            <MessageSquare className="h-3 w-3 mr-1" />
-            {isLoadingTweetLogs ? "読み込み中..." : "更新"}
-          </button>
-        </div>
 
+        <div className="mt-4">
         {isLoadingTweetLogs ? (
           <div className="text-center py-4">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mx-auto"></div>
@@ -283,7 +294,7 @@ export default function ShadowbanLogDetailModal({
                 )}
 
                 {/* メディア情報 */}
-                {log.media_type && (
+                {/* {log.media_type && (
                   <div className="flex items-center mb-2 text-xs text-gray-600">
                     <Image className="h-3 w-3 mr-1" />
                     <span className="mr-2">{log.media_type}</span>
@@ -298,7 +309,7 @@ export default function ShadowbanLogDetailModal({
                       </span>
                     )}
                   </div>
-                )}
+                )} */}
 
                 {/* エンゲージメント指標 */}
                 <div className="flex items-center space-x-4 text-xs text-gray-600">
@@ -314,14 +325,21 @@ export default function ShadowbanLogDetailModal({
                       <span>{log.retweet_count.toLocaleString()}</span>
                     </div>
                   )}
+                  {log.retweet_count !== null && (
+                    <div className="flex items-center">
+                      <Eye className="h-3 w-3 mr-1 text-blue-500" />
+                      <span>{log.view_count.toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
+        </div>
       </div>
     ),
-    [tweetLogs, isLoadingTweetLogs, fetchTweetLogs, currentAccount]
+    [tweetLogs, isLoadingTweetLogs, currentAccount]
   );
 
   // 条件付きreturnは全てのフックの後に配置
@@ -914,56 +932,130 @@ export default function ShadowbanLogDetailModal({
           </div>
         </div>
 
-        {/* メインコンテンツ */}
-        <div className="overflow-y-auto max-h-[calc(95vh-200px)] p-4 bg-gray-50">
-          <div className="space-y-4">
-            {/* 基本情報セクション */}
-            <div>
-              <div className="flex items-center mb-2">
-                <User className="h-4 w-4 text-blue-600 mr-2" />
-                <h3 className="text-lg font-bold text-gray-800">基本情報</h3>
+        {/* タブナビゲーション */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="flex">
+            <button
+              onClick={() => setActiveTab("account")}
+              className={`flex items-center px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "account"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <User className="h-4 w-4 mr-2" />
+              アカウント情報
+            </button>
+            <button
+              onClick={() => setActiveTab("tweets")}
+              className={`flex items-center px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "tweets"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              ツイート履歴
+              {tweetLogs.length > 0 && (
+                <span className="ml-2 bg-blue-100 text-blue-600 px-2 py-0.5 text-xs rounded-full">
+                  {tweetLogs.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("shadowban")}
+              className={`flex items-center px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "shadowban"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              シャドバン判定
+              {shadowbanLogs.length > 0 && (
+                <span className="ml-2 bg-orange-100 text-orange-600 px-2 py-0.5 text-xs rounded-full">
+                  {shadowbanLogs.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* タブコンテンツ */}
+        <div className="overflow-y-auto max-h-[calc(95vh-250px)] p-4 bg-gray-50">
+          {/* アカウント情報タブ */}
+          {activeTab === "account" && (
+            <div className="space-y-4">
+              {/* 基本情報セクション */}
+              <div>
+                <div className="flex items-center mb-2">
+                  <User className="h-4 w-4 text-blue-600 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-800">基本情報</h3>
+                </div>
+                {renderBasicInfo()}
               </div>
-              {renderBasicInfo()}
+
+              {/* 認証情報セクション */}
+              <div>
+                <div className="flex items-center mb-2">
+                  <Lock className="h-4 w-4 text-red-600 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-800">認証情報</h3>
+                </div>
+                {renderSecurityInfo()}
+              </div>
+
+              {/* モード設定セクション */}
+              <div>
+                <div className="flex items-center mb-2">
+                  <Settings className="h-4 w-4 text-purple-600 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-800">モード設定</h3>
+                </div>
+                {renderTechnicalInfo()}
+              </div>
             </div>
+          )}
 
-            {/* 統計情報セクション */}
-            {/* <div>
-              <div className="flex items-center mb-2">
-                <BarChart3 className="h-4 w-4 text-green-600 mr-2" />
-                <h3 className="text-lg font-bold text-gray-800">統計情報</h3>
+          {/* ツイート履歴タブ */}
+          {activeTab === "tweets" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <MessageSquare className="h-4 w-4 text-blue-600 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-800">ツイート履歴</h3>
+                </div>
+                <button
+                  onClick={fetchTweetLogs}
+                  disabled={isLoadingTweetLogs}
+                  className="flex items-center px-3 py-1.5 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50"
+                >
+                  <MessageSquare className="h-4 w-4 mr-1.5" />
+                  {isLoadingTweetLogs ? "読み込み中..." : "更新"}
+                </button>
               </div>
-              {renderStatsInfo()}
-            </div> */}
-
-            {/* 認証情報セクション */}
-            <div>
-              <div className="flex items-center mb-2">
-                <Lock className="h-4 w-4 text-red-600 mr-2" />
-                <h3 className="text-lg font-bold text-gray-800">認証情報</h3>
-              </div>
-              {renderSecurityInfo()}
+              {renderTweetLogs}
             </div>
+          )}
 
-            {/* モード設定セクション */}
-            <div>
-              <div className="flex items-center mb-2">
-                <Settings className="h-4 w-4 text-purple-600 mr-2" />
-                <h3 className="text-lg font-bold text-gray-800">モード設定</h3>
-              </div>
-              {renderTechnicalInfo()}
-            </div>
-
-            {/* シャドバン判定ログセクション */}
-            <div>
-              <div className="flex items-center mb-2">
-                <Search className="h-4 w-4 text-orange-600 mr-2" />
-                <h3 className="text-lg font-bold text-gray-800">
-                  シャドバン判定ログ
-                </h3>
+          {/* シャドバン判定タブ */}
+          {activeTab === "shadowban" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <Shield className="h-4 w-4 text-orange-600 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-800">シャドバン判定履歴</h3>
+                </div>
+                <button
+                  onClick={fetchShadowbanLogs}
+                  disabled={isLoadingShadowbanLogs}
+                  className="flex items-center px-3 py-1.5 text-sm bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors disabled:opacity-50"
+                >
+                  <Shield className="h-4 w-4 mr-1.5" />
+                  {isLoadingShadowbanLogs ? "読み込み中..." : "更新"}
+                </button>
               </div>
               {renderShadowbanLogs()}
             </div>
-          </div>
+          )}
         </div>
 
         <div className="flex justify-between items-center p-4 bg-gray-100 border-t border-gray-200">

@@ -981,7 +981,7 @@ export async function fetchAccountDetails(
 
   try {
     const { data, error } = await supabase
-      .from("twitter_account_v3")
+      .from("twitter_create_with_account_v1")
       .select("*")
       .eq("twitter_id", twitterId)
       .single();

@@ -57,6 +57,9 @@ export interface TwitterAccountInfo {
   device_base64: string | null;
   app_login: string | null;
   shadowban_check_at: string;
+  proxy: string | null;
+  country: string | null;
+  auth_token: string | null;
 }
 
 export interface ProxyInfo {

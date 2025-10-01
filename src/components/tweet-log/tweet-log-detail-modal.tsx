@@ -405,6 +405,14 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
           <div className="space-y-1">
             <label className="block text-xs font-semibold text-gray-600">
               メールアドレス
+              <a
+                href={`http://139.162.76.115/#/mail/${currentAccount.email}`}
+                className="hover:underline text-blue-500 font-bold"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                →
+              </a>
             </label>
             <div className="flex items-center bg-gray-50 rounded-md border p-2">
               <p className="text-sm text-gray-800 flex-1 font-mono truncate">

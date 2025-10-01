@@ -635,6 +635,22 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
               />
             </div>
           </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-gray-600">
+              Authトークン
+            </label>
+            <div className="flex items-center bg-red-50 rounded-md border border-red-200 p-2">
+              <p className="text-sm text-gray-800 font-mono flex-1 truncate">
+                {currentAccount.auth_token
+                  ? `${currentAccount.auth_token.substring(0, 15)}...`
+                  : "Authトークンなし"}
+              </p>
+              <CopyButton
+                value={currentAccount.auth_token || ""}
+                fieldName="auth_token"
+              />
+            </div>
+          </div>
         </div>
       </div>
     );

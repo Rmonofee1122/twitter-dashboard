@@ -105,7 +105,9 @@ const TweetLogTable = memo(function TweetLogTable({
         // ツイート履歴を取得
         try {
           const response = await fetch(
-            `/api/tweet-logs?twitter_id=${encodeURIComponent(twitterId)}&limit=20`
+            `/api/tweet-logs?twitter_id=${encodeURIComponent(
+              twitterId
+            )}&limit=20`
           );
           if (response.ok) {
             const result = await response.json();
@@ -264,9 +266,13 @@ const TweetLogTable = memo(function TweetLogTable({
                 <td className="px-6 py-4 text-sm text-gray-900">
                   <div className="max-w-md">
                     <p className="truncate">{log.tweet_text}</p>
-                    {(log.tweet_link || `https://x.com/${log.screen_name}/status/${log.tweet_id}`) && (
+                    {(log.tweet_link ||
+                      `https://x.com/${log.screen_name}/status/${log.tweet_id}`) && (
                       <a
-                        href={log.tweet_link || `https://x.com/${log.screen_name}/status/${log.tweet_id}`}
+                        href={
+                          log.tweet_link ||
+                          `https://x.com/${log.screen_name}/status/${log.tweet_id}`
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 text-xs mt-1 inline-block"
@@ -312,7 +318,6 @@ const TweetLogTable = memo(function TweetLogTable({
         onClose={handleCloseModal}
         onAccountUpdate={() => {}} // ログページでは更新不要
         onAccountRefresh={fetchAccountDetails}
-        initialTweetLogs={tweetLogsData}
       />
     </div>
   );

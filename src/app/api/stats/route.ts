@@ -1,4 +1,5 @@
 import { supabase } from "../../../lib/supabase";
+import { TwitterAccountInfo } from "@/types/database";
 
 export interface TotalStats {
   totalAccounts: number;
@@ -971,7 +972,13 @@ export async function fetchIpRankingTop5(): Promise<IpData[]> {
 }
 
 // アカウントの詳細モーダル用データを取得する関数
-export async function fetchAccountDetails(twitterId: string): Promise<any> {
+export async function fetchAccountDetails(
+  twitterId: string | null
+): Promise<TwitterAccountInfo | null> {
+  if (!twitterId) {
+    return null;
+  }
+
   try {
     const { data, error } = await supabase
       .from("twitter_account_v3")
@@ -984,7 +991,7 @@ export async function fetchAccountDetails(twitterId: string): Promise<any> {
       return null;
     }
 
-    return data;
+    return data as TwitterAccountInfo;
   } catch (error) {
     console.error("Account details fetch error:", error);
     return null;

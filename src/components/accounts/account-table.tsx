@@ -419,7 +419,17 @@ const AccountTable = memo(function AccountTable({
                   {account.twitter_id}
                 </a>
               </div>
-              <div className="text-sm text-gray-500">{account.email}</div>
+              <div className="text-sm text-gray-500">
+                {account.email}
+                <a
+                  href={`http://139.162.76.115/#/mail/${account.email}`}
+                  className="hover:underline text-blue-500"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  →
+                </a>
+              </div>
             </div>
           </div>
         </td>

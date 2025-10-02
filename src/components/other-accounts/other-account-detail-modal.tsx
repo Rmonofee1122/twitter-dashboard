@@ -25,6 +25,7 @@ import {
   getStatusText,
   getStatusBadgeColor,
 } from "@/utils/status-helpers";
+import { formatDate01 } from "@/utils/date-helpers";
 import { updateAccountStatus } from "@/lib/account-actions";
 import { fetchAccountDetails } from "@/app/api/stats/route";
 
@@ -414,6 +415,34 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
               <CopyButton value={currentAccount.name || ""} fieldName="name" />
             </div>
           </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-gray-600">
+              アカウント作成日時
+            </label>
+            <div className="flex items-center bg-gray-50 rounded-md border p-2">
+              <p className="text-sm text-gray-800 flex-1 truncate">
+                {formatDate01(currentAccount.account_created_at) || "未設定"}
+              </p>
+              <CopyButton
+                value={formatDate01(currentAccount.account_created_at) || ""}
+                fieldName="account_created_at"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-gray-600">
+              アカウント作成追加日時
+            </label>
+            <div className="flex items-center bg-gray-50 rounded-md border p-2">
+              <p className="text-sm text-gray-800 flex-1 truncate">
+                {formatDate01(currentAccount.created_at) || "未設定"}
+              </p>
+              <CopyButton
+                value={formatDate01(currentAccount.created_at) || ""}
+                fieldName="created_at"
+              />
+            </div>
+          </div>
           <div className="space-y-1 col-span-2">
             <label className="block text-xs font-semibold text-gray-600">
               紹介文
@@ -437,7 +466,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
     currentAccount,
     copiedField,
     copyToClipboard,
-    formatDate,
+    formatDate01,
     linkifyText,
     CopyButton,
   ]);
@@ -959,7 +988,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
         <div className="flex justify-between items-center p-4 bg-gray-100 border-t border-gray-200">
           <div>
             <p className="text-xs text-gray-600 font-mono">
-              更新：{formatDate(currentAccount.updated_at || "")}
+              更新：{formatDate01(currentAccount.updated_at || "")}
             </p>
             {selectedStatus !== (currentAccount.status || "") && (
               <div className="flex items-center bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs mt-1">

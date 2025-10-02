@@ -65,3 +65,63 @@ export async function GET(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    const ids = searchParams.get("ids");
+
+    // 単体削除
+    if (id) {
+      const { error } = await supabase
+        .from("other_twitter_account")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        console.error("アカウント削除エラー:", error);
+        return NextResponse.json(
+          { error: "アカウントの削除に失敗しました" },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ success: true, message: "削除しました" });
+    }
+
+    // 一括削除
+    if (ids) {
+      const idArray = ids.split(",").map((id) => parseInt(id.trim()));
+
+      const { error } = await supabase
+        .from("other_twitter_account")
+        .delete()
+        .in("id", idArray);
+
+      if (error) {
+        console.error("一括削除エラー:", error);
+        return NextResponse.json(
+          { error: "アカウントの削除に失敗しました" },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `${idArray.length}件のアカウントを削除しました`,
+      });
+    }
+
+    return NextResponse.json(
+      { error: "IDが指定されていません" },
+      { status: 400 }
+    );
+  } catch (error) {
+    console.error("削除API エラー:", error);
+    return NextResponse.json(
+      { error: "サーバーエラーが発生しました" },
+      { status: 500 }
+    );
+  }
+}

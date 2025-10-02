@@ -184,6 +184,7 @@ export default function OtherAccountsPage() {
             sortField={sortField}
             sortDirection={sortDirection}
             onSort={handleSort}
+            onAccountUpdate={fetchAccounts}
           />
         )}
 

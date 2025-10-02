@@ -22,6 +22,7 @@ interface OtherAccountTableProps {
   sortField?: string;
   sortDirection?: string;
   onSort?: (field: string) => void;
+  onAccountUpdate?: () => void;
 }
 
 interface ActionButtonProps {
@@ -93,10 +94,107 @@ const OtherAccountTable = memo(function OtherAccountTable({
   sortField = "",
   sortDirection = "",
   onSort,
+  onAccountUpdate,
 }: OtherAccountTableProps) {
   const [selectedAccount, setSelectedAccount] =
     useState<OtherTwitterAccount | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+
+  // チェックボックスの全選択/全解除
+  const handleSelectAll = useCallback(
+    (checked: boolean) => {
+      if (checked) {
+        setSelectedIds(new Set(accounts.map((acc) => acc.id)));
+      } else {
+        setSelectedIds(new Set());
+      }
+    },
+    [accounts]
+  );
+
+  // 個別チェックボックス
+  const handleSelectOne = useCallback((id: number, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // 単体削除
+  const handleDeleteOne = useCallback(async (id: number) => {
+    setDeleteTarget(id);
+    setDeleteConfirmOpen(true);
+  }, []);
+
+  // 一括削除
+  const handleDeleteSelected = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+    setDeleteTarget(null);
+    setDeleteConfirmOpen(true);
+  }, [selectedIds]);
+
+  // 削除実行
+  const handleConfirmDelete = useCallback(async () => {
+    setIsDeleting(true);
+    try {
+      const url =
+        deleteTarget !== null
+          ? `/api/other-accounts?id=${deleteTarget}`
+          : `/api/other-accounts?ids=${Array.from(selectedIds).join(",")}`;
+
+      const response = await fetch(url, {
+        method: "DELETE",
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "削除に失敗しました");
+      }
+
+      // 成功したら選択をクリア
+      setSelectedIds(new Set());
+      setDeleteConfirmOpen(false);
+      setDeleteTarget(null);
+
+      // テーブルを更新
+      onAccountUpdate?.();
+
+      // トースト通知（react-hot-toastを使用している場合）
+      if (typeof window !== "undefined" && (window as any).toast) {
+        (window as any).toast.success(result.message || "削除しました");
+      }
+    } catch (error) {
+      console.error("削除エラー:", error);
+      if (typeof window !== "undefined" && (window as any).toast) {
+        (window as any).toast.error(
+          error instanceof Error ? error.message : "削除に失敗しました"
+        );
+      } else {
+        alert(error instanceof Error ? error.message : "削除に失敗しました");
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteTarget, selectedIds, onAccountUpdate]);
+
+  const handleCancelDelete = useCallback(() => {
+    setDeleteConfirmOpen(false);
+    setDeleteTarget(null);
+  }, []);
+
+  const isAllSelected =
+    accounts.length > 0 && selectedIds.size === accounts.length;
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
 
   const getBooleanBadge = useCallback((value: boolean | null) => {
     if (value === null) return <span className="text-gray-400">-</span>;
@@ -188,6 +286,9 @@ const OtherAccountTable = memo(function OtherAccountTable({
     account,
     shadowbanDetails,
     hasAnyShadowbanFlag,
+    isSelected,
+    onSelect,
+    onDelete,
   }: {
     account: OtherTwitterAccount;
     shadowbanDetails: Array<{
@@ -196,9 +297,20 @@ const OtherAccountTable = memo(function OtherAccountTable({
       color: string;
     }>;
     hasAnyShadowbanFlag: boolean;
+    isSelected: boolean;
+    onSelect: (id: number, checked: boolean) => void;
+    onDelete: (id: number) => void;
   }) {
     return (
       <tr className="hover:bg-gray-50">
+        <td className="px-6 py-4 whitespace-nowrap">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => onSelect(account.id, e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+        </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
           {account.id}
         </td>
@@ -315,6 +427,12 @@ const OtherAccountTable = memo(function OtherAccountTable({
               }}
               aria-label="アカウント詳細を表示"
             />
+            <ActionButton
+              icon={Trash2}
+              color="text-red-600 hover:text-red-700"
+              onClick={() => onDelete(account.id)}
+              aria-label="アカウントを削除"
+            />
           </div>
         </td>
       </tr>
@@ -322,91 +440,158 @@ const OtherAccountTable = memo(function OtherAccountTable({
   });
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead className="bg-gray-50">
-          <tr>
-            <SortableHeader
-              label="No"
-              field="id"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="アカウント追加日時"
-              field="created_at"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="アカウント情報"
-              field="name"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="ステータス"
-              field="suspend"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="最終チェック"
-              field="updated_at"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="投稿数"
-              field="posts_count"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="フォロー数"
-              field="following_count"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <SortableHeader
-              label="フォロワー数"
-              field="follower_count"
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSort={onSort}
-            />
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              操作
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {accounts.map((account) => (
-            <TableRow
-              key={account.id}
-              account={account}
-              shadowbanDetails={getShadowbanDetails(account)}
-              hasAnyShadowbanFlag={hasAnyShadowban(account)}
-            />
-          ))}
-        </tbody>
-      </table>
-      <OtherAccountDetailModal
-        account={selectedAccount}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onAccountUpdate={() => {}}
-        onAccountRefresh={() => {
-          return Promise.resolve(selectedAccount);
-        }}
-      />
+    <div>
+      {/* 一括削除ボタン */}
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <span className="text-sm text-blue-800 font-medium">
+            {selectedIds.size}件選択中
+          </span>
+          <button
+            onClick={handleDeleteSelected}
+            disabled={isDeleting}
+            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            選択したアカウントを削除
+          </button>
+        </div>
+      )}
+
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = isSomeSelected;
+                  }}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+              </th>
+              <SortableHeader
+                label="No"
+                field="id"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="アカウント追加日時"
+                field="created_at"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="アカウント情報"
+                field="name"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="ステータス"
+                field="suspend"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="最終チェック"
+                field="updated_at"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="投稿数"
+                field="posts_count"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="フォロー数"
+                field="following_count"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <SortableHeader
+                label="フォロワー数"
+                field="follower_count"
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSort={onSort}
+              />
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                操作
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {accounts.map((account) => (
+              <TableRow
+                key={account.id}
+                account={account}
+                shadowbanDetails={getShadowbanDetails(account)}
+                hasAnyShadowbanFlag={hasAnyShadowban(account)}
+                isSelected={selectedIds.has(account.id)}
+                onSelect={handleSelectOne}
+                onDelete={handleDeleteOne}
+              />
+            ))}
+          </tbody>
+        </table>
+
+        {/* 削除確認ダイアログ */}
+        {deleteConfirmOpen && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">
+                削除の確認
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                {deleteTarget !== null
+                  ? "このアカウントを削除しますか？"
+                  : `選択した${selectedIds.size}件のアカウントを削除しますか？`}
+                この操作は取り消せません。
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={handleCancelDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? "削除中..." : "削除"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <OtherAccountDetailModal
+          account={selectedAccount}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onAccountUpdate={() => {}}
+          onAccountRefresh={() => {
+            return Promise.resolve(selectedAccount);
+          }}
+        />
+      </div>
     </div>
   );
 });

@@ -39,7 +39,7 @@ export async function GET(request: Request) {
         data?.filter((item) => {
           const itemDate = new Date(item.created_at);
           // +9:00
-          itemDate.setHours(itemDate.getHours() + 9);
+          // itemDate.setHours(itemDate.getHours() + 9);
           return itemDate.getHours() === hour;
         }).length || 0;
 

@@ -42,67 +42,67 @@ const TrendsPage = () => {
 
   // データ生成関数をメモ化
   const generateDailyData = useCallback(() => {
-      const data = [];
-      let cumulative = 2200;
-      for (let i = 29; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const count = Math.floor(Math.random() * 30) + 5;
-        cumulative += count;
-        data.push({
-          date: date.toISOString().split("T")[0],
-          count,
-          cumulative,
-        });
-      }
-      return data;
+    const data = [];
+    let cumulative = 2200;
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const count = Math.floor(Math.random() * 30) + 5;
+      cumulative += count;
+      data.push({
+        date: date.toISOString().split("T")[0],
+        count,
+        cumulative,
+      });
+    }
+    return data;
   }, []);
 
   const generateWeeklyData = useCallback(() => {
-      const data = [];
-      for (let i = 11; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i * 7);
-        const count = Math.floor(Math.random() * 150) + 80;
-        data.push({
-          week: `${date.getFullYear()}-W${Math.ceil(date.getDate() / 7)}`,
-          count,
-          average: Math.floor(count / 7),
-        });
-      }
-      return data;
+    const data = [];
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i * 7);
+      const count = Math.floor(Math.random() * 150) + 80;
+      data.push({
+        week: `${date.getFullYear()}-W${Math.ceil(date.getDate() / 7)}`,
+        count,
+        average: Math.floor(count / 7),
+      });
+    }
+    return data;
   }, []);
 
   const generateMonthlyData = useCallback(() => {
-      const data = [];
-      for (let i = 11; i >= 0; i--) {
-        const date = new Date();
-        date.setMonth(date.getMonth() - i);
-        const count = Math.floor(Math.random() * 600) + 300;
-        const prevCount =
-          i === 11 ? count : Math.floor(Math.random() * 600) + 300;
-        const growth = ((count - prevCount) / prevCount) * 100;
-        data.push({
-          month: date.toLocaleDateString("ja-JP", {
-            year: "numeric",
-            month: "2-digit",
-          }),
-          count,
-          growth: Number(growth.toFixed(1)),
-        });
-      }
-      return data;
+    const data = [];
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const count = Math.floor(Math.random() * 600) + 300;
+      const prevCount =
+        i === 11 ? count : Math.floor(Math.random() * 600) + 300;
+      const growth = ((count - prevCount) / prevCount) * 100;
+      data.push({
+        month: date.toLocaleDateString("ja-JP", {
+          year: "numeric",
+          month: "2-digit",
+        }),
+        count,
+        growth: Number(growth.toFixed(1)),
+      });
+    }
+    return data;
   }, []);
 
   const generateHourlyData = useCallback(() => {
-      const data = [];
-      for (let i = 0; i < 24; i++) {
-        data.push({
-          hour: `${i.toString().padStart(2, "0")}:00`,
-          count: Math.floor(Math.random() * 20) + 1,
-        });
-      }
-      return data;
+    const data = [];
+    for (let i = 0; i < 24; i++) {
+      data.push({
+        hour: `${i.toString().padStart(2, "0")}:00`,
+        count: Math.floor(Math.random() * 20) + 1,
+      });
+    }
+    return data;
   }, []);
 
   const loadPerformanceMetrics = useCallback(async () => {

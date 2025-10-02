@@ -14,7 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { OtherTwitterAccount } from "@/types/database";
-import { formatDateLocal, formatDate01 } from "@/utils/date-helpers";
+import { formatDate01 } from "@/utils/date-helpers";
 import OtherAccountDetailModal from "./other-account-detail-modal";
 
 interface OtherAccountTableProps {

@@ -109,7 +109,19 @@ const navigation = [
   },
   { name: "他社アカウント一覧", href: "/other-accounts", icon: Users },
   { name: "シャドBAN履歴", href: "/shadowban-log", icon: FileText },
-  { name: "ツイート履歴", href: "/tweet-log", icon: MessageCircle },
+  {
+    name: "ツイート履歴",
+    href: "/tweet-log",
+    icon: MessageCircle,
+    submenu: [
+      { name: "自社ツイート履歴", href: "/tweet-log", icon: MessageCircle },
+      {
+        name: "他社ツイート履歴",
+        href: "/tweet-log/other",
+        icon: MessageCircle,
+      },
+    ],
+  },
   {
     name: "プロキシ管理",
     href: "/proxy/dc",

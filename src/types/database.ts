@@ -81,3 +81,32 @@ export interface GeminiPrompt {
   created_at: string;
   updated_at: string;
 }
+
+export interface OtherTwitterAccount {
+  id: number;
+  twitter_id: string;
+  rest_id: string | null;
+  name: string;
+  screen_name: string;
+  status: string | null;
+  description_text: string | null;
+  profile_image_url_https: string | null;
+  profile_banner_url: string | null;
+  follower_count: number | null;
+  following_count: number | null;
+  media_count: number | null;
+  favourites_count: number | null;
+  posts_count: number | null;
+  not_found: boolean | null;
+  suspend: boolean | null;
+  protect: boolean | null;
+  no_tweet: boolean | null;
+  search_ban: boolean | null;
+  search_suggestion_ban: boolean | null;
+  no_reply: boolean | null;
+  ghost_ban: boolean | null;
+  reply_deboosting: boolean | null;
+  account_created_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}

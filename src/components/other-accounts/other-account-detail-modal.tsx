@@ -247,6 +247,31 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
     });
   }, []);
 
+  // URLをリンクに変換する関数
+  const linkifyText = useCallback((text: string) => {
+    if (!text) return null;
+
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline"
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  }, []);
+
   // CopyButtonコンポーネントをuseMemoで定義
   const CopyButton = useMemo(
     () =>
@@ -393,9 +418,11 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
             <label className="block text-xs font-semibold text-gray-600">
               紹介文
             </label>
-            <div className="flex items-center bg-gray-50 rounded-md border p-2">
-              <p className="text-sm text-gray-800 flex-1 truncate">
-                {currentAccount.description_text || "未設定"}
+            <div className="flex items-start bg-gray-50 rounded-md border p-2">
+              <p className="text-sm text-gray-800 flex-1 break-words whitespace-pre-wrap">
+                {currentAccount.description_text
+                  ? linkifyText(currentAccount.description_text)
+                  : "未設定"}
               </p>
               <CopyButton
                 value={currentAccount.description_text || ""}
@@ -406,7 +433,14 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
         </div>
       </div>
     );
-  }, [currentAccount, copiedField, copyToClipboard, formatDate, CopyButton]);
+  }, [
+    currentAccount,
+    copiedField,
+    copyToClipboard,
+    formatDate,
+    linkifyText,
+    CopyButton,
+  ]);
 
   // モード設定セクション
   // const renderTechnicalInfo = useMemo(() => {

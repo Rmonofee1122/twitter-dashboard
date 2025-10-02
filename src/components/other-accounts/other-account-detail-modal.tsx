@@ -196,7 +196,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
     setIsLoadingTweetLogs(true);
     try {
       const response = await fetch(
-        `/api/tweet-logs?twitter_id=${encodeURIComponent(
+        `/api/other-tweet-logs?twitter_id=${encodeURIComponent(
           account.twitter_id
         )}&limit=20`
       );
@@ -208,7 +208,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
       const result = await response.json();
       setTweetLogs(result.logs || []);
     } catch (error) {
-      console.error("ツイートログ取得エラー:", error);
+      console.error("Other tweet logs取得エラー:", error);
       setTweetLogs([]);
     } finally {
       setIsLoadingTweetLogs(false);

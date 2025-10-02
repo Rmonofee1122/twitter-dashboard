@@ -203,9 +203,7 @@ const OtherAccountTable = memo(function OtherAccountTable({
           {account.id}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-          {account.account_created_at
-            ? formatDate01(account.account_created_at)
-            : "-"}
+          {account.created_at ? formatDate01(account.created_at) : "-"}
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="flex items-center">
@@ -336,7 +334,7 @@ const OtherAccountTable = memo(function OtherAccountTable({
               onSort={onSort}
             />
             <SortableHeader
-              label="作成日時"
+              label="アカウント追加日時"
               field="created_at"
               sortField={sortField}
               sortDirection={sortDirection}

@@ -168,6 +168,7 @@ async function upsertTwitterAccount(
     no_reply: !!data?.no_reply,
     ghost_ban: !!data?.ghost_ban,
     reply_deboosting: !!data?.reply_deboosting,
+    rest_id: data?.user?.rest_id ?? "",
     created_at: data?.user?.legacy?.created_at ?? new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

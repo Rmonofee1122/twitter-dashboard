@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Download } from "lucide-react";
 import { OtherTwitterAccount } from "@/types/database";
 import OtherAccountTable from "@/components/other-accounts/other-account-table";
+import AddAccountForm from "@/components/other-accounts/add-account-form";
 import Pagination from "@/components/ui/pagination";
 
 interface AccountsResponse {
@@ -153,6 +154,9 @@ export default function OtherAccountsPage() {
           </div>
         </div>
       </div>
+
+      {/* アカウント追加フォーム */}
+      <AddAccountForm onAccountAdded={fetchAccounts} />
 
       {/* 検索フィルター */}
       <div className="bg-white rounded-lg shadow-sm p-4">

@@ -389,7 +389,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
               <CopyButton value={currentAccount.name || ""} fieldName="name" />
             </div>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 col-span-2">
             <label className="block text-xs font-semibold text-gray-600">
               紹介文
             </label>

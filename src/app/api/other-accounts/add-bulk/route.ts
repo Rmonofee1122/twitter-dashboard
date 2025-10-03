@@ -146,6 +146,19 @@ export async function POST(request: Request) {
           );
         }
 
+        // データベース「shadowban_jobs」に挿入
+        const { data: shadowbanJobsData, error: shadowbanJobsError } =
+          await supabase
+            .from("shadowban_jobs")
+            .insert([{ screen_name: `${screen_name}` }])
+            .select();
+        if (shadowbanJobsError) {
+          console.error(
+            `データベース「shadowban_jobs」挿入エラー [${screen_name}]:`,
+            shadowbanJobsError
+          );
+        }
+
         console.log(`挿入成功 [${screen_name}]:`, data);
         results.success.push(screen_name);
 

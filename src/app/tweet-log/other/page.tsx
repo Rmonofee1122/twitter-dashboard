@@ -74,7 +74,7 @@ export default function ShadowbanLogPage() {
 
   return (
     <div className="space-y-6">
-      <TweetLogHeader onRefresh={refetch} loading={loading} />
+      <TweetLogHeader title="他社" onRefresh={refetch} loading={loading} />
 
       <TweetFetcher onFetchComplete={refetch} />
 

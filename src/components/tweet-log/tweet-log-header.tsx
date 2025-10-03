@@ -6,11 +6,13 @@ import { FileText, RefreshCw } from "lucide-react";
 interface TweetLogHeaderProps {
   onRefresh: () => void;
   loading: boolean;
+  title: string;
 }
 
 const TweetLogHeader = memo(function TweetLogHeader({
   onRefresh,
   loading,
+  title,
 }: TweetLogHeaderProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -18,9 +20,11 @@ const TweetLogHeader = memo(function TweetLogHeader({
         <div className="flex items-center space-x-3">
           <FileText className="h-8 w-8 text-blue-600" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">ツイート履歴</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {title}ツイート履歴
+            </h1>
             <p className="text-gray-600">
-              アカウントのツイート履歴を確認できます
+              {title}のアカウントのツイート履歴を確認できます
             </p>
           </div>
         </div>

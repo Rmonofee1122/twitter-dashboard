@@ -111,7 +111,7 @@ export async function POST(request: Request) {
 
         console.log(`挿入データ [${screen_name}]:`, insertData);
 
-        // データベースに挿入
+        // データベース「other_twitter_account」に挿入
         const { data, error } = await supabase
           .from("other_twitter_account")
           .insert([insertData])
@@ -121,19 +121,36 @@ export async function POST(request: Request) {
           console.error(`データベース挿入エラー [${screen_name}]:`, error);
           results.failed.push({
             screen_name,
-            error: error.message || "データベースへの保存に失敗しました",
+            error:
+              error.message ||
+              "データベース「other_twitter_account」への保存に失敗しました",
           });
           continue;
+        }
+
+        // データベース「other_tweet_get_jobs」に挿入
+        const { data: tweetGetJobsData, error: tweetGetJobsError } =
+          await supabase
+            .from("other_tweet_get_jobs")
+            .insert([
+              {
+                twitter_id: `@${screen_name}`,
+                rest_id: accountData.user?.rest_id || null,
+              },
+            ])
+            .select();
+        if (tweetGetJobsError) {
+          console.error(
+            `データベース「other_tweet_get_jobs」挿入エラー [${screen_name}]:`,
+            tweetGetJobsError
+          );
         }
 
         console.log(`挿入成功 [${screen_name}]:`, data);
         results.success.push(screen_name);
 
         // API制限を考慮して少し待機（最後のアカウント以外）
-        if (
-          newScreenNames.indexOf(screen_name) <
-          newScreenNames.length - 1
-        ) {
+        if (newScreenNames.indexOf(screen_name) < newScreenNames.length - 1) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       } catch (error) {

@@ -31,9 +31,19 @@ const AddAccountForm = React.memo(function AddAccountForm({
       }
 
       // カンマ、スペース、改行で分割して@マークを除去
+      // URLからスクリーン名を抽出する処理も追加
       const screenNameList = screenNames
         .split(/[,\s\n]+/)
-        .map((name) => name.trim().replace(/^@/, ""))
+        .map((name) => {
+          name = name.trim();
+          // https://x.com/username または https://twitter.com/username の形式からスクリーン名を抽出
+          const urlMatch = name.match(/(?:https?:\/\/)?(?:x\.com|twitter\.com)\/([^\/\?]+)/);
+          if (urlMatch) {
+            return urlMatch[1];
+          }
+          // @マークを除去
+          return name.replace(/^@/, "");
+        })
         .filter((name) => name.length > 0);
 
       if (screenNameList.length === 0) {

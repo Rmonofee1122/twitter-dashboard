@@ -1,7 +1,17 @@
 "use client";
 
-import { Eye, AlertTriangle, Download, type LucideIcon } from "lucide-react";
-import { memo, useCallback, useState } from "react";
+import {
+  Eye,
+  AlertTriangle,
+  Download,
+  type LucideIcon,
+  Heart,
+  Repeat,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
+import { memo, useCallback, useState, useMemo } from "react";
 import TweetLogDetailModal from "./tweet-log-detail-modal";
 import { TwitterAccountInfo } from "@/types/database";
 import { fetchAccountDetails } from "@/app/api/stats/route";
@@ -66,6 +76,9 @@ const ActionButton = memo(function ActionButton({
   );
 });
 
+type SortField = "id" | "tweet_created_at" | "twitter_id" | "favorite_count" | "retweet_count" | "view_count" | "updated_at";
+type SortDirection = "asc" | "desc" | null;
+
 const TweetLogTable = memo(function TweetLogTable({
   logs,
   loading,
@@ -83,6 +96,8 @@ const TweetLogTable = memo(function TweetLogTable({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoadingAccount, setIsLoadingAccount] = useState(false);
   const [tweetLogsData, setTweetLogsData] = useState<TweetLogEntry[]>([]);
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString("ja-JP", {
       year: "numeric",
@@ -134,6 +149,49 @@ const TweetLogTable = memo(function TweetLogTable({
     setSelectedAccount(null);
   }, []);
 
+  const handleSort = useCallback((field: SortField) => {
+    if (sortField === field) {
+      // 同じフィールドをクリックした場合、昇順→降順→ソートなしの順で切り替え
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else if (sortDirection === "desc") {
+        setSortDirection(null);
+        setSortField(null);
+      }
+    } else {
+      // 新しいフィールドをクリックした場合、昇順でソート
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  }, [sortField, sortDirection]);
+
+  const sortedLogs = useMemo(() => {
+    if (!sortField || !sortDirection) {
+      return logs;
+    }
+
+    return [...logs].sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      if (sortField === "tweet_created_at" || sortField === "updated_at") {
+        aValue = new Date(a[sortField]).getTime();
+        bValue = new Date(b[sortField]).getTime();
+      } else {
+        aValue = a[sortField];
+        bValue = b[sortField];
+      }
+
+      if (aValue < bValue) {
+        return sortDirection === "asc" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortDirection === "asc" ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [logs, sortField, sortDirection]);
+
   const handleExportCSV = useCallback(() => {
     // CSVヘッダー
     const headers = [
@@ -153,11 +211,11 @@ const TweetLogTable = memo(function TweetLogTable({
       "引用",
       "メディアタイプ",
       "メディアURL",
-      "更新日時"
+      "更新日時",
     ];
 
-    // CSVデータ行
-    const rows = logs.map((log) => [
+    // CSVデータ行（ソート済みのデータを使用）
+    const rows = sortedLogs.map((log) => [
       log.id,
       formatDate(log.tweet_created_at),
       log.twitter_id,
@@ -174,18 +232,20 @@ const TweetLogTable = memo(function TweetLogTable({
       log.is_quote ? "はい" : "いいえ",
       log.media_type,
       log.media_url,
-      formatDate(log.updated_at)
+      formatDate(log.updated_at),
     ]);
 
     // CSV文字列生成
     const csvContent = [
       headers.join(","),
-      ...rows.map((row) => row.join(","))
+      ...rows.map((row) => row.join(",")),
     ].join("\n");
 
     // BOM付きUTF-8でエンコード（Excel対応）
     const bom = "\uFEFF";
-    const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([bom + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
 
     // ダウンロード
     const url = URL.createObjectURL(blob);
@@ -196,7 +256,7 @@ const TweetLogTable = memo(function TweetLogTable({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  }, [logs, formatDate]);
+  }, [sortedLogs, formatDate]);
 
   if (loading) {
     return (
@@ -283,23 +343,93 @@ const TweetLogTable = memo(function TweetLogTable({
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                No
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort("id")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>No</span>
+                  {sortField === "id" ? (
+                    sortDirection === "asc" ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  )}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ツイート日時
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort("tweet_created_at")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>ツイート日時</span>
+                  {sortField === "tweet_created_at" ? (
+                    sortDirection === "asc" ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  )}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                アカウントID
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort("twitter_id")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>アカウントID</span>
+                  {sortField === "twitter_id" ? (
+                    sortDirection === "asc" ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  )}
+                </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 テキスト
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                いいね数
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort("favorite_count")}
+              >
+                <div className="flex items-center space-x-1">
+                  <Heart className="h-4 w-4 text-red-500" />
+                  {sortField === "favorite_count" ? (
+                    sortDirection === "asc" ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  )}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                リツイート数
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort("retweet_count")}
+              >
+                <div className="flex items-center space-x-1">
+                  <Repeat className="h-4 w-4 text-green-500" />
+                  {sortField === "retweet_count" ? (
+                    sortDirection === "asc" ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  )}
+                </div>
               </th>
               {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 リプライ数
@@ -307,11 +437,39 @@ const TweetLogTable = memo(function TweetLogTable({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 引用数
               </th> */}
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                閲覧数
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort("view_count")}
+              >
+                <div className="flex items-center space-x-1">
+                  <Eye className="h-4 w-4 text-blue-500" />
+                  {sortField === "view_count" ? (
+                    sortDirection === "asc" ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  )}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                更新日時
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort("updated_at")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>更新日時</span>
+                  {sortField === "updated_at" ? (
+                    sortDirection === "asc" ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 opacity-50" />
+                  )}
+                </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 操作
@@ -319,7 +477,7 @@ const TweetLogTable = memo(function TweetLogTable({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {logs.map((log) => (
+            {sortedLogs.map((log) => (
               <tr key={log.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {log.id || "0"}

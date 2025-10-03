@@ -180,6 +180,9 @@ async function upsertTwitterAccount(
   if (d.ghost_ban === true) {
     d.status = "ghost_ban";
   }
+  if (data.user?.legacy?.profile_interstitial_type == "fake_account") {
+    d.status = "temp_locked";
+  }
   const { error } = await supabase
     .from("twitter_account_v1")
     .upsert(d, { onConflict: "twitter_id" }); // ← 一発

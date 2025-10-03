@@ -164,6 +164,7 @@
 //     no_reply: !!data?.no_reply,
 //     ghost_ban: !!data?.ghost_ban,
 //     reply_deboosting: !!data?.reply_deboosting,
+//     rest_id: data?.user?.rest_id ?? "",
 //     created_at: data?.user?.legacy?.created_at ?? new Date().toISOString(),
 //     updated_at: new Date().toISOString(),
 //   };
@@ -178,6 +179,9 @@
 //   }
 //   if (d.ghost_ban === true) {
 //     d.status = "ghost_ban";
+//   }
+//   if (data.user?.legacy?.profile_interstitial_type == "fake_account") {
+//     d.status = "temp_locked";
 //   }
 //   const { error } = await supabase
 //     .from("twitter_account_v1")

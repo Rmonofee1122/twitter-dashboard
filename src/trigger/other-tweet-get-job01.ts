@@ -16,21 +16,21 @@ const supabase = createClient(
 // 3分おき（東京タイムゾーン）で起動する「宣言的スケジュール」
 // v3の scheduled task / timezone 指定の書式に準拠
 export const shadowbanCron = schedules.task({
-  id: "shadowban-every-3m-port-3003",
+  id: "get-other-tweets-every-3m-port-3016",
   cron: { pattern: "*/3 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで3分おき
   // 同時二重起動を避けたいなら queue を1に
   queue: { concurrencyLimit: 1 },
   run: async (_payload) => {
-    const BATCH_SIZE = 30;
+    const BATCH_SIZE = 10;
 
-    // 1) queued から30件ロックして running に遷移（RPCは前回案のSQL）
+    // 1) queued から10件ロックして running に遷移（RPCは前回案のSQL）
     const { data: jobs, error: lockErr } = await supabase.rpc(
-      "lock_and_take_jobs",
+      "lock_and_take_other_tweet_get_jobs",
       { p_limit: BATCH_SIZE }
     );
 
     if (lockErr) {
-      logger.error("lock_and_take_jobs error", { lockErr });
+      logger.error("lock_and_take_other_tweet_get_jobs error", { lockErr });
       return;
     }
     if (!jobs?.length) {
@@ -46,8 +46,8 @@ export const shadowbanCron = schedules.task({
       try {
         // 直接外部shadowban APIを呼び出し（自分のAPIを経由しない）
         const data = await fetchWithBackoff(
-          `http://localhost:3003/api/test?screen_name=${encodeURIComponent(
-            job.screen_name
+          `http://localhost:3016/api/tweets-by-user-id?user_id=${encodeURIComponent(
+            job.rest_id
           )}`,
           { headers: { accept: "application/json" } },
           { totalDeadlineMs: 25_000 }
@@ -55,19 +55,19 @@ export const shadowbanCron = schedules.task({
 
         // 成功 → ジョブ状態＋結果保存
         await supabase
-          .from("shadowban_jobs")
+          .from("other_tweet_get_jobs")
           .update({ status: "succeeded", result: data, error: null })
           .eq("id", job.id);
 
         // ついでに twitter_account_v1 へ upsert
-        await upsertTwitterAccount(supabase, job.screen_name, data);
+        await upsertTweetInfo(supabase, data);
 
         succeeded++;
       } catch (e: any) {
         const max = 5;
         const next = (job.attempt_count ?? 0) + 1 >= max ? "failed" : "queued";
         await supabase
-          .from("shadowban_jobs")
+          .from("other_tweet_get_jobs")
           .update({
             status: next,
             attempt_count: (job.attempt_count ?? 0) + 1,
@@ -140,60 +140,49 @@ async function fetchWithBackoff(
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function upsertTwitterAccount(
-  supabase: any,
-  screen_name: string,
-  data: any
-) {
-  const d = {
-    twitter_id: "@" + (screen_name ?? ""),
-    name: data?.user?.legacy?.name ?? "",
-    screen_name: data?.user?.legacy?.screen_name ?? screen_name,
-    status: String(data?.user?.reason ?? "active").toLowerCase(),
-    description_text: data?.user?.legacy?.description ?? null,
-    profile_image_url_https:
-      data?.user?.legacy?.profile_image_url_https ?? null,
-    profile_banner_url: data?.user?.legacy?.profile_banner_url ?? null,
-    follower_count: data?.user?.legacy?.followers_count ?? 0,
-    following_count: data?.user?.legacy?.friends_count ?? 0,
-    posts_count: data?.user?.legacy?.statuses_count ?? 0,
-    media_count: data?.user?.legacy?.media_count ?? 0,
-    favourites_count: data?.user?.legacy?.favourites_count ?? 0,
-    not_found: !!data?.not_found,
-    suspend: !!data?.suspend,
-    protect: !!data?.protected,
-    no_tweet: !!data?.no_tweet,
-    search_ban: !!data?.search_ban,
-    search_suggestion_ban: !!data?.search_suggestion_ban,
-    no_reply: !!data?.no_reply,
-    ghost_ban: !!data?.ghost_ban,
-    reply_deboosting: !!data?.reply_deboosting,
-    rest_id: data?.user?.rest_id ?? "",
-    created_at: data?.user?.legacy?.created_at ?? new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  if (d.not_found === true) {
-    d.status = "not_found";
-  }
-  if (d.search_ban === true) {
-    d.status = "search_ban";
-  }
-  if (d.search_suggestion_ban === true) {
-    d.status = "search_suggestion_ban";
-  }
-  if (d.ghost_ban === true) {
-    d.status = "ghost_ban";
-  }
-  if (data.user?.legacy?.profile_interstitial_type == "fake_account") {
-    d.status = "temp_locked";
-  }
-  const { error } = await supabase
-    .from("twitter_account_v1")
-    .upsert(d, { onConflict: "twitter_id" }); // ← 一発
+async function upsertTweetInfo(supabase: any, data: any) {
+  // data内のtweetsの数だけ繰り返し
+  for (const tweet of data?.tweets) {
+    const d = {
+      twitter_id: "@" + tweet?.user?.screen_name,
+      name: tweet?.user?.name ?? "",
+      screen_name: tweet?.user?.screen_name,
+      tweet_id: tweet?.id ?? null,
+      tweet_text: tweet?.text ?? null,
+      tweet_created_at: tweet?.created_at ?? null,
+      favorite_count: tweet?.favorite_count ?? 0,
+      retweet_count: tweet?.retweet_count ?? 0,
+      reply_count: tweet?.reply_count ?? 0,
+      quote_count: tweet?.quote_count ?? 0,
+      view_count: tweet?.views ?? 0,
+      is_retweet: tweet?.is_retweet ?? false,
+      is_quote: tweet?.is_quote ?? false,
+      media_type: tweet?.media_type ?? null,
+      media_url: tweet?.media_url ?? null,
+      tweet_link: `https://x.com/${data?.user?.screen_name}/status/${tweet?.id}`,
+      created_at:
+        data?.user?.legacy?.created_at ??
+        new Date(new Date().getTime() + 9 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date(
+        new Date().getTime() + 9 * 60 * 60 * 1000
+      ).toISOString(),
+    };
 
-  if (error) {
-    console.error("upsert error:", error);
-    console.error("accountData that caused error:", JSON.stringify(d, null, 2));
-    throw new Error(`Database upsert failed: ${error.message}`);
+    if (d.tweet_id === null) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("other_tweet_log")
+      .upsert(d, { onConflict: "tweet_id" }); // ← 一発
+
+    if (error) {
+      console.error("upsert error:", error);
+      console.error(
+        "accountData that caused error:",
+        JSON.stringify(d, null, 2)
+      );
+      throw new Error(`Database upsert failed: ${error.message}`);
+    }
   }
 }

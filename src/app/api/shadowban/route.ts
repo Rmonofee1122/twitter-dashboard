@@ -86,6 +86,11 @@ async function saveShadowbanDataToSupabase(
     if (accountData.ghost_ban === true) {
       accountData.status = "ghost_ban";
     }
+    if (
+      shadowbanData.user?.legacy?.profile_interstitial_type == "fake_account"
+    ) {
+      accountData.status = "temp_locked";
+    }
 
     // screen_nameで既存レコードを検索・追加または更新
     const { error } = await supabase

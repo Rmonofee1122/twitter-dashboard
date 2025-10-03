@@ -3,6 +3,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Clock3,
   Minus,
   Eye,
   EyeOff,
@@ -244,10 +245,8 @@ const AccountTable = memo(function AccountTable({
         case "email_ban":
         case "Email_BAN":
           return <XCircle className="h-4 w-4 text-red-500" />;
-        case "pending":
-        case "FarmUp":
-        case "farmup":
-          return <Clock className="h-4 w-4 text-yellow-500" />;
+        case "temp_locked":
+          return <Clock3 className="h-4 w-4 text-blue-500" />;
         case "search_ban":
         case "search_suggestion_ban":
         case "ghost_ban":

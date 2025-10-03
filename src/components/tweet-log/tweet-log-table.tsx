@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, AlertTriangle, type LucideIcon } from "lucide-react";
+import { Eye, AlertTriangle, Download, type LucideIcon } from "lucide-react";
 import { memo, useCallback, useState } from "react";
 import TweetLogDetailModal from "./tweet-log-detail-modal";
 import { TwitterAccountInfo } from "@/types/database";
@@ -134,6 +134,70 @@ const TweetLogTable = memo(function TweetLogTable({
     setSelectedAccount(null);
   }, []);
 
+  const handleExportCSV = useCallback(() => {
+    // CSVヘッダー
+    const headers = [
+      "No",
+      "ツイート日時",
+      "アカウントID",
+      "名前",
+      "スクリーン名",
+      "ツイートID",
+      "テキスト",
+      "いいね数",
+      "リツイート数",
+      "リプライ数",
+      "引用数",
+      "閲覧数",
+      "リツイート",
+      "引用",
+      "メディアタイプ",
+      "メディアURL",
+      "更新日時"
+    ];
+
+    // CSVデータ行
+    const rows = logs.map((log) => [
+      log.id,
+      formatDate(log.tweet_created_at),
+      log.twitter_id,
+      log.name,
+      log.screen_name,
+      log.tweet_id,
+      `"${log.tweet_text.replace(/"/g, '""')}"`, // ダブルクォートをエスケープ
+      log.favorite_count,
+      log.retweet_count,
+      log.reply_count,
+      log.quote_count,
+      log.view_count,
+      log.is_retweet ? "はい" : "いいえ",
+      log.is_quote ? "はい" : "いいえ",
+      log.media_type,
+      log.media_url,
+      formatDate(log.updated_at)
+    ]);
+
+    // CSV文字列生成
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.join(","))
+    ].join("\n");
+
+    // BOM付きUTF-8でエンコード（Excel対応）
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8;" });
+
+    // ダウンロード
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `tweet_logs_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [logs, formatDate]);
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -190,17 +254,27 @@ const TweetLogTable = memo(function TweetLogTable({
             itemsPerPage={itemsPerPage}
             onPageChange={onPageChange || (() => {})}
           />
-          <div className="text-sm text-gray-500">
-            {totalLogs
-              ? (() => {
-                  const startIndex = (currentPage - 1) * itemsPerPage + 1;
-                  const endIndex = Math.min(
-                    currentPage * itemsPerPage,
-                    totalLogs
-                  );
-                  return `${startIndex}-${endIndex}件目 / 全${totalLogs.toLocaleString()}件`;
-                })()
-              : `全${logs.length}件`}
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+              aria-label="CSVエクスポート"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              CSVエクスポート
+            </button>
+            <div className="text-sm text-gray-500">
+              {totalLogs
+                ? (() => {
+                    const startIndex = (currentPage - 1) * itemsPerPage + 1;
+                    const endIndex = Math.min(
+                      currentPage * itemsPerPage,
+                      totalLogs
+                    );
+                    return `${startIndex}-${endIndex}件目 / 全${totalLogs.toLocaleString()}件`;
+                  })()
+                : `全${logs.length}件`}
+            </div>
           </div>
         </div>
       )}

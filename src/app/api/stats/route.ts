@@ -1033,8 +1033,8 @@ export async function fetchActiveAccounts(
 
     let query = supabase
       .from("twitter_account_v3")
-      .select("*", { count: "exact" })
-      .or('status.eq.active,status.eq."active"');
+      .select("*", { count: "planned" })
+      .eq("status", "active");
 
     if (startDate) {
       query = query.gte("created_at", startDate + "T00:00:00");
@@ -1059,7 +1059,7 @@ export async function fetchActiveAccounts(
       // よく使われるフィールドを優先してインデックス効果を期待
       switch (sortField) {
         case "created_at":
-          query = query.order("log_created_at", { ascending });
+          query = query.order("created_at", { ascending });
           break;
         case "id":
           query = query.order("id", { ascending });
@@ -1095,15 +1095,13 @@ export async function fetchActiveAccounts(
       }
     } else {
       // ソートが指定されていない場合のデフォルト（最も効率的）
-      query = query.order("log_created_at", { ascending: false });
+      query = query.order("created_at", { ascending: false });
     }
 
-    const { data, error, count } = await query
-      .order("created_at", { ascending: false })
-      .range(from, to);
+    const { data, error, count } = await query.range(from, to);
 
     if (error) {
-      console.error("Active accounts fetch error:", error);
+      console.error("Active accounts fetch error:", JSON.stringify(error, null, 2));
       return { data: [], totalCount: 0 };
     }
 

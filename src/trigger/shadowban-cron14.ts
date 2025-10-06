@@ -59,6 +59,15 @@ export const shadowbanCron = schedules.task({
           .update({ status: "succeeded", result: data, error: null })
           .eq("id", job.id);
 
+        // 失敗 → ジョブ状態＋結果保存
+        if (data.error) {
+          await supabase
+            .from("shadowban_jobs")
+            .update({ status: "failed", error: String(data.error) })
+            .eq("id", job.id);
+          return;
+        }
+
         // ついでに twitter_account_v1 へ upsert
         await upsertTwitterAccount(supabase, job.screen_name, data);
 

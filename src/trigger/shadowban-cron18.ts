@@ -59,6 +59,15 @@ export const shadowbanCron = schedules.task({
           .update({ status: "succeeded", result: data, error: null })
           .eq("id", job.id);
 
+        // 失敗 → ジョブ状態＋結果保存
+        if (data.error) {
+          await supabase
+            .from("shadowban_jobs")
+            .update({ status: "failed", error: String(data.error) })
+            .eq("id", job.id);
+          return;
+        }
+
         // ついでに twitter_account_v1 へ upsert
         await upsertTwitterAccount(supabase, job.screen_name, data);
 
@@ -90,7 +99,7 @@ async function fetchWithBackoff(
     // リトライ回数
     retries = 3,
     // 初期遅延
-    baseMs = 300,
+    baseMs = 3000,
     // 最大遅延
     maxMs = 10_000,
     // 1回あたりのタイムアウト
@@ -187,7 +196,8 @@ async function upsertTwitterAccount(
   if (data.user?.legacy?.profile_interstitial_type == "fake_account") {
     d.status = "temp_locked";
   }
-  const { error } = await supabase
+
+  const { data: accountData, error } = await supabase
     .from("twitter_account_v1")
     .upsert(d, { onConflict: "twitter_id" }); // ← 一発
 
@@ -197,3 +207,33 @@ async function upsertTwitterAccount(
     throw new Error(`Database upsert failed: ${error.message}`);
   }
 }
+
+// async function searchShadowban(screen_name: string) {
+//   const { data, error } = await fetchWithBackoff(
+//     `http://localhost:3021/api/get-user-by-word?search_word=${encodeURIComponent(
+//       screen_name
+//     )}`,
+//     { headers: { accept: "application/json" } },
+//     { totalDeadlineMs: 25_000 }
+//   ).then((r) => r.json());
+//   if (error) {
+//     console.error("searchShadowban error:", error);
+//     throw new Error(`Database searchShadowban failed: ${error.message}`);
+//   }
+//   // テーブル「search_shadowban_logs」にINSERT
+//   const { error: insertError } = await supabase
+//     .from("search_shadowban_logs")
+//     .insert([
+//       {
+//         twitter_id: `@${screen_name}`,
+//         screen_name: screen_name,
+//         result: data.jsonb(),
+//         error: error,
+//       },
+//     ]);
+//   if (insertError) {
+//     console.error("insert error:", insertError);
+//     throw new Error(`Database insert failed: ${insertError.message}`);
+//   }
+//   return data;
+// }

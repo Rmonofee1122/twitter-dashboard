@@ -173,11 +173,7 @@ export default function ProxyTable({
         for (const line of lines) {
           const trimmedLine = line.trim();
           if (trimmedLine) {
-            const ipPattern = /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g;
-            const matches = trimmedLine.match(ipPattern);
-            if (matches) {
-              proxies.push(...matches);
-            }
+            proxies.push(trimmedLine);
           }
         }
 

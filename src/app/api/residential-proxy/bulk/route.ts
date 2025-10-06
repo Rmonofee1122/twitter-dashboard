@@ -29,37 +29,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 大量のプロキシを処理するため、チャンク分割して既存チェック
-    const CHUNK_SIZE = 100;
-    const existingIps = new Set<string>();
+    // 既存のテーブルデータを全て削除
+    console.log("🗑️ 既存のプロキシデータを削除中...");
+    const { error: deleteError } = await supabase
+      .from("residential_proxy_list")
+      .delete()
+      .neq("id", 0); // 全件削除
 
-    for (let i = 0; i < validProxies.length; i += CHUNK_SIZE) {
-      const chunk = validProxies.slice(i, i + CHUNK_SIZE);
-      const { data: existingProxies, error: checkError } = await supabase
-        .from("residential_proxy_list")
-        .select("ip")
-        .in("ip", chunk);
-
-      if (checkError) {
-        console.error("❌ 既存プロキシチェックエラー:", checkError);
-        return NextResponse.json(
-          { error: "既存プロキシのチェックに失敗しました" },
-          { status: 500 }
-        );
-      }
-
-      existingProxies?.forEach((p) => existingIps.add(p.ip));
-    }
-    const newProxies = validProxies.filter((ip) => !existingIps.has(ip));
-
-    if (newProxies.length === 0) {
+    if (deleteError) {
+      console.error("❌ 既存データ削除エラー:", deleteError);
       return NextResponse.json(
-        { error: "すべてのプロキシIPが既に登録されています" },
-        { status: 409 }
+        { error: "既存データの削除に失敗しました" },
+        { status: 500 }
       );
     }
 
-    const insertData = newProxies.map((ip) => ({
+    console.log("✅ 既存データの削除完了");
+
+    const insertData = validProxies.map((ip) => ({
       ip,
       used_count: 0,
       last_used_at: null,
@@ -78,22 +65,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const skipperesidentialount = validProxies.length - newProxies.length;
-
     console.log(
-      `✅ プロキシバルクインサート成功: 新規登録=${newProxies.length}個, スキップ=${skipperesidentialount}個`
+      `✅ プロキシバルクインサート成功: ${validProxies.length}個のプロキシを登録`
     );
 
     return NextResponse.json({
       success: true,
       inserted: data?.length || 0,
-      skipped: skipperesidentialount,
       total: validProxies.length,
-      message: `${newProxies.length}個のプロキシを新規登録しました${
-        skipperesidentialount > 0
-          ? ` (${skipperesidentialount}個は既に登録済みのためスキップ)`
-          : ""
-      }`,
+      message: `${validProxies.length}個のプロキシを登録しました`,
     });
   } catch (error) {
     console.error("💥 プロキシバルクインサートエラー:", error);

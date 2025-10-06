@@ -33,6 +33,7 @@ import {
   Network,
   Smartphone,
   MessageCircle,
+  MapPinHouse,
 } from "lucide-react";
 
 const navigation = [
@@ -129,6 +130,7 @@ const navigation = [
     submenu: [
       { name: "データセンター", href: "/proxy/dc", icon: Globe },
       { name: "モバイル", href: "/proxy/mobile", icon: Smartphone },
+      { name: "レジデンシャル", href: "/proxy/residential", icon: MapPinHouse },
     ],
   },
   { name: "設定", href: "/settings", icon: Settings },

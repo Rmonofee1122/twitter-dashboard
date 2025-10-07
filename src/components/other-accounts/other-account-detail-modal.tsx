@@ -25,7 +25,7 @@ import {
   getStatusText,
   getStatusBadgeColor,
 } from "@/utils/status-helpers";
-import { formatDate01 } from "@/utils/date-helpers";
+import { formatDate01, formatDateLocal } from "@/utils/date-helpers";
 import { updateAccountStatus } from "@/lib/account-actions";
 import { fetchAccountDetails } from "@/app/api/stats/route";
 
@@ -650,16 +650,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                   {/* 投稿日時 */}
                   <div className="font-medium text-gray-700">
                     {log.tweet_created_at
-                      ? new Date(log.tweet_created_at).toLocaleDateString(
-                          "ja-JP",
-                          {
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )
+                      ? formatDateLocal(log.tweet_created_at)
                       : "日時不明"}
                   </div>
 
@@ -768,13 +759,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                 >
                   {/* 日時 */}
                   <div className="font-medium text-gray-700">
-                    {new Date(log.updated_at).toLocaleDateString("ja-JP", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {formatDate01(log.updated_at)}
                   </div>
 
                   {/* 判定結果 */}
@@ -787,6 +772,8 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                             log.search_suggestion_ban ||
                             log.ghost_ban
                           ? "bg-orange-100 text-orange-800"
+                          : log.temp_locked
+                          ? "bg-blue-100 text-blue-800"
                           : log.not_found
                           ? "bg-gray-100 text-gray-800"
                           : "bg-green-100 text-green-800"
@@ -826,6 +813,11 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                     {log.suspend && (
                       <span className="px-1 py-0.5 bg-red-200 text-red-800 rounded text-xs">
                         凍結
+                      </span>
+                    )}
+                    {log.temp_locked && (
+                      <span className="px-1 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">
+                        一時制限
                       </span>
                     )}
                     {log.not_found && (

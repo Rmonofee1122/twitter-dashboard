@@ -843,7 +843,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                             log.search_suggestion_ban ||
                             log.ghost_ban
                           ? "bg-orange-100 text-orange-800"
-                          : log.temp_locked
+                          : log.status === "temp_locked"
                           ? "bg-blue-100 text-blue-800"
                           : log.not_found
                           ? "bg-gray-100 text-gray-800"
@@ -886,7 +886,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                         凍結
                       </span>
                     )}
-                    {log.temp_locked && (
+                    {log.status === "temp_locked" && (
                       <span className="px-1 py-0.5 bg-blue-200 text-blue-800 rounded text-xs">
                         一時制限
                       </span>

@@ -27,6 +27,7 @@ import {
 } from "@/utils/status-helpers";
 import { updateAccountStatus } from "@/lib/account-actions";
 import { fetchAccountDetails } from "@/app/api/stats/route";
+import { formatDate01 } from "@/utils/date-helpers";
 
 // ツイートログの型定義
 export interface TweetLogEntry {
@@ -720,16 +721,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                   {/* 投稿日時 */}
                   <div className="font-medium text-gray-700">
                     {log.tweet_created_at
-                      ? new Date(log.tweet_created_at).toLocaleDateString(
-                          "ja-JP",
-                          {
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )
+                      ? formatDate01(log.tweet_created_at)
                       : "日時不明"}
                   </div>
 
@@ -838,13 +830,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                 >
                   {/* 日時 */}
                   <div className="font-medium text-gray-700">
-                    {new Date(log.updated_at).toLocaleDateString("ja-JP", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {formatDate01(log.updated_at)}
                   </div>
 
                   {/* 判定結果 */}

@@ -166,7 +166,7 @@ async function upsertTwitterAccount(
     favourites_count: data?.user?.legacy?.favourites_count ?? 0,
     not_found: !!data?.not_found,
     suspend: !!data?.suspend,
-    protect: !!data?.protected,
+    protect: !!data?.protect,
     no_tweet: !!data?.no_tweet,
     search_ban: !!data?.search_ban,
     search_suggestion_ban: !!data?.search_suggestion_ban,

@@ -17,11 +17,11 @@ const supabase = createClient(
 // v3の scheduled task / timezone 指定の書式に準拠
 export const shadowbanCron = schedules.task({
   id: "shadowban-every-3m-port-3019",
-  cron: { pattern: "*/1 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで3分おき
+  cron: { pattern: "*/3 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで3分おき
   // 同時二重起動を避けたいなら queue を1に
   queue: { concurrencyLimit: 1 },
   run: async (_payload) => {
-    const BATCH_SIZE = 5;
+    const BATCH_SIZE = 10;
 
     // 1) queued から30件ロックして running に遷移（RPCは前回案のSQL）
     const { data: jobs, error: lockErr } = await supabase.rpc(
@@ -154,6 +154,11 @@ async function upsertTwitterAccount(
   screen_name: string,
   data: any
 ) {
+  // デバッグ用：全アカウントのsearch_ban状態をログ出力
+  // console.log(`=== UPSERT: ${screen_name} ===`);
+  // console.log("API data.search_ban:", data?.search_ban);
+  // console.log("API data.no_tweet:", data?.no_tweet);
+
   // search_shadowbanDataを非同期で取得
   const search_shadowbanData = await searchShadowban(screen_name);
   const d = {
@@ -172,7 +177,7 @@ async function upsertTwitterAccount(
     favourites_count: data?.user?.legacy?.favourites_count ?? 0,
     not_found: !!data?.not_found,
     suspend: !!data?.suspend,
-    protect: !!data?.protected,
+    protect: !!data?.protect,
     no_tweet: !!data?.no_tweet,
     search_ban: !!data?.search_ban,
     search_suggestion_ban: !!data?.search_suggestion_ban,
@@ -184,6 +189,12 @@ async function upsertTwitterAccount(
     created_at: data?.user?.legacy?.created_at ?? new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
+
+  // デバッグ用：データベースに保存する内容を出力
+  // console.log("DB d.search_ban:", d.search_ban);
+  // console.log("DB d.no_tweet:", d.no_tweet);
+  // console.log("DB d.status:", d.status);
+
   if (d.not_found === true) {
     d.status = "not_found";
   }
@@ -199,6 +210,9 @@ async function upsertTwitterAccount(
   if (data.user?.legacy?.profile_interstitial_type == "fake_account") {
     d.status = "temp_locked";
   }
+
+  // console.log("FINAL d.status:", d.status);
+  // console.log("FINAL d.search_ban:", d.search_ban);
 
   const { data: accountData, error } = await supabase
     .from("twitter_account_v1")

@@ -1031,24 +1031,34 @@ export async function fetchActiveAccounts(
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    let query = supabase
+    // カウント用クエリ（推定カウントで高速化）
+    let countQuery = supabase
       .from("twitter_account_v3")
-      .select("*", { count: "planned" })
+      .select("id", { count: "exact", head: true })
       .eq("status", "active");
 
+    // データ取得用クエリ（カウントなし）
+    let dataQuery = supabase
+      .from("twitter_account_v3")
+      .select("*")
+      .eq("status", "active");
+
+    // 両方のクエリに同じフィルターを適用
     if (startDate) {
-      query = query.gte("created_at", startDate + "T00:00:00");
+      countQuery = countQuery.gte("created_at", startDate + "T00:00:00");
+      dataQuery = dataQuery.gte("created_at", startDate + "T00:00:00");
     }
     if (endDate) {
-      query = query.lte("created_at", endDate + "T23:59:59");
+      countQuery = countQuery.lte("created_at", endDate + "T23:59:59");
+      dataQuery = dataQuery.lte("created_at", endDate + "T23:59:59");
     }
     if (searchTerm) {
-      query = query.or(
-        `twitter_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,create_ip.ilike.%${searchTerm}%`
-      );
+      const orFilter = `twitter_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,create_ip.ilike.%${searchTerm}%`;
+      countQuery = countQuery.or(orFilter);
+      dataQuery = dataQuery.or(orFilter);
     }
 
-    // ソート処理（インデックス効率を考慮）
+    // ソート処理（データクエリのみに適用）
     if (
       sortField &&
       sortDirection &&
@@ -1059,49 +1069,62 @@ export async function fetchActiveAccounts(
       // よく使われるフィールドを優先してインデックス効果を期待
       switch (sortField) {
         case "created_at":
-          query = query.order("created_at", { ascending });
+          dataQuery = dataQuery.order("created_at", { ascending });
           break;
         case "id":
-          query = query.order("id", { ascending });
+          dataQuery = dataQuery.order("id", { ascending });
           break;
         case "status":
-          query = query.order("status", { ascending });
+          dataQuery = dataQuery.order("status", { ascending });
           break;
         case "updated_at":
-          query = query.order("updated_at", { ascending });
+          dataQuery = dataQuery.order("updated_at", { ascending });
           break;
         case "twitter_id":
-          query = query.order("twitter_id", { ascending });
+          dataQuery = dataQuery.order("twitter_id", { ascending });
           break;
         case "follower_count":
-          query = query.order("follower_count", {
+          dataQuery = dataQuery.order("follower_count", {
             ascending,
             nullsFirst: false,
           });
           break;
         case "following_count":
-          query = query.order("following_count", {
+          dataQuery = dataQuery.order("following_count", {
             ascending,
             nullsFirst: false,
           });
           break;
         case "posts_count":
-          query = query.order("posts_count", { ascending, nullsFirst: false });
+          dataQuery = dataQuery.order("posts_count", {
+            ascending,
+            nullsFirst: false,
+          });
           break;
         default:
           // デフォルトソート（最も効率的）
-          query = query.order("created_at", { ascending: false });
+          dataQuery = dataQuery.order("created_at", { ascending: false });
           break;
       }
     } else {
       // ソートが指定されていない場合のデフォルト（最も効率的）
-      query = query.order("created_at", { ascending: false });
+      dataQuery = dataQuery.order("created_at", { ascending: false });
     }
 
-    const { data, error, count } = await query.range(from, to);
+    // カウントとデータを並列で取得
+    const [countResult, dataResult] = await Promise.all([
+      countQuery,
+      dataQuery.range(from, to),
+    ]);
+
+    const { count } = countResult;
+    const { data, error } = dataResult;
 
     if (error) {
-      console.error("Active accounts fetch error:", JSON.stringify(error, null, 2));
+      console.error(
+        "Active accounts fetch error:",
+        JSON.stringify(error, null, 2)
+      );
       return { data: [], totalCount: 0 };
     }
 

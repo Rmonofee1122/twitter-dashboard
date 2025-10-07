@@ -46,7 +46,7 @@
 //       try {
 //         // 直接外部shadowban APIを呼び出し（自分のAPIを経由しない）
 //         const data = await fetchWithBackoff(
-//           `http://localhost:3021/api/get-user-by-word?search_word=${encodeURIComponent(
+//           `http://localhost:3021/api/get-info-by-word?search_word${encodeURIComponent(
 //             job.screen_name
 //           )}`,
 //           { headers: { accept: "application/json" } },

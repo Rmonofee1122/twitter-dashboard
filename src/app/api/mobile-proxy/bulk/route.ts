@@ -29,6 +29,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 既存のテーブルデータを全て削除
+    console.log("🗑️ 既存のプロキシデータを削除中...");
+    const { error: deleteError } = await supabase
+      .from("mb_proxy_list")
+      .delete()
+      .neq("id", 0); // 全件削除
+
     const { data: existingProxies, error: checkError } = await supabase
       .from("mb_proxy_list")
       .select("ip")

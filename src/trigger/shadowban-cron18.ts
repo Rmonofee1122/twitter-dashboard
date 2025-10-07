@@ -17,11 +17,11 @@ const supabase = createClient(
 // v3の scheduled task / timezone 指定の書式に準拠
 export const shadowbanCron = schedules.task({
   id: "shadowban-every-3m-port-3019",
-  cron: { pattern: "*/3 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで3分おき
+  cron: { pattern: "*/1 * * * *", timezone: "Asia/Tokyo" }, // ← JSTで3分おき
   // 同時二重起動を避けたいなら queue を1に
   queue: { concurrencyLimit: 1 },
   run: async (_payload) => {
-    const BATCH_SIZE = 30;
+    const BATCH_SIZE = 5;
 
     // 1) queued から30件ロックして running に遷移（RPCは前回案のSQL）
     const { data: jobs, error: lockErr } = await supabase.rpc(
@@ -154,6 +154,8 @@ async function upsertTwitterAccount(
   screen_name: string,
   data: any
 ) {
+  // search_shadowbanDataを非同期で取得
+  const search_shadowbanData = await searchShadowban(screen_name);
   const d = {
     twitter_id: "@" + (screen_name ?? ""),
     name: data?.user?.legacy?.name ?? "",
@@ -178,6 +180,7 @@ async function upsertTwitterAccount(
     ghost_ban: !!data?.ghost_ban,
     reply_deboosting: !!data?.reply_deboosting,
     rest_id: data?.user?.rest_id ?? "",
+    search_shadowban_result: search_shadowbanData,
     created_at: data?.user?.legacy?.created_at ?? new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -208,32 +211,40 @@ async function upsertTwitterAccount(
   }
 }
 
-// async function searchShadowban(screen_name: string) {
-//   const { data, error } = await fetchWithBackoff(
-//     `http://localhost:3021/api/get-user-by-word?search_word=${encodeURIComponent(
-//       screen_name
-//     )}`,
-//     { headers: { accept: "application/json" } },
-//     { totalDeadlineMs: 25_000 }
-//   ).then((r) => r.json());
-//   if (error) {
-//     console.error("searchShadowban error:", error);
-//     throw new Error(`Database searchShadowban failed: ${error.message}`);
-//   }
-//   // テーブル「search_shadowban_logs」にINSERT
-//   const { error: insertError } = await supabase
-//     .from("search_shadowban_logs")
-//     .insert([
-//       {
-//         twitter_id: `@${screen_name}`,
-//         screen_name: screen_name,
-//         result: data.jsonb(),
-//         error: error,
-//       },
-//     ]);
-//   if (insertError) {
-//     console.error("insert error:", insertError);
-//     throw new Error(`Database insert failed: ${insertError.message}`);
-//   }
-//   return data;
-// }
+async function searchShadowban(screen_name: string) {
+  const responseData = await fetchWithBackoff(
+    `http://localhost:3021/api/get-info-by-word?search_word=${encodeURIComponent(
+      screen_name
+    )}`,
+    { headers: { accept: "application/json" } },
+    { totalDeadlineMs: 25_000 }
+  ).then((r) => r.json());
+
+  // レスポンス全体をコンソールに出力（デバッグ用）
+  // console.log("API Response:", JSON.stringify(responseData, null, 2));
+
+  // テーブル「search_shadowban_logs」にINSERT（エラーがあっても記録する）
+  const { error: insertError } = await supabase
+    .from("search_shadowban_logs")
+    .insert([
+      {
+        twitter_id: `@${screen_name}`,
+        screen_name: screen_name,
+        result: responseData,
+        error: responseData?.error || null,
+      },
+    ]);
+  if (insertError) {
+    console.error("insert error:", insertError);
+  }
+
+  // エラーがある場合は例外をスロー
+  if (!responseData?.success || responseData?.error) {
+    console.error("searchShadowban error:", responseData?.error);
+    throw new Error(
+      `API searchShadowban failed: ${responseData?.error || "Unknown error"}`
+    );
+  }
+
+  return responseData;
+}

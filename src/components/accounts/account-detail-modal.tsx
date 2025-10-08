@@ -902,6 +902,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                       !log.ghost_ban &&
                       !log.reply_deboosting &&
                       !log.suspend &&
+                      log.status !== "temp_locked" &&
                       !log.not_found && (
                         <span className="px-1 py-0.5 bg-green-200 text-green-800 rounded text-xs">
                           制限なし

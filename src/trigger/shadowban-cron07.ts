@@ -42,7 +42,13 @@ export const shadowbanCron = schedules.task({
       failed = 0;
 
     // 2) 小並列で順次処理（外部APIはバックオフ付きで）
-    for (const job of jobs) {
+    // バーストエラーを防ぐため、リクエスト間に待機時間を設定
+    // バースト容量が2なので、リクエスト間隔は最低500ms必要
+    const REQUEST_INTERVAL_MS = 600; // 600ms間隔（安全マージン付き）
+
+    for (let i = 0; i < jobs.length; i++) {
+      const job = jobs[i];
+
       try {
         // 直接外部shadowban APIを呼び出し（自分のAPIを経由しない）
         const data = await fetchWithBackoff(
@@ -84,6 +90,14 @@ export const shadowbanCron = schedules.task({
           })
           .eq("id", job.id);
         failed++;
+      }
+      // 最後のジョブ以外は待機時間を挿入
+      if (i < jobs.length - 1) {
+        await sleep(REQUEST_INTERVAL_MS);
+        logger.log(`Waiting ${REQUEST_INTERVAL_MS}ms before next request...`, {
+          currentJob: i + 1,
+          totalJobs: jobs.length,
+        });
       }
     }
 

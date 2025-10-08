@@ -133,7 +133,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
     setIsCheckingShadowban(true);
     try {
       const response = await fetch(
-        `/api/shadowban?screen_name=${encodeURIComponent(screenName)}`
+        `/api/shadowban/other?screen_name=${encodeURIComponent(screenName)}`
       );
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);

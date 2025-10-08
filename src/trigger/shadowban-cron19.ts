@@ -228,7 +228,6 @@ async function upsertTwitterAccount(
 
   // shadowban_other_account_logテーブルへ履歴を保存
   const logData = {
-    id: upsertedAccount.id,
     twitter_id: d.twitter_id,
     rest_id: d.rest_id,
     name: d.name,

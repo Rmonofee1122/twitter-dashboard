@@ -92,58 +92,93 @@ async function saveShadowbanDataToSupabase(
       accountData.status = "temp_locked";
     }
 
-    // screen_nameで既存レコードを検索・追加または更新
-    const { error } = await supabase
-      .from("other_twitter_account")
-      .upsert(accountData, { onConflict: "twitter_id" }); // ← 一発
+    if (accountData.suspend) {
+      // other_twitter_accountのstatusをsuspendedに更新, suspendをtrueに更新, ほかはそのまま
+      accountData.status = "suspended";
+      accountData.suspend = true;
+      const { error: suspendError } = await supabase
+        .from("other_twitter_account")
+        .update({ status: "suspended", suspend: true })
+        .eq("twitter_id", accountData.twitter_id); // ← 一発
+      if (suspendError) {
+        console.error("suspend error:", suspendError);
+        console.error(
+          "accountData that caused error:",
+          JSON.stringify(accountData, null, 2)
+        );
+      }
+      // shadowban_other_account_logテーブルへ履歴を保存
+      const logData = {
+        twitter_id: accountData.twitter_id,
+        screen_name: accountData.screen_name,
+        status: accountData.status,
+        suspend: accountData.suspend,
+      };
+      const { error: logError } = await supabase
+        .from("shadowban_other_account_log")
+        .insert(logData);
+      if (logError) {
+        console.error("log insert error:", logError);
+        console.error(
+          "logData that caused error:",
+          JSON.stringify(logData, null, 2)
+        );
+      }
+      return;
+    } else {
+      // screen_nameで既存レコードを検索・追加または更新
+      const { error } = await supabase
+        .from("other_twitter_account")
+        .upsert(accountData, { onConflict: "twitter_id" }); // ← 一発
 
-    if (error) {
-      console.error("upsert error:", error);
-      console.error(
-        "accountData that caused error:",
-        JSON.stringify(accountData, null, 2)
-      );
-      throw new Error(`Database upsert failed: ${error.message}`);
-    }
-    // shadowban_other_account_logテーブルへ履歴を保存
-    const logData = {
-      twitter_id: accountData.twitter_id,
-      rest_id: accountData.rest_id,
-      name: accountData.name,
-      screen_name: accountData.screen_name,
-      status: accountData.status,
-      description_text: accountData.description_text,
-      profile_image_url_https: accountData.profile_image_url_https,
-      profile_banner_url: accountData.profile_banner_url,
-      follower_count: accountData.follower_count,
-      following_count: accountData.following_count,
-      media_count: accountData.media_count,
-      not_found: accountData.not_found,
-      suspend: accountData.suspend,
-      protect: accountData.protect,
-      no_tweet: accountData.no_tweet,
-      search_ban: accountData.search_ban,
-      search_suggestion_ban: accountData.search_suggestion_ban,
-      no_reply: accountData.no_reply,
-      ghost_ban: accountData.ghost_ban,
-      reply_deboosting: accountData.reply_deboosting,
-      created_at: accountData.updated_at,
-      updated_at: accountData.updated_at,
-      favourites_count: accountData.favourites_count,
-      posts_count: accountData.posts_count,
-    };
+      if (error) {
+        console.error("upsert error:", error);
+        console.error(
+          "accountData that caused error:",
+          JSON.stringify(accountData, null, 2)
+        );
+        throw new Error(`Database upsert failed: ${error.message}`);
+      }
+      // shadowban_other_account_logテーブルへ履歴を保存
+      const logData = {
+        twitter_id: accountData.twitter_id,
+        rest_id: accountData.rest_id,
+        name: accountData.name,
+        screen_name: accountData.screen_name,
+        status: accountData.status,
+        description_text: accountData.description_text,
+        profile_image_url_https: accountData.profile_image_url_https,
+        profile_banner_url: accountData.profile_banner_url,
+        follower_count: accountData.follower_count,
+        following_count: accountData.following_count,
+        media_count: accountData.media_count,
+        not_found: accountData.not_found,
+        suspend: accountData.suspend,
+        protect: accountData.protect,
+        no_tweet: accountData.no_tweet,
+        search_ban: accountData.search_ban,
+        search_suggestion_ban: accountData.search_suggestion_ban,
+        no_reply: accountData.no_reply,
+        ghost_ban: accountData.ghost_ban,
+        reply_deboosting: accountData.reply_deboosting,
+        created_at: accountData.updated_at,
+        updated_at: accountData.updated_at,
+        favourites_count: accountData.favourites_count,
+        posts_count: accountData.posts_count,
+      };
 
-    const { error: logError } = await supabase
-      .from("shadowban_other_account_log")
-      .insert(logData);
+      const { error: logError } = await supabase
+        .from("shadowban_other_account_log")
+        .insert(logData);
 
-    if (logError) {
-      console.error("log insert error:", logError);
-      console.error(
-        "logData that caused error:",
-        JSON.stringify(logData, null, 2)
-      );
-      // ログ保存エラーは致命的ではないため、エラーをスローしない
+      if (logError) {
+        console.error("log insert error:", logError);
+        console.error(
+          "logData that caused error:",
+          JSON.stringify(logData, null, 2)
+        );
+        // ログ保存エラーは致命的ではないため、エラーをスローしない
+      }
     }
   } catch (error) {
     console.error("Error saving shadowban data to Supabase:", error);

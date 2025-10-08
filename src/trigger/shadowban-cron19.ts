@@ -156,6 +156,7 @@ async function upsertTwitterAccount(
 ) {
   const d = {
     twitter_id: "@" + (screen_name ?? ""),
+    rest_id: data?.user?.rest_id ?? null,
     name: data?.user?.legacy?.name ?? "",
     screen_name: data?.user?.legacy?.screen_name ?? screen_name,
     status: String(data?.user?.reason ?? "active").toLowerCase(),
@@ -177,6 +178,8 @@ async function upsertTwitterAccount(
     no_reply: !!data?.no_reply,
     ghost_ban: !!data?.ghost_ban,
     reply_deboosting: !!data?.reply_deboosting,
+    account_created_at: data?.user?.legacy?.created_at ?? null,
+    created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
   if (d.not_found === true) {

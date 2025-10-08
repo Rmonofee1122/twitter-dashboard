@@ -171,7 +171,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
     setIsLoadingShadowbanLogs(true);
     try {
       const response = await fetch(
-        `/api/shadowban-logs?twitter_id=${encodeURIComponent(
+        `/api/other-shadowban-logs?twitter_id=${encodeURIComponent(
           account.twitter_id
         )}&limit=10`
       );
@@ -183,7 +183,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
       const result = await response.json();
       setShadowbanLogs(result.logs || []);
     } catch (error) {
-      console.error("シャドバンログ取得エラー:", error);
+      console.error("Other Shadowbanログ取得エラー:", error);
       setShadowbanLogs([]);
     } finally {
       setIsLoadingShadowbanLogs(false);
@@ -831,6 +831,7 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                       !log.ghost_ban &&
                       !log.reply_deboosting &&
                       !log.suspend &&
+                      log.status !== "temp_locked" &&
                       !log.not_found && (
                         <span className="px-1 py-0.5 bg-green-200 text-green-800 rounded text-xs">
                           制限なし

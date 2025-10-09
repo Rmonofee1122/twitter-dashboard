@@ -45,7 +45,9 @@ export async function processShadowbanJobs({
 
     try {
       // シャドウバンAPIを呼び出し
-      logger.log(`Processing job ${job.id} for screen_name: ${job.screen_name}`);
+      logger.log(
+        `Processing job ${job.id} for screen_name: ${job.screen_name}`
+      );
       const data = await fetchWithBackoff(
         `${apiUrl}?screen_name=${encodeURIComponent(job.screen_name)}`,
         { headers: { accept: "application/json" } },
@@ -57,7 +59,12 @@ export async function processShadowbanJobs({
       // エラーレスポンスの場合
       if (data.error) {
         logger.error(`Job ${job.id} has error in response:`, data.error);
-        await updateJobFailed(supabase, job.id, String(data.error));
+        await updateJobOnError(
+          supabase,
+          job.id,
+          job.attempt_count,
+          String(data.error)
+        );
         failed++;
         continue;
       }

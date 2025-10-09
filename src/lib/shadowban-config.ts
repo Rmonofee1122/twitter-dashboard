@@ -7,7 +7,7 @@ export const SHADOWBAN_CONFIG = {
   BATCH_SIZE: 30,
 
   // リクエスト間隔（ミリ秒）
-  REQUEST_INTERVAL_MS: 1000,
+  REQUEST_INTERVAL_MS: 1200,
 
   // 最大試行回数
   MAX_ATTEMPTS: 6,

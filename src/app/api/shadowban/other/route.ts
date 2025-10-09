@@ -119,7 +119,7 @@ async function saveShadowbanDataToSupabase(
         screen_name: existingAccount?.screen_name || accountData.screen_name,
         status: accountData.status,
         suspend: accountData.suspend,
-        updated_at: accountData.updated_at,
+        updated_at: new Date().toISOString(),
         name: existingAccount?.name || accountData.name,
         description_text:
           existingAccount?.description_text || accountData.description_text,
@@ -195,7 +195,7 @@ async function saveShadowbanDataToSupabase(
         ghost_ban: accountData.ghost_ban,
         reply_deboosting: accountData.reply_deboosting,
         created_at: accountData.updated_at,
-        updated_at: accountData.updated_at,
+        updated_at: new Date().toISOString(),
         favourites_count: accountData.favourites_count,
         posts_count: accountData.posts_count,
       };

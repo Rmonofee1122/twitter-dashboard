@@ -50,7 +50,7 @@ export const shadowbanCron = schedules.task({
       try {
         // 直接外部shadowban APIを呼び出し（自分のAPIを経由しない）
         const data = await fetchWithBackoff(
-          `http://localhost:3020/api/test?screen_name=${encodeURIComponent(
+          `http://localhost:3020/api/test02?screen_name=${encodeURIComponent(
             job.screen_name
           )}`,
           { headers: { accept: "application/json" } },
@@ -217,6 +217,14 @@ async function upsertTwitterAccount(
   if (d.suspend === true) {
     d.status = "suspended";
     d.suspend = true;
+
+    // 既存レコードを取得してログに必要なフィールドを取得
+    const { data: existingAccount } = await supabase
+      .from("other_twitter_account")
+      .select("*")
+      .eq("twitter_id", d.twitter_id)
+      .single();
+
     const { error: suspendError } = await supabase
       .from("other_twitter_account")
       .update({ status: "suspended", suspend: true })
@@ -228,13 +236,35 @@ async function upsertTwitterAccount(
         JSON.stringify(d, null, 2)
       );
     }
+
     // shadowban_other_account_logテーブルへ履歴を保存
+    // 既存アカウントデータがあればそこから、なければデフォルト値を使用
     const logData = {
       twitter_id: d.twitter_id,
-      screen_name: d.screen_name,
+      name: existingAccount?.name || "",
+      screen_name: existingAccount?.screen_name || d.screen_name,
       status: d.status,
+      description_text: existingAccount?.description_text || null,
+      profile_image_url_https: existingAccount?.profile_image_url_https || null,
+      profile_banner_url: existingAccount?.profile_banner_url || null,
+      follower_count: existingAccount?.follower_count || 0,
+      following_count: existingAccount?.following_count || 0,
+      media_count: existingAccount?.media_count || 0,
+      not_found: false,
       suspend: d.suspend,
+      protect: existingAccount?.protect || false,
+      no_tweet: existingAccount?.no_tweet || false,
+      search_ban: existingAccount?.search_ban || false,
+      search_suggestion_ban: existingAccount?.search_suggestion_ban || false,
+      no_reply: existingAccount?.no_reply || false,
+      ghost_ban: existingAccount?.ghost_ban || false,
+      reply_deboosting: existingAccount?.reply_deboosting || false,
+      created_at: d.updated_at,
+      updated_at: d.updated_at,
+      favourites_count: existingAccount?.favourites_count || 0,
+      posts_count: existingAccount?.posts_count || 0,
     };
+
     const { error: logError } = await supabase
       .from("shadowban_other_account_log")
       .insert(logData);
@@ -266,7 +296,6 @@ async function upsertTwitterAccount(
     // shadowban_other_account_logテーブルへ履歴を保存
     const logData = {
       twitter_id: d.twitter_id,
-      rest_id: d.rest_id,
       name: d.name,
       screen_name: d.screen_name,
       status: d.status,

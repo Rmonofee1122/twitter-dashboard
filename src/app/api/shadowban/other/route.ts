@@ -107,12 +107,46 @@ async function saveShadowbanDataToSupabase(
           JSON.stringify(accountData, null, 2)
         );
       }
+      // 既存レコードを取得してログに必要なフィールドを取得
+      const { data: existingAccount } = await supabase
+        .from("other_twitter_account")
+        .select("*")
+        .eq("twitter_id", accountData.twitter_id)
+        .single();
       // shadowban_other_account_logテーブルへ履歴を保存
       const logData = {
         twitter_id: accountData.twitter_id,
-        screen_name: accountData.screen_name,
+        screen_name: existingAccount?.screen_name || accountData.screen_name,
         status: accountData.status,
         suspend: accountData.suspend,
+        updated_at: accountData.updated_at,
+        name: existingAccount?.name || accountData.name,
+        description_text:
+          existingAccount?.description_text || accountData.description_text,
+        profile_image_url_https:
+          existingAccount?.profile_image_url_https ||
+          accountData.profile_image_url_https,
+        profile_banner_url:
+          existingAccount?.profile_banner_url || accountData.profile_banner_url,
+        follower_count:
+          existingAccount?.follower_count || accountData.follower_count,
+        following_count:
+          existingAccount?.following_count || accountData.following_count,
+        media_count: existingAccount?.media_count || accountData.media_count,
+        not_found: accountData.not_found,
+        protect: existingAccount?.protect || accountData.protect,
+        no_tweet: existingAccount?.no_tweet || accountData.no_tweet,
+        search_ban: existingAccount?.search_ban || accountData.search_ban,
+        search_suggestion_ban:
+          existingAccount?.search_suggestion_ban ||
+          accountData.search_suggestion_ban,
+        no_reply: existingAccount?.no_reply || accountData.no_reply,
+        ghost_ban: existingAccount?.ghost_ban || accountData.ghost_ban,
+        reply_deboosting:
+          existingAccount?.reply_deboosting || accountData.reply_deboosting,
+        favourites_count:
+          existingAccount?.favourites_count || accountData.favourites_count,
+        posts_count: existingAccount?.posts_count || accountData.posts_count,
       };
       const { error: logError } = await supabase
         .from("shadowban_other_account_log")
@@ -142,7 +176,6 @@ async function saveShadowbanDataToSupabase(
       // shadowban_other_account_logテーブルへ履歴を保存
       const logData = {
         twitter_id: accountData.twitter_id,
-        rest_id: accountData.rest_id,
         name: accountData.name,
         screen_name: accountData.screen_name,
         status: accountData.status,

@@ -50,7 +50,7 @@ export const shadowbanCron = schedules.task({
       try {
         // 直接外部shadowban APIを呼び出し（自分のAPIを経由しない）
         const data = await fetchWithBackoff(
-          `http://localhost:3019/api/test?screen_name=${encodeURIComponent(
+          `http://localhost:3019/api/test02?screen_name=${encodeURIComponent(
             job.screen_name
           )}`,
           { headers: { accept: "application/json" } },

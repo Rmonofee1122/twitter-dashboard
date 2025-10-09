@@ -825,6 +825,11 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                         アカウント未発見
                       </span>
                     )}
+                    {log.no_tweet && (
+                      <span className="px-1 py-0.5 bg-gray-200 text-gray-800 rounded text-xs">
+                        ツイートなし
+                      </span>
+                    )}
                     {!log.search_ban &&
                       !log.search_suggestion_ban &&
                       !log.no_reply &&
@@ -832,7 +837,8 @@ const AccountDetailModal = React.memo(function AccountDetailModal({
                       !log.reply_deboosting &&
                       !log.suspend &&
                       log.status !== "temp_locked" &&
-                      !log.not_found && (
+                      !log.not_found &&
+                      !log.no_tweet && (
                         <span className="px-1 py-0.5 bg-green-200 text-green-800 rounded text-xs">
                           制限なし
                         </span>
